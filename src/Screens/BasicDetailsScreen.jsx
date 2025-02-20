@@ -8,26 +8,24 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { Calendar } from "react-native-calendars";
 
 export default function BasicDetailsScreen() {
   const navigation = useNavigation();
 
   // State for user inputs
-  const [name, setName] = useState("");
-  const [dueDate, setDueDate] = useState(new Date());
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [country, setCountry] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
 
-  // State for error messages
-  const [errors, setErrors] = useState({ mobileNumber: "" });
+  // Validation errors
+  const [errors, setErrors] = useState({});
 
   // Validate inputs
   const handleContinue = () => {
     let newErrors = {};
 
-    if (mobileNumber && !/^\d{10}$/.test(mobileNumber)) {
-      newErrors.mobileNumber = "Enter a valid 10-digit number";
+    if (!country.trim()) {
+      newErrors.country = "Country is required";
     }
 
     setErrors(newErrors);
@@ -37,55 +35,41 @@ export default function BasicDetailsScreen() {
     }
   };
 
-  const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(Platform.OS === "ios"); // Keep open on iOS, close on Android
-    if (selectedDate) {
-      setDueDate(selectedDate);
-    }
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Enter Your Details</Text>
 
-      {/* Name Input */}
+      {/* Country Name Input */}
+      <Text style={styles.title1}>Enter Country</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Full Name"
-        value={name}
-        onChangeText={setName}
-      />
-
-      {/* Mobile Number Input */}
-      <TextInput
-        style={[styles.input, errors.mobileNumber ? styles.errorBorder : null]}
-        placeholder="Mobile Number"
-        value={mobileNumber}
+        style={[styles.input, errors.country ? styles.errorBorder : null]}
+        placeholder=" Enter Your Country"
+        value={country}
         onChangeText={(text) => {
-          setMobileNumber(text);
-          setErrors((prev) => ({ ...prev, mobileNumber: "" }));
+          setCountry(text);
+          setErrors((prev) => ({ ...prev, country: "" }));
         }}
-        keyboardType="numeric"
-        maxLength={10}
       />
-      {errors.mobileNumber ? <Text style={styles.errorText}>{errors.mobileNumber}</Text> : null}
+      {errors.country ? <Text style={styles.errorText}>{errors.country}</Text> : null}
 
-      {/* Due Date Input (Floating Calendar) */}
-      <TouchableOpacity
-        style={[styles.input, styles.dateInput]}
-        onPress={() => setShowDatePicker(true)}
-      >
-        <Text style={styles.dateText}>{dueDate.toDateString()}</Text>
-      </TouchableOpacity>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={dueDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "calendar"}
-          onChange={handleDateChange}
+      {/* Calendar */}
+      <Text style={styles.title1}>Select your Due Date</Text>
+      <View style={styles.calendarContainer}>
+        <Calendar
+          current={selectedDate}
+          onDayPress={(day) => setSelectedDate(day.dateString)}
+          markedDates={{ [selectedDate]: { selected: true, selectedColor: "#ff4081" } }}
+          theme={{
+            todayTextColor: "#ff4081",
+            arrowColor: "#ff4081",
+          }}
         />
-      )}
+      </View>
+
+      {/* Disclaimer */}
+      <Text style={styles.disclaimer}>
+         We are collecting this information solely to provide accurate AI-generated insights based on your pregnancy duration.
+      </Text>
 
       {/* Continue Button */}
       <TouchableOpacity style={styles.button} onPress={handleContinue}>
@@ -106,8 +90,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: "center",
+    
+  },
+  title1: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
   },
   input: {
     borderWidth: 1,
@@ -116,14 +106,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
     backgroundColor: "#fff",
-  },
-  dateInput: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dateText: {
     fontSize: 16,
-    color: "#333",
+    placeholderTextColor: "#fff",
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  halfInput: {
+    width: "48%",
   },
   errorBorder: {
     borderColor: "red",
@@ -132,16 +123,31 @@ const styles = StyleSheet.create({
     color: "red",
     marginBottom: 10,
   },
+  disclaimer: {
+    fontSize: 14,
+    color: "#555",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 20,
+  },
   button: {
     backgroundColor: "#ff4081",
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
-    marginTop: 10,
   },
   buttonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
   },
+  calendarContainer: { 
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#f5f5f5",
+    padding: 10,
+    marginBottom: 20
+   },
 });
+
+

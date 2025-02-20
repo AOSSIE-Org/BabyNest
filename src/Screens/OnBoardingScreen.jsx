@@ -16,10 +16,10 @@ const { width, height } = Dimensions.get("window");
 const onboardingData = [
   {
     id: "1",
-    title: "Safe",
-    highlight: "Bump",
+    title: "Baby",
+    highlight: "Nest",
     description:
-      "Welcome to SafeBump, your trusted partner for a safe and healthy pregnancy journey.",
+      "Welcome to Baby Nest, your AI-Powered trusted partner for a safe and healthy pregnancy journey.",
     image: require("../assets/onboarding1.png"),
   },
   {
@@ -32,28 +32,12 @@ const onboardingData = [
   },
   {
     id: "3",
-    title: "Educational",
-    highlight: "Resources",
+    title: "AI",
+    highlight: "Assistant",
     description:
-      "The app provides educational resources, including articles, videos, and podcasts for maternal health.",
+      "Our intelligent assistant provides personalized resources, including articles, timelines, to support you through every stage of pregnancy and beyond",
     image: require("../assets/onboarding3.png"),
-  },
-  {
-    id: "4",
-    title: "Community",
-    highlight: "Support",
-    description:
-      "The app will provide a community support feature to help users connect with other users, share experiences, and receive support.",
-    image: require("../assets/onboarding4.png"),
-  },
-  {
-    id: "5",
-    title: "Appointment",
-    highlight: "Scheduler",
-    description:
-      "The app will allow users to schedule and manage their appointments with healthcare providers, such as doctors and midwives.",
-    image: require("../assets/onboarding5.png"),
-  },
+  }
 ];
 
 export default function OnBoardingScreen() {

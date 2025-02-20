@@ -7,16 +7,21 @@ import HomeScreen from "./src/Screens/HomeScreen";
 import ChatScreen from "./src/Screens/ChatScreen";
 import CalendarScreen from "./src/Screens/CalendarScreen";
 import TimelineScreen from "./src/Screens/TimelineScreen";
-import ProfileScreen from "./src/Screens/ProfileScreen";
-import OnboardingScreen from "./src/Screens/OnBoardingScreen";  // Single onboarding component
+import OnboardingScreen from "./src/Screens/OnBoardingScreen"; 
 import BasicDetailsScreen from "./src/Screens/BasicDetailsScreen";
+import { Provider as PaperProvider} from 'react-native-paper';
+import SOSAlertScreen from "./src/Screens/SOSAlertScreen";
+import EmergencyCallingScreen from "./src/Screens/EmergencyCallingScreen";
+import SettingsScreen from "./src/Screens/SettingsScreen";
+import { ThemeProvider } from "./src/theme/ThemeContext";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// ✅ Bottom Tabs (Main Navigation After Onboarding)
+// Bottom Tabs (Main Navigation After Onboarding)
 function BottomTabs() {
   return (
+    <ThemeProvider>
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
@@ -24,7 +29,7 @@ function BottomTabs() {
           if (route.name === "Home") iconName = "home";
           else if (route.name === "Calendar") iconName = "event";
           else if (route.name === "Messages") iconName = "chat";
-          else if (route.name === "Profile") iconName = "person";
+          else if (route.name === "Chat") iconName = "smart-toy";
 
           return <Icon name={iconName} size={size} color={color} />;
         },
@@ -36,28 +41,32 @@ function BottomTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Calendar" component={CalendarScreen} />
       <Tab.Screen name="Messages" component={TimelineScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Chat" component={ChatScreen} />
     </Tab.Navigator>
+    </ThemeProvider>
   );
 }
 
-// ✅ Stack Navigator (Handles Onboarding & Main App)
+// Stack Navigator (Handles Onboarding & Main App)
 export default function App() {
   return (
+    <PaperProvider>
     <NavigationContainer>
+      <ThemeProvider>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* Onboarding */}
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        
-        {/* Enter Basic Details */}
         <Stack.Screen name="BasicDetails" component={BasicDetailsScreen} />
         
         {/* Main App after onboarding */}
         <Stack.Screen name="MainTabs" component={BottomTabs} />
-
+        <Stack.Screen name="SOSAlert" component={SOSAlertScreen} />
+        <Stack.Screen name="EmergencyCalling" component={EmergencyCallingScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen}/>
         {/* Individual screens (like Chat) */}
-        <Stack.Screen name="ChatScreen" component={ChatScreen} />
+        {/* <Stack.Screen name="ai" component={AI} /> */}
       </Stack.Navigator>
+      </ThemeProvider>
     </NavigationContainer>
+    </PaperProvider >
   );
 }

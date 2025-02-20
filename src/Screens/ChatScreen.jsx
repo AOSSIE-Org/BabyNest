@@ -32,7 +32,7 @@ export default function ChatScreen() {
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Icon name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chat with SafeBump AI</Text>
+                <Text style={styles.headerTitle}>Chat with BabyNest AI</Text>
             </View>
 
             {/* Chat Messages */}
