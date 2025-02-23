@@ -14,6 +14,7 @@ import SOSAlertScreen from "./src/Screens/SOSAlertScreen";
 import EmergencyCallingScreen from "./src/Screens/EmergencyCallingScreen";
 import SettingsScreen from "./src/Screens/SettingsScreen";
 import { ThemeProvider } from "./src/theme/ThemeContext";
+import { SafeAreaView } from "react-native";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -21,14 +22,14 @@ const Stack = createStackNavigator();
 // Bottom Tabs (Main Navigation After Onboarding)
 function BottomTabs() {
   return (
-    <ThemeProvider>
-    <Tab.Navigator
+    <Tab.Navigator 
+      initialRouteName="Home"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           let iconName;
           if (route.name === "Home") iconName = "home";
           else if (route.name === "Calendar") iconName = "event";
-          else if (route.name === "Messages") iconName = "chat";
+          else if (route.name === "Timeline") iconName = "chat";
           else if (route.name === "Chat") iconName = "smart-toy";
 
           return <Icon name={iconName} size={size} color={color} />;
@@ -40,33 +41,34 @@ function BottomTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Calendar" component={CalendarScreen} />
-      <Tab.Screen name="Messages" component={TimelineScreen} />
+      <Tab.Screen name="Timeline" component={TimelineScreen} />
       <Tab.Screen name="Chat" component={ChatScreen} />
     </Tab.Navigator>
-    </ThemeProvider>
   );
 }
 
 // Stack Navigator (Handles Onboarding & Main App)
 export default function App() {
   return (
-    <PaperProvider>
-    <NavigationContainer>
-      <ThemeProvider>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="BasicDetails" component={BasicDetailsScreen} />
-        
-        {/* Main App after onboarding */}
-        <Stack.Screen name="MainTabs" component={BottomTabs} />
-        <Stack.Screen name="SOSAlert" component={SOSAlertScreen} />
-        <Stack.Screen name="EmergencyCalling" component={EmergencyCallingScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen}/>
-        {/* Individual screens (like Chat) */}
-        {/* <Stack.Screen name="ai" component={AI} /> */}
-      </Stack.Navigator>
-      </ThemeProvider>
-    </NavigationContainer>
-    </PaperProvider >
+      <PaperProvider>
+        <ThemeProvider>
+          <NavigationContainer>
+          <SafeAreaView style={{ flex: 1 }}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+              <Stack.Screen name="BasicDetails" component={BasicDetailsScreen} />
+              
+              {/* Main App after onboarding */}
+              <Stack.Screen name="MainTabs" component={BottomTabs} />
+              <Stack.Screen name="SOSAlert" component={SOSAlertScreen} />
+              <Stack.Screen name="EmergencyCalling" component={EmergencyCallingScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen}/>
+              {/* Individual screens (like Chat) */}
+              {/* <Stack.Screen name="ai" component={AI} /> */}
+            </Stack.Navigator>
+          </SafeAreaView>
+          </NavigationContainer>
+        </ThemeProvider>
+      </PaperProvider >
   );
 }
