@@ -1,6 +1,6 @@
-# SafeBump Setup Guide
+# BabyNest Setup Guide
 
-This guide provides step-by-step instructions to set up the SafeBump app for Android and iOS, addressing platform-specific dependencies and configurations.
+This guide provides step-by-step instructions to set up the BabyNest app for Android and iOS, addressing platform-specific dependencies and configurations.
 
 ## Prerequisites
 Ensure you have the following installed:
@@ -13,8 +13,8 @@ Ensure you have the following installed:
 
 ## 1. Clone the Repository
 sh
-git clone https://github.com/yourusername/SafeBump.git
-cd SafeBump
+git clone https://github.com/AOSSIE-Org/BabyNest.git
+cd Frontend
 
 
 ---
@@ -36,7 +36,7 @@ npm install
 - If needed, install missing dependencies.
 
 ### 4. Configure SQLite
-SafeBump uses SQLite for local storage:
+BabyNest uses SQLite for local storage:
 - Ensure react-native-sqlite-storage is installed:
   sh
   npm install react-native-sqlite-storage
@@ -91,7 +91,7 @@ npx react-native run-ios
 
 ---
 ## Backend Setup (Offline Flask API)
-SafeBump includes an offline backend using Flask.
+BabyNest includes an offline backend using Flask.
 
 ### 1. Install Python Dependencies
 sh
@@ -108,7 +108,7 @@ This will start the API locally.
 
 ---
 ## Handling Vector Search (ChromaDB)
-SafeBump uses ChromaDB for offline vector search.
+BabyNest uses ChromaDB for offline vector search.
 ### 1. Install ChromaDB
 sh
 pip install chromadb
