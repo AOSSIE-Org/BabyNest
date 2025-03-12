@@ -6,13 +6,13 @@ import BottomTabs from './BottomTabNavigator';
 import SOSAlertScreen from '../Screens/SOSAlertScreen';
 import EmergencyCallingScreen from '../Screens/EmergencyCallingScreen';
 import SettingsScreen from '../Screens/SettingsScreen';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView, View } from 'react-native';
 
 const Stack = createStackNavigator();
 
 export default function StackNavigation() {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="Onboarding" component={OnBoardingScreen} />
                 <Stack.Screen name="BasicDetails" component={BasicDetailsScreen} />
@@ -25,6 +25,6 @@ export default function StackNavigation() {
                 {/* Individual screens (like Chat) */}
                 {/* <Stack.Screen name="ai" component={AI} /> */}
                 </Stack.Navigator>
-          </SafeAreaView>
+          </View>
   )
 }

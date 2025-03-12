@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Animated } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Animated, SafeAreaView } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 
@@ -26,7 +26,7 @@ export default function ChatScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -68,7 +68,7 @@ export default function ChatScreen() {
                     <Icon name="send" size={24} color="#fff" />
                 </TouchableOpacity>
             </View>
-        </View>
+        </SafeAreaView>
     );
 }
 

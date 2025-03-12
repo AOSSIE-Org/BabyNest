@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, TextInput, ScrollView, Animated, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, ScrollView, Animated, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Modal } from "react-native-paper";
@@ -65,7 +65,7 @@ const ScheduleScreen = () => {
   const timeSlotHeight = 80;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerText}>
           {selectedDate.toLocaleString('default', { month: 'long' })} {selectedDate.getFullYear()}
@@ -144,22 +144,26 @@ const ScheduleScreen = () => {
         onConfirm={handleDateConfirm}
         onCancel={hideCalendar}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: "#F8F8F8", 
-    padding: 20, 
+    // backgroundColor: "#F8F8F8",
+    padding: 10, 
+    marginHorizontal: 20,
     paddingTop: 40 
   },
   header: { 
     flexDirection: "row", 
     justifyContent: "space-between", 
     alignItems: "center", 
-    marginBottom: 20 
+    marginBottom: 20, 
+    gap: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 12
   },
   headerText: { 
     fontSize: 20, 
@@ -167,7 +171,7 @@ const styles = StyleSheet.create({
     color: "#3D5A80" 
   },
   icon: { 
-    marginRight: 10 
+    marginRight: 10
   },
   weekDatesScroll: { 
     flexDirection: "row", 
@@ -213,7 +217,7 @@ const styles = StyleSheet.create({
   timeText: { 
     width: 50, 
     fontSize: 14,
-     color: "#3D5A80" 
+    color: "#3D5A80" 
 
   },
   scheduleLine: { 

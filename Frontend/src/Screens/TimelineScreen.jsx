@@ -8,6 +8,7 @@ import {
   LayoutAnimation,
   UIManager,
   Platform,
+  SafeAreaView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
@@ -61,7 +62,7 @@ const TimelineScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
@@ -95,15 +96,15 @@ const TimelineScreen = ({ navigation }) => {
           </View>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 15 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10, paddingHorizontal: 20  },
   headerTitle: { fontSize: 18, fontWeight: "bold" },
-  timelineContainer: { flexDirection: "row", alignItems: "center", width: "100%", marginVertical: 5 },
+  timelineContainer: { flexDirection: "row", justifyContent: 'center', alignItems: "center", width: "95%", marginVertical: 5, marginHorizontal: 5 },
   timelineIndicator: { alignItems: "center", marginRight: 10 },
   circle: { marginTop:19, width: 12, height: 12, borderRadius: 6 },
   line: { width: 2, flex: 1, minHeight: 50, marginVertical: 5 },

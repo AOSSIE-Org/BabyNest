@@ -331,13 +331,13 @@ const styles = StyleSheet.create({
   },
 
   //sos feature
-// sosContainer:{ 
-//   flex: 1, 
-//   justifyContent: "center", 
-//   alignItems: "center", 
-//   backgroundColor: "rgb(218,79,122)", 
-//   marginBottom: 10 
-// },
+sosContainer:{ 
+  flex: 1, 
+  justifyContent: "center", 
+  alignItems: "center", 
+  backgroundColor: "rgb(218,79,122)", 
+  marginBottom: 10 
+},
 sosButton: { 
   position: "absolute",
   top: 120, // Adjusted position to match the image better
@@ -370,7 +370,7 @@ divider: {
     top: 0,
     left: 0,
     right: 0,
-    height: "35%",
+    height: "63%",
   },
   gradient: {
     flex: 1,

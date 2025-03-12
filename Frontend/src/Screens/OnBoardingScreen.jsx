@@ -183,8 +183,8 @@ const styles = StyleSheet.create({
   },
   page: {
     alignItems: "center",
-    justifyContent: "center",
-    paddingTop:scale(20),
+    justifyContent: "flex-start",
+    paddingTop:scale(90),
   },
   title: {
     fontSize: scale(26),
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     color: "#ff4081",
   },
   image: {
-    marginBottom: scale(15),
+    marginVertical: scale(15),
   },
   paginationContainer: {
     flexDirection: "row",
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#666",
     paddingHorizontal: scale(15),
-    marginTop: scale(5),
+    marginTop: scale(15),
     lineHeight: scale(20),
   },
   buttonContainer: {
