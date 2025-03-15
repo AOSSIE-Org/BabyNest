@@ -4,6 +4,7 @@
 import React, { useState,useRef,useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet,Animated, Modal, ScrollView,Dimensions,Image, Platform, SafeAreaView, ActivityIndicator } from "react-native";
 import { Card, Button, TextInput,Divider } from "react-native-paper";
+import { RefreshControl } from "react-native-gesture-handler";
 import {LinearGradient} from "react-native-linear-gradient";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -13,10 +14,11 @@ import { useTheme } from '../theme/ThemeContext';
 import { BASE_URL } from '@env'
 
 export default function HomeScreen({navigation}) {
+  const scrollRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
   const [appointments, setAppointments] = useState([]);
-
+  const [refreshing, setRefreshing] = useState(false);
      // Dummy data for Due Appointments 
   const dueAppointments = [
     "Next Ultrasound - Week 20",
@@ -28,6 +30,10 @@ export default function HomeScreen({navigation}) {
     navigation.openDrawer();
   };
 
+  const handleRefresh = () => {
+    getAppointments();
+  }
+  
   const getAppointments = async () => {
     try {
         const response = await fetch(`http://192.168.1.7:5000/get_appointments`); 
@@ -84,7 +90,9 @@ useEffect(() => {
                  />
                </TouchableOpacity>
              </View>
-       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}showsVerticalScrollIndicator={false}>
+       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}showsVerticalScrollIndicator={false} ref={scrollRef} refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            >
         {/* <View style={styles.progressContainer}>  */}
           {/* Fixed upper section to match design */}
         <View style={styles.upperSection}>
