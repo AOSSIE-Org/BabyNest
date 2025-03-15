@@ -67,12 +67,20 @@ export default function ChatScreen() {
 
 
     try {
-      const response = await generateResponse(updatedConversation);
-      if (response) {
-        const botMessage = { id: (Date.now() + 1).toString(), role: "assistant", content: response };
+        const botMessage = { id: (Date.now() + 1).toString(), role: "assistant", content: "" };
         setConversation([...updatedConversation, botMessage]);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-      }
+
+        // Stream response
+        for await (const chunk of generateResponse(updatedConversation)) {
+          setConversation((prevConversation) =>
+          prevConversation.map((msg) =>
+          msg.id === botMessage.id ? { ...msg, content: msg.content + chunk } : msg
+        ))}
+
+        if (!showScrollToBottom) {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }
     } catch (error) {
       Alert.alert("Error", "Failed to generate response: " + error.message);
       console.error(error);

@@ -30,7 +30,7 @@ export default function HomeScreen({navigation}) {
 
   const getAppointments = async () => {
     try {
-        const response = await fetch(`http://192.168.1.7:5000/get_appointments`); 
+        const response = await fetch(`${BASE_URL}/get_appointments`); 
         const data = await response.json();
         console.log("Response:", data);
         setAppointments(data.splice(0, 2));
