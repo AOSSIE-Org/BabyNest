@@ -20,7 +20,7 @@ const IconButton = ({ icon, label }) => {
       <View style={[styles.iconCircle, { backgroundColor: theme.primary }]}>
         <Text style={styles.iconText}>{icon}</Text>
       </View>
-      <Text style={[styles.iconLabel, { color: theme.text }]}>{label}</Text>
+      <Text style={[styles.iconLabel, { color: theme.iconText || theme.text}]}>{label}</Text>
     </View>
   );
 };
@@ -60,7 +60,7 @@ export default function SettingsScreen() {
           <IconButton icon="🔔" label="Notification" />
         </View>
 
-        <TouchableOpacity style={styles.openButton} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity style={[styles.openButton,{backgroundColor:theme.button}]} onPress={() => setModalVisible(true)}>
           <Text style={styles.openButtonText}>Change Theme</Text>
         </TouchableOpacity>
 
@@ -82,14 +82,14 @@ export default function SettingsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: 'rgb(255, 93, 93)' }]}
+              style={[styles.button, { backgroundColor:'#d4a373', }]}
               onPress={() => { updateTheme('dark'); setModalVisible(false); }}
             >
               <Text style={styles.buttonText}>Dark Theme</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: 'rgb(255, 247, 0)' }]}
+              style={[styles.button, { backgroundColor: '#AC87C5'}]}
               onPress={() => { updateTheme('pastel'); setModalVisible(false); }}
             >
               <Text style={styles.buttonText}>Pastel Theme</Text>

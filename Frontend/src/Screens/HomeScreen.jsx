@@ -116,9 +116,9 @@ useEffect(() => {
         </View>
 
       {/* SOS Button */}
-      <TouchableOpacity style={[styles.sosButton,{ backgroundColor: theme.button}]} onPress={() => navigation.navigate("SOSAlert")}>
-        <Icon name="call" size={22} style={[styles.sosIcon,{ color: theme.iconText}]} />
-        <Text style={[styles.sosText,{ color: theme.iconText}]}>SOS</Text>
+      <TouchableOpacity style={[styles.sosButton,{ backgroundColor: "#ffffff"}]} onPress={() => navigation.navigate("SOSAlert")}>
+        <Icon name="call" size={22} style={[styles.sosIcon,{ color: "#FF0000"}]} />
+        <Text style={[styles.sosText,{ color: '#FF0000'}]}>SOS</Text>
       </TouchableOpacity>
         <View style={styles.weekContainer}>
            <WeekNumber number="31" />
@@ -191,11 +191,27 @@ useEffect(() => {
   );
 }
 
-const WeekNumber = ({ number, active = false }) => (
-  <View style={[styles.weekNumber, active && styles.weekNumberActive]}>
-    <Text style={[styles.weekNumberText, active && styles.weekNumberTextActive]}>{number}</Text>
-  </View>
-)
+const WeekNumber = ({ number, active = false }) => {
+  const { theme } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.weekNumber,
+        { backgroundColor: active ? theme.primary : `${theme.primary}20` }
+      ]}
+    >
+      <Text
+        style={[
+          styles.weekNumberText,
+          { color: active ? theme.background : theme.primary }
+        ]}
+      >
+        {number}
+      </Text>
+    </View>
+  );
+};
 
 const { width,height } = Dimensions.get("window");
 
@@ -445,11 +461,11 @@ divider: {
     borderRadius: 17.5,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 75, 110, 0.1)",
+    // backgroundColor: "rgba(255, 75, 110, 0.1)",
   },
-  weekNumberActive: {
-    backgroundColor: "#FF4B6E",
-  },
+  // weekNumberActive: {
+  //   backgroundColor: "#FF4B6E",
+  // },
   weekNumberText: {
     color: "#FF4B6E",
     fontSize: 14,
