@@ -13,7 +13,9 @@ def get_tasks():
     
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
-
+    finally:
+        close_db(db)
+        
 @tasks_bp.route('/get_task/<int:task_id>', methods=['GET'])
 def get_task(task_id):
     db = open_db()
@@ -26,6 +28,8 @@ def get_task(task_id):
     
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
+    finally:
+        close_db(db)
 
 @tasks_bp.route('/add_task', methods=['POST'])
 def add_task():
@@ -48,6 +52,8 @@ def add_task():
     except Exception as e:  # Catch all other errors
         print(f"Unexpected Error: {e}")
         return jsonify({"error": "Unexpected Error", "details": str(e)}), 500
+    finally:
+        close_db(db)
 
 @tasks_bp.route('/update_task/<int:task_id>', methods=['PUT'])
 def update_task(task_id):
@@ -71,7 +77,9 @@ def update_task(task_id):
     
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500   
-    
+    finally:
+        close_db(db)
+
 @tasks_bp.route('/delete_task/<int:task_id>', methods=['DELETE'])    
 def delete_task(task_id):
     db = open_db()    
@@ -85,7 +93,9 @@ def delete_task(task_id):
     
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
-     
+    finally:
+        close_db(db)
+
 @tasks_bp.route('/move_to_appointment/<int:task_id>', methods=['PUT'])
 def move_to_appointment(task_id):
     db = open_db()
@@ -126,4 +136,5 @@ def move_to_appointment(task_id):
     
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
-    
+    finally:
+        close_db(db)

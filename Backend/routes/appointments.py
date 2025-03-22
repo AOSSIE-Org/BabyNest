@@ -12,10 +12,13 @@ def get_appointments():
         appointments = db.execute('SELECT * FROM appointments').fetchall()
         appointments_list = [dict(appt) for appt in appointments]
         
+        return jsonify(appointments_list), 200
+
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
+    finally:
+        close_db(db)
     
-    return jsonify(appointments_list), 200
 
 @appointments_bp.route('/get_appointment/<int:appointment_id>', methods=['GET'])
 def get_appointment(appointment_id):
@@ -33,6 +36,8 @@ def get_appointment(appointment_id):
     
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
+    finally:
+        close_db(db)
 
 @appointments_bp.route('/add_appointment', methods=['POST'])
 def add_appointment():
@@ -58,6 +63,8 @@ def add_appointment():
 
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
+    finally:
+        close_db(db)
 
 @appointments_bp.route('/update_appointment/<int:appointment_id>', methods=['PUT'])
 def update_appointment(appointment_id):
@@ -89,6 +96,8 @@ def update_appointment(appointment_id):
 
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
+    finally:
+        close_db(db)
 
 @appointments_bp.route('/delete_appointment/<int:appointment_id>', methods=['DELETE'])
 def delete_appointment(appointment_id):
@@ -106,4 +115,5 @@ def delete_appointment(appointment_id):
 
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500
-
+    finally:
+        close_db(db)
