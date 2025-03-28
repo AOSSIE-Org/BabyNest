@@ -98,7 +98,7 @@ export const loadModel = async (modelName) => {
   }
 };
 
-export const generateResponse = async (conversation) => {
+export const generateResponse = async function* (conversation) {
     if (!context) {
       Alert.alert("Model Not Loaded", "Please load the model first.");
       return null;
@@ -121,7 +121,7 @@ export const generateResponse = async (conversation) => {
           role: "system",
           content: "You are a highly specialized AI assistant focused on pregnancy-related topics.  "
             + "Your expertise includes maternal health, fetal development, prenatal care, and pregnancy well-being.  "
-            + "- Provide responses that are concise, clear, and easy to understand.  "
+            + "- Provide responses that are concise, clear, and easy to understand. And always respond in english only  "
             + "- Maintain a warm, empathetic, and supportive tone to reassure users.  "
             + "- Prioritize factual, evidence-based information while keeping answers short.  "
             + "- If a question is outside pregnancy-related topics, gently redirect the user to relevant discussions.  "
@@ -137,7 +137,12 @@ export const generateResponse = async (conversation) => {
       });
   
       const response = result?.text?.trim();
-      return response;
+      // Simulating streaming by splitting response into words
+      const words = response.split(" ");
+      for (const word of words) {
+        yield word + " "; // Yield word-by-word dynamically
+        await new Promise((resolve) => setTimeout(resolve, 50)); // Simulate delay
+      }
 
     } catch (error) {
       Alert.alert("Error During Inference", error.message || "An unknown error occurred.");
