@@ -5,6 +5,7 @@ import HomeScreen from '../Screens/HomeScreen';
 import ChatScreen from '../Screens/ChatScreen';
 import CalendarScreen from '../Screens/CalendarScreen';
 import TimelineScreen from '../Screens/TimelineScreen';
+import MedicineTrackerScreen from '../Screens/MedicineTrackerScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,6 +20,8 @@ export default function BottomTabs() {
             else if (route.name === "Calendar") iconName = "event";
             else if (route.name === "Timeline") iconName = "chat";
             else if (route.name === "Chat") iconName = "smart-toy";
+            else if (route.name === "Medicine") iconName = "medication"; // Icon for medicine
+
   
             return <Icon name={iconName} size={size} color={color} />;
           },
@@ -31,6 +34,13 @@ export default function BottomTabs() {
         <Tab.Screen name="Calendar" component={CalendarScreen} />
         <Tab.Screen name="Timeline" component={TimelineScreen} />
         <Tab.Screen name="Chat" component={ChatScreen} />
+        <Tab.Screen
+          name="Medicine"
+          component={MedicineTrackerScreen}
+          options={{
+            tabBarLabel: 'Medicine'
+          }}
+        />
       </Tab.Navigator>
     );
   }
