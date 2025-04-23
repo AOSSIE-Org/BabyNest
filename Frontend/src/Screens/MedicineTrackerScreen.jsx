@@ -52,10 +52,9 @@ export default function MedicineTrackerScreen({ navigation }) {
   useEffect(() => {
     const loadMedications = async () => {
       setLoading(true);
-      try {
-        // Mock data - in a real app, this would be an API call or AsyncStorage
+      try {  
         const mockMedications = [
-          {
+          {                        // dummy data
             id: '1',
             name: 'Prenatal Vitamins',
             dosage: '1 tablet',
@@ -64,28 +63,6 @@ export default function MedicineTrackerScreen({ navigation }) {
             endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
             time: new Date(new Date().setHours(8, 0, 0, 0)),
             notes: 'Take with food',
-            taken: false,
-          },
-          {
-            id: '2',
-            name: 'Iron Supplement',
-            dosage: '1 capsule',
-            frequency: 'daily',
-            startDate: new Date(),
-            endDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-            time: new Date(new Date().setHours(13, 30, 0, 0)),
-            notes: 'Take after lunch',
-            taken: true,
-          },
-          {
-            id: '3',
-            name: 'Calcium',
-            dosage: '500mg',
-            frequency: 'twice daily',
-            startDate: new Date(),
-            endDate: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000),
-            time: new Date(new Date().setHours(19, 0, 0, 0)),
-            notes: 'Take one in morning, one in evening',
             taken: false,
           }
         ];
