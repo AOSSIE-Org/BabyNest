@@ -215,6 +215,30 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
+const WeekNumber = ({ number, active = false }) => {
+  const { theme } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.weekNumber,
+        { backgroundColor: active ? theme.primary : `${theme.primary}20` }
+      ]}
+    >
+      <Text
+        style={[
+          styles.weekNumberText,
+          { color: active ? theme.background : theme.primary }
+        ]}
+      >
+        {number}
+      </Text>
+    </View>
+  );
+};
+
+const { width,height } = Dimensions.get("window");
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF5F8' },
   scrollContent: { paddingBottom: 100 },

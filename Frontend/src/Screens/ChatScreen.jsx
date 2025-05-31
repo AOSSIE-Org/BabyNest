@@ -11,9 +11,10 @@ import { useNavigation } from "@react-navigation/native";
 import { fetchAvailableGGUFs, downloadModel, generateResponse } from "../model/model";
 import { GGUF_FILE } from "@env";
 import Markdown from "react-native-markdown-display";
-
+import { useTheme } from '../theme/ThemeContext'; 
 export default function ChatScreen() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [conversation, setConversation] = useState([]);
   const [availableGGUFs, setAvailableGGUFs] = useState([]);
   const [progress, setProgress] = useState(0);
@@ -95,14 +96,15 @@ export default function ChatScreen() {
     setShowScrollToBottom(false);
   };
 
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header,{ backgroundColor: theme.primary }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#fff" />
+          <Icon name="arrow-back" size={24} color={theme.iconText || "#fff"}/>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chat with BabyNest AI</Text>
+        <Text style={[styles.headerTitle,{ color: theme.iconText || "#fff" }]}>Chat with BabyNest AI</Text>
       </View>
 
       {/* Chat Messages */}
@@ -112,11 +114,11 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity onLongPress={() => handleCopyMessage(item.content)}>
-            <View style={[styles.messageContainer, item.role === "user" ? styles.userMessage : styles.botMessage]}>
+            <View style={[styles.messageContainer, item.role === "user" ? [styles.userMessage , { backgroundColor: theme.primary }]: [styles.botMessage,{ backgroundColor: theme.factcardprimary }]]}>
               {item.role === "assistant" ? (
-                <Markdown style={markdownStyles}>{item.content}</Markdown>
+                <Markdown style={createMarkdownStyles(theme)}>{item.content}</Markdown>
               ) : (
-                <Text style={styles.messageText}>{item.content}</Text>
+                <Text style={[styles.messageText, { color: item.role === "user" ? theme.iconText || "#fff" : theme.text }]}>{item.content}</Text>
               )}
             </View>
           </TouchableOpacity>
@@ -134,36 +136,39 @@ export default function ChatScreen() {
 
       {/* Floating Scroll to Bottom Button */}
       {showScrollToBottom && (
-        <TouchableOpacity style={styles.scrollToBottomButton} onPress={scrollToBottom}>
-          <Icon name="keyboard-arrow-down" size={30} color="black" />
+        <TouchableOpacity style={[styles.scrollToBottomButton,{ backgroundColor: theme.background }]} onPress={scrollToBottom}>
+          <Icon name="keyboard-arrow-down" size={30} color={theme.text} />
         </TouchableOpacity>
       )}
 
       {/* Typing Indicator */}
       {isGenerating && (
-        <View style={[styles.messageContainer, styles.botMessage]}>
+        <View style={[styles.messageContainer, styles.botMessage,{ backgroundColor: theme.factcardprimary }]}>
           <TypingIndicator />
         </View>
       )}
 
       {/* Input Field */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "position" : undefined}>
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { borderColor: theme.factcardsecondary || "#ddd" }]}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, {
+              backgroundColor: theme.factcardsecondary || "#f8f8f8",
+              color: theme.text
+            }]}
             placeholder="Type a message..."
-            placeholderTextColor="#888"
+            placeholderTextColor={theme.placeholderText}
             multiline
             scrollEnabled
             value={userInput}
             onChangeText={setUserInput}
             onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)}
           />
-          <TouchableOpacity style={styles.pasteButton} onPress={handlePaste}>
-            <Icon name="content-paste" size={24} color="#fff" />
+          <TouchableOpacity style={[styles.pasteButton, { backgroundColor: theme.button }]} onPress={handlePaste}>
+            <Icon name="content-paste" size={24} color={theme.iconText || "#fff"}/>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage} disabled={isGenerating}>
-            <Icon name="send" size={24} color="#fff" />
+          <TouchableOpacity style={[styles.sendButton, { backgroundColor: theme.button }]} onPress={handleSendMessage} disabled={isGenerating}>
+            <Icon name="send" size={24} color={theme.iconText || "#fff"} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -189,9 +194,9 @@ const TypingIndicator = () => {
 
   return (
     <View style={styles.typingContainer}>
-      <Animated.View style={[styles.dot, { opacity: fadeAnim }]} />
-      <Animated.View style={[styles.dot, { opacity: fadeAnim }]} />
-      <Animated.View style={[styles.dot, { opacity: fadeAnim }]} />
+      <Animated.View style={[styles.dot, { opacity: fadeAnim  }]} />
+      <Animated.View style={[styles.dot, { opacity: fadeAnim  }]} />
+      <Animated.View style={[styles.dot, { opacity: fadeAnim  }]} />
     </View>
   );
 };
@@ -291,7 +296,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const markdownStyles = {
+const createMarkdownStyles =(theme)=>( {
   body: { 
     color: "#333", 
     fontSize: 16 
@@ -303,22 +308,22 @@ const markdownStyles = {
     fontStyle: "italic" 
   },
   blockquote: { 
-    backgroundColor: "#f1f1f1", 
+    backgroundColor:  theme.factcardsecondary ,
     padding: 5, 
     borderLeftWidth: 3, 
     borderLeftColor: "#ccc" 
   },
   code_block: { 
-    backgroundColor: "#eee", 
+    backgroundColor: theme.factcardsecondary , 
     padding: 10, 
     borderRadius: 5, 
     fontFamily: "monospace" 
   },
   link: { 
-    color: "#ff4081", 
+    color:  theme.primary,
     textDecorationLine: "underline" 
   },
   list_item: { 
     marginVertical: 5 
   },
-};
+});
