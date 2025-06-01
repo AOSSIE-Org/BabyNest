@@ -8,6 +8,8 @@ import EmergencyCallingScreen from '../Screens/EmergencyCallingScreen';
 import SettingsScreen from '../Screens/SettingsScreen';
 import { SafeAreaView, View } from 'react-native';
 
+import DueDateScreen from '../Screens/DueDateScreen';
+
 const Stack = createStackNavigator();
 
 export default function StackNavigation() {
@@ -16,7 +18,8 @@ export default function StackNavigation() {
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="Onboarding" component={OnBoardingScreen} />
                 <Stack.Screen name="BasicDetails" component={BasicDetailsScreen} />
-                
+                <Stack.Screen name="DueDate" component={DueDateScreen} />
+
                 {/* Main App after onboarding */}
                 <Stack.Screen name="MainTabs" component={BottomTabs} />
                 <Stack.Screen name="SOSAlert" component={SOSAlertScreen} />

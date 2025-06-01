@@ -12,6 +12,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import {BASE_URL} from "@env";
 
 const { width:initialWidth, height: initialHeight } = Dimensions.get("window");
 const scale = size =>(initialWidth / 375) * size;
@@ -53,6 +54,18 @@ export default function OnBoardingScreen() {
     height: initialHeight
   });
 
+  const check = async () =>{
+    try{
+      const res = await fetch(`${BASE_URL}/get_profile`);
+      const data = await res.json();
+      return !data.error
+    }
+    catch(err){
+      console.error("Error fetching profile data:", err);
+      return false;
+    }
+  }
+
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
       setDimensions({
@@ -61,6 +74,15 @@ export default function OnBoardingScreen() {
       });
     });
 
+    const init = async () => {
+      const hasProfile = await check();
+      if (hasProfile) {
+        navigation.replace("MainTabs");
+      }
+    };
+  
+    init();
+      
     return () => subscription?.remove();
   }, []);
   const handleNext = () => {

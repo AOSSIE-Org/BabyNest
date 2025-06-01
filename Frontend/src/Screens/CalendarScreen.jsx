@@ -291,7 +291,7 @@ const ScheduleScreen = () => {
         ))}
       </ScrollView>
 
-      <ScrollView ref={scrollRef} style={styles.scheduleContainer} refreshControl={
+      <ScrollView style={styles.scheduleContainer} refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }>
         <View style={styles.scheduleList}>
