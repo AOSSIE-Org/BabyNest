@@ -5,8 +5,9 @@ import {
   StyleSheet,
   Text,
   RefreshControl,
+  Alert,
 } from "react-native";
-import { TextInput, Button, Card } from "react-native-paper";
+import { TextInput, Button, Card, Portal, Dialog } from "react-native-paper";
 import { BASE_URL } from "@env";
 import HeaderWithBack from "../Components/HeaderWithBack";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -17,6 +18,9 @@ export default function SymptomsScreen() {
   const [note, setNote] = useState("");
   const [history, setHistory] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [editVisible, setEditVisible] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const fetchSymptomsHistory = async () => {
     try {
@@ -48,6 +52,42 @@ export default function SymptomsScreen() {
     setSymptom("");
     setNote("");
     fetchSymptomsHistory();
+  };
+
+  const openEditModal = (entry) => {
+    setEditData(entry);
+    setEditVisible(true);
+  };
+
+  const handleUpdate = async () => {
+    await fetch(`${BASE_URL}/symptoms/${editData.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        week_number: editData.week_number,
+        symptom: editData.symptom,
+        note: editData.note,
+      }),
+    });
+    setEditVisible(false);
+    setEditData(null);
+    fetchSymptomsHistory();
+  };
+
+  const handleDelete = async (id) => {
+    Alert.alert("Confirm Delete", "Are you sure you want to delete this entry?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await fetch(`${BASE_URL}/symptoms/${id}`, {
+            method: "DELETE",
+          });
+          fetchSymptomsHistory();
+        },
+      },
+    ]);
   };
 
   return (
@@ -102,14 +142,32 @@ export default function SymptomsScreen() {
           </Card.Content>
         </Card>
 
-        {/* History */}
+         {/* History */}
         <Text style={styles.historyTitle}>Symptom History</Text>
         {history.map((entry, index) => (
           <Card key={index} style={styles.entryCard}>
             <Card.Content>
-              <View style={styles.entryRow}>
-                <Icon name="emoticon-sick-outline" size={20} color="rgb(218,79,122)" />
-                <Text style={styles.entryText}>  Week {entry.week_number}</Text>
+              <View style={styles.entryRowBetween}>
+                <View style={styles.entryRow}>
+                  <Icon name="emoticon-sick-outline" size={20} color="rgb(218,79,122)" />
+                  <Text style={styles.entryText}>  Week {entry.week_number}</Text>
+                </View>
+                <View style={styles.iconRow}>
+                  <Icon
+                    name="pencil"
+                    size={20}
+                    color="#4a90e2"
+                    onPress={() => openEditModal(entry)}
+                    style={styles.iconButton}
+                  />
+                  <Icon
+                    name="trash-can-outline"
+                    size={20}
+                    color="#e74c3c"
+                    onPress={() => handleDelete(entry.id)}
+                    style={styles.iconButton}
+                  />
+                </View>
               </View>
               <Text style={styles.entrySub}>Symptom: {entry.symptom}</Text>
               {entry.note ? (
@@ -122,6 +180,47 @@ export default function SymptomsScreen() {
           </Card>
         ))}
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Portal>
+        <Dialog visible={editVisible} onDismiss={() => setEditVisible(false)}>
+          <Dialog.Title>Edit Symptom</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Week Number"
+              value={editData?.week_number.toString() || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, week_number: text })
+              }
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Symptom"
+              value={editData?.symptom || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, symptom: text })
+              }
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Note"
+              value={editData?.note || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, note: text })
+              }
+              mode="outlined"
+              style={styles.input}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditVisible(false)}>Cancel</Button>
+            <Button onPress={handleUpdate}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -177,6 +276,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
+  entryRowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   entryText: {
     fontSize: 16,
     fontWeight: "600",
@@ -197,4 +301,11 @@ const styles = StyleSheet.create({
     color: "#aaa",
     marginTop: 6,
   },
+  iconRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  iconButton: {
+    marginLeft: 10,
+  }
 });

@@ -5,8 +5,9 @@ import {
   StyleSheet,
   Text,
   RefreshControl,
+  Alert,
 } from "react-native";
-import { TextInput, Button, Card } from "react-native-paper";
+import { TextInput, Button, Card, Portal, Dialog } from "react-native-paper";
 import { BASE_URL } from "@env";
 import HeaderWithBack from "../Components/HeaderWithBack";
 import Icon from "react-native-vector-icons/MaterialIcons";
@@ -19,6 +20,9 @@ export default function MedicineScreen() {
   const [note, setNote] = useState("");
   const [history, setHistory] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [editVisible, setEditVisible] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const fetchMedicineHistory = async () => {
     try {
@@ -52,6 +56,44 @@ export default function MedicineScreen() {
     setTime("");
     setNote("");
     fetchMedicineHistory();
+  };
+
+  const openEditModal = (entry) => {
+    setEditData(entry);
+    setEditVisible(true);
+  };
+
+  const handleUpdate = async () => {
+    await fetch(`${BASE_URL}/medicine/${editData.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        week_number: editData.week_number,
+        name: editData.name,
+        dose: editData.dose,
+        time: editData.time,
+        note: editData.note,
+      }),
+    });
+    setEditVisible(false);
+    setEditData(null);
+    fetchMedicineHistory();
+  };
+
+  const handleDelete = async (id) => {
+    Alert.alert("Confirm Delete", "Are you sure you want to delete this entry?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await fetch(`${BASE_URL}/medicine/${id}`, {
+            method: "DELETE",
+          });
+          fetchMedicineHistory();
+        },
+      },
+    ]);
   };
 
   return (
@@ -127,12 +169,30 @@ export default function MedicineScreen() {
         {history.map((entry, index) => (
           <Card key={index} style={styles.entryCard}>
             <Card.Content>
-              <View style={styles.entryRow}>
-                <Icon name="medication" size={20} color="rgb(218,79,122)" />
-                <Text style={styles.entryText}>
-                  {" "}
-                  Week {entry.week_number} - {entry.name}
-                </Text>
+              <View style={styles.entryRowBetween}>
+                <View style={styles.entryRow}>
+                  <Icon name="medication" size={20} color="rgb(218,79,122)" />
+                  <Text style={styles.entryText}>
+                    {" "}
+                    Week {entry.week_number} - {entry.name}
+                  </Text>
+                </View>
+                <View style={styles.iconRow}>
+                  <Icon
+                    name="edit"
+                    size={20}
+                    color="#4a90e2"
+                    onPress={() => openEditModal(entry)}
+                    style={styles.iconButton}
+                  />
+                  <Icon
+                    name="delete"
+                    size={20}
+                    color="#e74c3c"
+                    onPress={() => handleDelete(entry.id)}
+                    style={styles.iconButton}
+                  />
+                </View>
               </View>
               <Text style={styles.entrySub}>Dose: {entry.dose}</Text>
               <Text style={styles.entrySub}>Time: {entry.time}</Text>
@@ -146,6 +206,65 @@ export default function MedicineScreen() {
           </Card>
         ))}
       </ScrollView>
+
+       {/* Edit Modal */}
+      <Portal>
+        <Dialog visible={editVisible} onDismiss={() => setEditVisible(false)}>
+          <Dialog.Title>Edit Entry</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Week Number"
+              value={editData?.week_number.toString() || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, week_number: text })
+              }
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Medicine Name"
+              value={editData?.name || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, name: text })
+              }
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Dose"
+              value={editData?.dose || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, dose: text })
+              }
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Time"
+              value={editData?.time || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, time: text })
+              }
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Note"
+              value={editData?.note || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, note: text })
+              }
+              mode="outlined"
+              style={styles.input}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditVisible(false)}>Cancel</Button>
+            <Button onPress={handleUpdate}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -153,7 +272,6 @@ export default function MedicineScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF5F8" },
   content: { padding: 20, paddingBottom: 80 },
-
   formCard: {
     borderRadius: 16,
     backgroundColor: "#FFEFF5",
@@ -181,7 +299,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
   },
-
   historyTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -200,6 +317,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 4,
+  },
+  entryRowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   entryText: {
     fontSize: 16,
@@ -220,5 +342,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#aaa",
     marginTop: 6,
+  },
+  iconRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  iconButton: {
+    marginLeft: 10,
   },
 });

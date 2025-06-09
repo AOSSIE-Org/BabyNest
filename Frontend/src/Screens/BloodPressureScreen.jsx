@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet, Text, RefreshControl } from "react-native";
-import { TextInput, Button, Card } from "react-native-paper";
+import { View, ScrollView, StyleSheet, Text, RefreshControl, Alert} from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import { TextInput, Button, Card, Portal, Dialog} from "react-native-paper";
 import HeaderWithBack from "../Components/HeaderWithBack";
 import { BASE_URL } from "@env";
 
@@ -12,6 +13,10 @@ export default function BloodPressureScreen() {
   const [note, setNote] = useState("");
   const [history, setHistory] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  //Edit Modal State
+  const [editVisible, setEditVisible] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const fetchBPLogs = async () => {
     const res = await fetch(`${BASE_URL}/get_bp_logs`);
@@ -37,6 +42,44 @@ export default function BloodPressureScreen() {
     fetchBPLogs();
   };
 
+  const openEditModal = (entry) => {
+    setEditData(entry);
+    setEditVisible(true);
+  };
+
+  const handleUpdate = async () => {
+    await fetch(`${BASE_URL}/bp_log/${editData.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        week_number: editData.week_number,
+        systolic: editData.systolic,
+        diastolic: editData.diastolic,
+        time: editData.time,
+        note: editData.note,
+      }),
+    });
+    setEditVisible(false);
+    setEditData(null);
+    fetchBPLogs();
+  };
+
+  const handleDelete = async (id) => {
+    Alert.alert("Confirm Delete", "Are you sure you want to delete this entry?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await fetch(`${BASE_URL}/bp_log/${id}`, {
+            method: "DELETE",
+          });
+          fetchBPLogs();
+        },
+      },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <HeaderWithBack title="Blood Pressure Tracker" />
@@ -59,14 +102,96 @@ export default function BloodPressureScreen() {
         {history.map((entry, index) => (
           <Card key={index} style={styles.entryCard}>
             <Card.Content>
-              <Text style={styles.entryText}>Week {entry.week_number} - {entry.systolic}/{entry.diastolic} mmHg</Text>
+              <View style={styles.entryRowBetween}>
+                <Text style={styles.entryText}>
+                  Week {entry.week_number} - {entry.systolic}/{entry.diastolic} mmHg
+                </Text>
+                <View style={styles.iconRow}>
+                  <Icon
+                    name="create-outline"
+                    size={20}
+                    color="#4a90e2"
+                    onPress={() => openEditModal(entry)}
+                    style={styles.iconButton}
+                  />
+                  <Icon
+                    name="trash-outline"
+                    size={20}
+                    color="#e74c3c"
+                    onPress={() => handleDelete(entry.id)}
+                    style={styles.iconButton}
+                  />
+                </View>
+              </View>
               <Text>Time: {entry.time}</Text>
               {entry.note && <Text style={styles.entryNote}>Note: {entry.note}</Text>}
-              <Text style={styles.entryDate}>{new Date(entry.created_at).toLocaleString()}</Text>
+              <Text style={styles.entryDate}>
+                {new Date(entry.created_at).toLocaleString()}
+              </Text>
             </Card.Content>
           </Card>
         ))}
       </ScrollView>
+
+      <Portal>
+        <Dialog visible={editVisible} onDismiss={() => setEditVisible(false)}>
+          <Dialog.Title>Edit Entry</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Week Number"
+              value={editData?.week_number.toString() || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, week_number: text })
+              }
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Systolic"
+              value={editData?.systolic.toString() || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, systolic: text })
+              }
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Diastolic"
+              value={editData?.diastolic.toString() || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, diastolic: text })
+              }
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Time"
+              value={editData?.time || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, time: text })
+              }
+              mode="outlined"
+              style={styles.input}
+            />
+            <TextInput
+              label="Note"
+              value={editData?.note || ""}
+              onChangeText={(text) =>
+                setEditData({ ...editData, note: text })
+              }
+              mode="outlined"
+              style={styles.input}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditVisible(false)}>Cancel</Button>
+            <Button onPress={handleUpdate}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -80,7 +205,10 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "rgb(218,79,122)", paddingVertical: 8, borderRadius: 10 },
   historyTitle: { fontSize: 18, fontWeight: "bold", color: "rgb(218,79,122)", marginBottom: 10 },
   entryCard: { backgroundColor: "#fff", borderRadius: 12, marginBottom: 15, padding: 10 },
+  entryRowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center",},
   entryText: { fontSize: 16, fontWeight: "600" },
-  entryNote: { fontSize: 14, color: "#777" },
+  entryNote: { fontSize: 14, color: "#777", marginTop: 5 },
   entryDate: { fontSize: 12, color: "#aaa", marginTop: 5 },
+  iconRow: { flexDirection: "row", gap: 10},
+  iconButton: {marginLeft: 10 }
 });
