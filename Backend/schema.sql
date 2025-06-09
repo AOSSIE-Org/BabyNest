@@ -24,20 +24,40 @@ CREATE TABLE IF NOT EXISTS tasks (
     task_status TEXT CHECK(task_status IN ('pending', 'completed')) DEFAULT 'pending'
 );
 
+CREATE TABLE IF NOT EXISTS blood_pressure_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    week_number INTEGER NOT NULL,
+    systolic INTEGER NOT NULL,
+    diastolic INTEGER NOT NULL,
+    time TEXT NOT NULL,
+    note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS discharge_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    week_number INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    color TEXT NOT NULL,
+    bleeding TEXT NOT NULL,
+    note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert mock data into appointments
 INSERT INTO appointments (title, content, appointment_date, appointment_time, appointment_location, appointment_status) VALUES
-('Initial OB Appointment', 'Confirm pregnancy and general health.', '2025-04-22', '09:00 AM', 'City Clinic', 'completed'),
-('Blood Work', 'Routine prenatal blood tests.', '2025-05-29', '10:00 AM', 'LabCorp', 'completed'),
+('Initial OB Appointment', 'Confirm pregnancy and general health.', '2025-06-22', '09:00 AM', 'City Clinic', 'completed'),
+('Blood Work', 'Routine prenatal blood tests.', '2025-06-29', '10:00 AM', 'LabCorp', 'completed'),
 ('Nutritional Counseling', 'Discuss prenatal diet and supplements.', '2025-02-05', '11:00 AM', 'Wellness Center', 'pending'),
 ('First Ultrasound', 'Early scan to check for heartbeat.', '2025-02-12', '10:30 AM', 'City Hospital', 'pending'),
 ('Routine Check-up', 'Weekly monitoring and vitals.', '2025-02-19', '09:30 AM', 'OB-GYN Office', 'pending'),
 ('NT Scan Appointment', 'Nuchal translucency scan scheduling.', '2025-02-26', '02:00 PM', 'Radiology Dept.', 'pending'),
-('Screening Lab Visit', 'Down syndrome blood screening.', '2025-03-05', '10:15 AM', 'Prenatal Lab', 'pending'),
-('Follow-up Visit', 'Review test results and progress.', '2025-04-12', '09:00 AM', 'HealthCare Clinic', 'pending'),
-('Anomaly Scan Prep', 'Discuss upcoming detailed scan.', '2025-03-19', '11:30 AM', 'OB-GYN Center', 'pending'),
-('Mid-pregnancy Checkup', 'Weight, BP, baby growth tracking.', '2025-03-26', '01:00 PM', 'Wellness Clinic', 'pending'),
-('Vaccination Discussion', 'Discuss vaccines for pregnancy.', '2025-04-02', '12:30 PM', 'OB-GYN Office', 'pending'),
-('Mood & Sleep Check-in', 'Mental health & fatigue talk.', '2025-04-09', '10:00 AM', 'Care Center', 'pending');
+('Screening Lab Visit', 'Down syndrome blood screening.', '2025-06-05', '10:15 AM', 'Prenatal Lab', 'pending'),
+('Follow-up Visit', 'Review test results and progress.', '2025-06-12', '09:00 AM', 'HealthCare Clinic', 'pending'),
+('Anomaly Scan Prep', 'Discuss upcoming detailed scan.', '2025-06-19', '11:30 AM', 'OB-GYN Center', 'pending'),
+('Mid-pregnancy Checkup', 'Weight, BP, baby growth tracking.', '2025-06-26', '01:00 PM', 'Wellness Clinic', 'pending'),
+('Vaccination Discussion', 'Discuss vaccines for pregnancy.', '2025-06-02', '12:30 PM', 'OB-GYN Office', 'pending'),
+('Mood & Sleep Check-in', 'Mental health & fatigue talk.', '2025-06-09', '10:00 AM', 'Care Center', 'pending');
 
 -- Insert mock data into tasks
 INSERT INTO tasks (title, content, starting_week, ending_week, task_priority, isOptional, isAppointmentMade ,task_status) VALUES
@@ -85,14 +105,6 @@ CREATE TABLE IF NOT EXISTS weekly_weight (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS weekly_mood (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    week_number INTEGER NOT NULL,
-    mood TEXT NOT NULL,
-    note TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE IF NOT EXISTS weekly_medicine (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     week_number INTEGER NOT NULL,
@@ -117,11 +129,6 @@ INSERT INTO weekly_weight (week_number, weight, note) VALUES
 (9, 60.9, 'Appetite increasing slightly'),
 (10, 61.3, 'Started prenatal yoga, feeling good');
 
-
-INSERT INTO weekly_mood (week_number, mood, note) VALUES
-(8, 'Tired', 'Fatigue from hormonal changes'),
-(9, 'Anxious', 'Worried about upcoming checkup'),
-(10, 'Happy', 'Excited after seeing ultrasound');
 
 INSERT INTO weekly_medicine (week_number, name, dose, time, taken, note) VALUES
 (8, 'Prenatal Vitamin', '1 tablet', '08:00', 1, 'Daily multivitamin with folic acid'),
