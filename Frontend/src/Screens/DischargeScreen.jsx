@@ -87,12 +87,18 @@ export default function DischargeScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await fetch(`${BASE_URL}/discharge_log/${id}`, {
+              const res = await fetch(`${BASE_URL}/discharge_log/${id}`, {
                 method: 'DELETE',
               });
+
+              if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
+
               fetchDischargeLogs();
             } catch (err) {
               console.error('Failed to delete entry:', err);
+              Alert.alert('Error', 'Failed to delete entry. Please try again.');
             }
           },
         },

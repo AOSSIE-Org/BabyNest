@@ -51,13 +51,15 @@ def add_medicine():
 
 # Read all
 @medicine_bp.route('/get_medicine', methods=['GET'])
+@require_auth
 def get_all_medicine():
     db = open_db()
     rows = db.execute('SELECT * FROM weekly_medicine').fetchall()
     return jsonify([dict(row) for row in rows]), 200
 
 # Read by week
-@medicine_bp.route('/medicine/<int:week>', methods=['GET'])
+@medicine_bp.route('/medicine/week/<int:week>', methods=['GET'])
+@require_auth
 def get_week_medicine(week):
     db = open_db()
     rows = db.execute('SELECT * FROM weekly_medicine WHERE week_number = ?', (week,)).fetchall()
@@ -65,6 +67,7 @@ def get_week_medicine(week):
 
 # Read by ID
 @medicine_bp.route('/medicine/<int:id>', methods=['GET'])
+@require_auth
 def get_medicine(id):
     db = open_db()
     entry = db.execute('SELECT * FROM weekly_medicine WHERE id = ?', (id,)).fetchone()
@@ -74,6 +77,7 @@ def get_medicine(id):
 
 # Update by ID
 @medicine_bp.route('/medicine/<int:id>', methods=['PUT'])
+@require_auth
 def update_medicine(id):
     db = open_db()
     data = request.json
@@ -81,6 +85,22 @@ def update_medicine(id):
     
     if not entry:
         return jsonify({"error": "Entry not found"}), 404
+
+    # Validate week_number if provided
+    if 'week_number' in data:
+        try:
+            week = int(data['week_number'])
+            if week < 1 or week > 52:
+                return jsonify({"error": "Week number must be between 1 and 52"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "Week number must be a valid integer"}), 400
+    
+    # Validate other fields if provided
+    if 'name' in data and (not isinstance(data['name'], str) or len(data['name'].strip()) == 0):
+        return jsonify({"error": "Medicine name must be a non-empty string"}), 400
+    
+    if 'dose' in data and (not isinstance(data['dose'], str) or len(data['dose'].strip()) == 0):
+        return jsonify({"error": "Dose must be a non-empty string"}), 400
 
     db.execute(
         '''UPDATE weekly_medicine SET week_number=?, name=?, dose=?, time=?, note=? WHERE id=?''',
@@ -99,6 +119,7 @@ def update_medicine(id):
 
 # Delete by ID
 @medicine_bp.route('/medicine/<int:id>', methods=['DELETE'])
+@require_auth
 def delete_medicine(id):
     db = open_db()
     entry = db.execute('SELECT * FROM weekly_medicine WHERE id = ?', (id,)).fetchone()
