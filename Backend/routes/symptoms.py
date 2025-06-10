@@ -18,20 +18,20 @@ def add_symptom():
     db.execute('INSERT INTO weekly_symptoms (week_number, symptom, note) VALUES (?, ?, ?)', (week, symptom, note))
     db.commit()
 
-    return jsonify({"status": "success", "message": "Symptom added"}), 200
+    return jsonify({"status": "success", "message": "Symptom added"}), 201
 
 # Read all
 @symptoms_bp.route('/symptoms', methods=['GET'])
 def get_all_symptoms():
     db = open_db()
-    rows = db.execute('SELECT * FROM weekly_symptoms').fetchall()
+    rows = db.execute('SELECT * FROM weekly_symptoms ORDER BY created_at DESC').fetchall()
     return jsonify([dict(row) for row in rows]), 200
 
 # Read by week
 @symptoms_bp.route('/symptoms/<int:week>', methods=['GET'])
 def get_week_symptoms(week):
     db = open_db()
-    rows = db.execute('SELECT * FROM weekly_symptoms WHERE week_number = ?', (week,)).fetchall()
+    rows = db.execute('SELECT * FROM weekly_symptoms WHERE week_number = ? ORDER BY created_at DESC', (week,)).fetchall()
     return jsonify([dict(row) for row in rows]), 200
 
 # Read by ID

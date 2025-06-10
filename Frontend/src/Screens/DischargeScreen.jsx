@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   ScrollView,
@@ -7,9 +7,9 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { TextInput, Button, Card, Dialog, Portal } from 'react-native-paper';
+import {TextInput, Button, Card, Dialog, Portal} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { BASE_URL } from '@env';
+import {BASE_URL} from '@env';
 import HeaderWithBack from '../Components/HeaderWithBack';
 
 export default function DischargeScreen() {
@@ -27,10 +27,14 @@ export default function DischargeScreen() {
   const fetchDischargeLogs = async () => {
     try {
       const res = await fetch(`${BASE_URL}/get_discharge_logs`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
       setHistory(data);
     } catch (err) {
       console.error('Failed to fetch discharge logs:', err);
+      Alert.alert('Error', 'Failed to load discharge logs. Please try again.');
     }
   };
 
@@ -50,11 +54,16 @@ export default function DischargeScreen() {
       return;
     }
     try {
-      await fetch(`${BASE_URL}/set_discharge_log`, {
+      const res = await fetch(`${BASE_URL}/set_discharge_log`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ week_number: week, type, color, bleeding, note }),
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({week_number: week, type, color, bleeding, note}),
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       setWeek('');
       setType('');
       setColor('');
@@ -63,21 +72,24 @@ export default function DischargeScreen() {
       fetchDischargeLogs();
     } catch (err) {
       console.error('Failed to add discharge log:', err);
+      Alert.alert('Error', 'Failed to save discharge log. Please try again.');
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = id => {
     Alert.alert(
       'Confirm Delete',
       'Are you sure you want to delete this entry?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {text: 'Cancel', style: 'cancel'},
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
-              await fetch(`${BASE_URL}/discharge_log/${id}`, { method: 'DELETE' });
+              await fetch(`${BASE_URL}/discharge_log/${id}`, {
+                method: 'DELETE',
+              });
               fetchDischargeLogs();
             } catch (err) {
               console.error('Failed to delete entry:', err);
@@ -88,7 +100,7 @@ export default function DischargeScreen() {
     );
   };
 
-  const openEditModal = (entry) => {
+  const openEditModal = entry => {
     setEditData({
       id: entry.id,
       week_number: entry.week_number.toString(),
@@ -111,9 +123,9 @@ export default function DischargeScreen() {
       return;
     }
     try {
-      await fetch(`${BASE_URL}/discharge_log/${editData.id}`, {
+      const res = await fetch(`${BASE_URL}/discharge_log/${editData.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           week_number: editData.week_number,
           type: editData.type,
@@ -122,11 +134,17 @@ export default function DischargeScreen() {
           note: editData.note,
         }),
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       setEditVisible(false);
       setEditData(null);
       fetchDischargeLogs();
     } catch (err) {
       console.error('Failed to update entry:', err);
+      Alert.alert('Error', 'Failed to update discharge log. Please try again.');
     }
   };
 
@@ -190,7 +208,7 @@ export default function DischargeScreen() {
               mode="contained"
               onPress={handleSubmit}
               style={styles.button}
-              labelStyle={{ fontWeight: 'bold', color: '#fff' }}>
+              labelStyle={{fontWeight: 'bold', color: '#fff'}}>
               Save Entry
             </Button>
           </Card.Content>
@@ -204,7 +222,10 @@ export default function DischargeScreen() {
               <View style={styles.entryRowBetween}>
                 <View style={styles.entryRow}>
                   <Icon name="calendar" size={20} color="rgb(218,79,122)" />
-                  <Text style={styles.entryText}> Week {entry.week_number}</Text>
+                  <Text style={styles.entryText}>
+                    {' '}
+                    Week {entry.week_number}
+                  </Text>
                 </View>
                 <View style={styles.iconRow}>
                   <Icon
@@ -247,7 +268,7 @@ export default function DischargeScreen() {
               label="Week Number"
               value={editData?.week_number || ''}
               onChangeText={text =>
-                setEditData({ ...editData, week_number: text })
+                setEditData({...editData, week_number: text})
               }
               keyboardType="numeric"
               mode="outlined"
@@ -256,28 +277,28 @@ export default function DischargeScreen() {
             <TextInput
               label="Type"
               value={editData?.type || ''}
-              onChangeText={text => setEditData({ ...editData, type: text })}
+              onChangeText={text => setEditData({...editData, type: text})}
               mode="outlined"
               style={styles.input}
             />
             <TextInput
               label="Color"
               value={editData?.color || ''}
-              onChangeText={text => setEditData({ ...editData, color: text })}
+              onChangeText={text => setEditData({...editData, color: text})}
               mode="outlined"
               style={styles.input}
             />
             <TextInput
               label="Bleeding"
               value={editData?.bleeding || ''}
-              onChangeText={text => setEditData({ ...editData, bleeding: text })}
+              onChangeText={text => setEditData({...editData, bleeding: text})}
               mode="outlined"
               style={styles.input}
             />
             <TextInput
               label="Note"
               value={editData?.note || ''}
-              onChangeText={text => setEditData({ ...editData, note: text })}
+              onChangeText={text => setEditData({...editData, note: text})}
               mode="outlined"
               multiline
               numberOfLines={3}
@@ -295,8 +316,8 @@ export default function DischargeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF5F8' },
-  content: { padding: 20, paddingBottom: 80 },
+  container: {flex: 1, backgroundColor: '#FFF5F8'},
+  content: {padding: 20, paddingBottom: 80},
   formCard: {
     borderRadius: 16,
     backgroundColor: '#FFEEF2',

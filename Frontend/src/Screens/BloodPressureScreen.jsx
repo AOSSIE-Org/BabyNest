@@ -18,11 +18,15 @@ export default function BloodPressureScreen() {
   const [editVisible, setEditVisible] = useState(false);
   const [editData, setEditData] = useState(null);
 
-  const fetchBPLogs = async () => {
-    const res = await fetch(`${BASE_URL}/get_bp_logs`);
-    const data = await res.json();
-    setHistory(data.reverse());
-  };
+   const fetchBPLogs = async () => {
+  try {
+     const res = await fetch(`${BASE_URL}/blood_pressure`);
+     const data = await res.json();
+     setHistory(data.reverse());
+  } catch (err) {
+    console.error('Failed to fetch BP logs:', err);
+  }
+ };
 
   useEffect(() => { fetchBPLogs(); }, []);
 
@@ -32,15 +36,25 @@ export default function BloodPressureScreen() {
     setRefreshing(false);
   };
 
-  const handleSubmit = async () => {
-    await fetch(`${BASE_URL}/set_bp_log`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ week_number: week, systolic, diastolic, time, note }),
-    });
-    setWeek(""); setSystolic(""); setDiastolic(""); setTime(""); setNote("");
-    fetchBPLogs();
-  };
+   const handleSubmit = async () => {
+  if (!week || !systolic || !diastolic || !time) {
+    Alert.alert('Error', 'Please fill in all required fields');
+    return;
+  }
+  
+  try {
+     await fetch(`${BASE_URL}/set_bp_log`, {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ week_number: week, systolic, diastolic, time, note }),
+     });
+     setWeek(""); setSystolic(""); setDiastolic(""); setTime(""); setNote("");
+     fetchBPLogs();
+  } catch (err) {
+    console.error('Failed to save BP log:', err);
+    Alert.alert('Error', 'Failed to save blood pressure entry. Please try again.');
+  }
+ };
 
   const openEditModal = (entry) => {
     setEditData(entry);
@@ -48,7 +62,7 @@ export default function BloodPressureScreen() {
   };
 
   const handleUpdate = async () => {
-    await fetch(`${BASE_URL}/bp_log/${editData.id}`, {
+    await fetch(`${BASE_URL}/blood_pressure/${editData.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -71,7 +85,7 @@ export default function BloodPressureScreen() {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
-          await fetch(`${BASE_URL}/bp_log/${id}`, {
+          await fetch(`${BASE_URL}/blood_pressure/${id}`, {
             method: "DELETE",
           });
           fetchBPLogs();
@@ -139,7 +153,7 @@ export default function BloodPressureScreen() {
           <Dialog.Content>
             <TextInput
               label="Week Number"
-              value={editData?.week_number.toString() || ""}
+              value={editData?.week_number?.toString() || ""}
               onChangeText={(text) =>
                 setEditData({ ...editData, week_number: text })
               }
@@ -149,7 +163,7 @@ export default function BloodPressureScreen() {
             />
             <TextInput
               label="Systolic"
-              value={editData?.systolic.toString() || ""}
+              value={editData?.systolic?.toString() || ""}
               onChangeText={(text) =>
                 setEditData({ ...editData, systolic: text })
               }
@@ -159,7 +173,7 @@ export default function BloodPressureScreen() {
             />
             <TextInput
               label="Diastolic"
-              value={editData?.diastolic.toString() || ""}
+              value={editData?.diastolic?.toString() || ""}
               onChangeText={(text) =>
                 setEditData({ ...editData, diastolic: text })
               }

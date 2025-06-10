@@ -43,15 +43,25 @@ export default function WeightScreen() {
   };
 
   const handleSubmit = async () => {
-    await fetch(`${BASE_URL}/weight`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({week_number: week, weight, note}),
-    });
-    setWeek('');
-    setWeight('');
-    setNote('');
-    fetchWeightHistory();
+    if (!week || !weight) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    try {
+      await fetch(`${BASE_URL}/weight`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({week_number: week, weight, note}),
+      });
+      setWeek('');
+      setWeight('');
+      setNote('');
+      fetchWeightHistory();
+    } catch (err) {
+      console.error('Failed to save weight:', err);
+      Alert.alert('Error', 'Failed to save weight entry. Please try again.');
+    }
   };
 
   const handleDelete = async id => {
@@ -64,10 +74,15 @@ export default function WeightScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await fetch(`${BASE_URL}/weight/${id}`, {
-              method: 'DELETE',
-            });
-            fetchWeightHistory();
+            try {
+              await fetch(`${BASE_URL}/weight/${id}`, {
+                method: 'DELETE',
+              });
+              fetchWeightHistory();
+            } catch (err) {
+              console.error('Failed to delete weight:', err);
+              Alert.alert('Error', 'Failed to delete entry. Please try again.');
+            }
           },
         },
       ],
@@ -80,18 +95,23 @@ export default function WeightScreen() {
   };
 
   const handleUpdate = async () => {
-    await fetch(`${BASE_URL}/weight/${editData.id}`, {
-      method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        week_number: editData.week_number,
-        weight: editData.weight,
-        note: editData.note,
-      }),
-    });
-    setEditVisible(false);
-    setEditData(null);
-    fetchWeightHistory();
+    try {
+      await fetch(`${BASE_URL}/weight/${editData.id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          week_number: editData.week_number,
+          weight: editData.weight,
+          note: editData.note,
+        }),
+      });
+      setEditVisible(false);
+      setEditData(null);
+      fetchWeightHistory();
+    } catch (err) {
+      console.error('Failed to update weight:', err);
+      Alert.alert('Error', 'Failed to update entry. Please try again.');
+    }
   };
 
   return (
@@ -195,7 +215,7 @@ export default function WeightScreen() {
           <Dialog.Content>
             <TextInput
               label="Week Number"
-              value={editData?.week_number.toString() || ''}
+              value={editData?.week_number?.toString() || ''}
               onChangeText={text =>
                 setEditData({...editData, week_number: text})
               }
@@ -205,7 +225,7 @@ export default function WeightScreen() {
             />
             <TextInput
               label="Weight"
-              value={editData?.weight.toString() || ''}
+              value={editData?.weight?.toString() || ''}
               onChangeText={text => setEditData({...editData, weight: text})}
               keyboardType="numeric"
               mode="outlined"
@@ -281,9 +301,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   entryRowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   entryText: {
     fontSize: 16,

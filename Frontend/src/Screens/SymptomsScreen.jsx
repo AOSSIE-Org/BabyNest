@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect} from 'react';
 import {
   View,
   ScrollView,
@@ -6,16 +6,16 @@ import {
   Text,
   RefreshControl,
   Alert,
-} from "react-native";
-import { TextInput, Button, Card, Portal, Dialog } from "react-native-paper";
-import { BASE_URL } from "@env";
-import HeaderWithBack from "../Components/HeaderWithBack";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+} from 'react-native';
+import {TextInput, Button, Card, Portal, Dialog} from 'react-native-paper';
+import {BASE_URL} from '@env';
+import HeaderWithBack from '../Components/HeaderWithBack';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function SymptomsScreen() {
-  const [week, setWeek] = useState("");
-  const [symptom, setSymptom] = useState("");
-  const [note, setNote] = useState("");
+  const [week, setWeek] = useState('');
+  const [symptom, setSymptom] = useState('');
+  const [note, setNote] = useState('');
   const [history, setHistory] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -25,10 +25,14 @@ export default function SymptomsScreen() {
   const fetchSymptomsHistory = async () => {
     try {
       const res = await fetch(`${BASE_URL}/symptoms`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
-      setHistory(data.reverse());
+      setHistory([...data].reverse());
     } catch (err) {
-      console.error("Failed to fetch symptoms:", err);
+      console.error('Failed to fetch symptoms:', err);
+      Alert.alert('Error', 'Failed to load symptoms. Please try again.');
     }
   };
 
@@ -43,51 +47,104 @@ export default function SymptomsScreen() {
   };
 
   const handleSubmit = async () => {
-    await fetch(`${BASE_URL}/symptoms`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ week_number: week, symptom, note }),
-    });
-    setWeek("");
-    setSymptom("");
-    setNote("");
-    fetchSymptomsHistory();
+    if (!week || !symptom) {
+      Alert.alert(
+        'Validation Error',
+        'Please fill in week number and symptom.',
+      );
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/symptoms`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({week_number: week, symptom, note}),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      setWeek('');
+      setSymptom('');
+      setNote('');
+      fetchSymptomsHistory();
+    } catch (err) {
+      console.error('Failed to add symptom:', err);
+      Alert.alert('Error', 'Failed to save symptom. Please try again.');
+    }
   };
 
-  const openEditModal = (entry) => {
+  const openEditModal = entry => {
     setEditData(entry);
     setEditVisible(true);
   };
 
   const handleUpdate = async () => {
-    await fetch(`${BASE_URL}/symptoms/${editData.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        week_number: editData.week_number,
-        symptom: editData.symptom,
-        note: editData.note,
-      }),
-    });
-    setEditVisible(false);
-    setEditData(null);
-    fetchSymptomsHistory();
+    if (!editData?.week_number || !editData?.symptom) {
+      Alert.alert(
+        'Validation Error',
+        'Please fill in week number and symptom.',
+      );
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/symptoms/${editData.id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          week_number: editData.week_number,
+          symptom: editData.symptom,
+          note: editData.note,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      setEditVisible(false);
+      setEditData(null);
+      fetchSymptomsHistory();
+    } catch (err) {
+      console.error('Failed to update symptom:', err);
+      Alert.alert('Error', 'Failed to update symptom. Please try again.');
+    }
   };
 
-  const handleDelete = async (id) => {
-    Alert.alert("Confirm Delete", "Are you sure you want to delete this entry?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await fetch(`${BASE_URL}/symptoms/${id}`, {
-            method: "DELETE",
-          });
-          fetchSymptomsHistory();
+  const handleDelete = async id => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this entry?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await fetch(`${BASE_URL}/symptoms/${id}`, {
+                method: 'DELETE',
+              });
+
+              if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+              }
+
+              fetchSymptomsHistory();
+            } catch (err) {
+              console.error('Failed to delete symptom:', err);
+              Alert.alert(
+                'Error',
+                'Failed to delete symptom. Please try again.',
+              );
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   return (
@@ -97,8 +154,7 @@ export default function SymptomsScreen() {
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
+        }>
         {/* Form */}
         <Card style={styles.formCard}>
           <Card.Content>
@@ -135,22 +191,28 @@ export default function SymptomsScreen() {
               mode="contained"
               onPress={handleSubmit}
               style={styles.button}
-              labelStyle={{ fontWeight: "bold", color: "#fff" }}
-            >
+              labelStyle={{fontWeight: 'bold', color: '#fff'}}>
               Save Symptom
             </Button>
           </Card.Content>
         </Card>
 
-         {/* History */}
+        {/* History */}
         <Text style={styles.historyTitle}>Symptom History</Text>
         {history.map((entry, index) => (
           <Card key={index} style={styles.entryCard}>
             <Card.Content>
               <View style={styles.entryRowBetween}>
                 <View style={styles.entryRow}>
-                  <Icon name="emoticon-sick-outline" size={20} color="rgb(218,79,122)" />
-                  <Text style={styles.entryText}>  Week {entry.week_number}</Text>
+                  <Icon
+                    name="emoticon-sick-outline"
+                    size={20}
+                    color="rgb(218,79,122)"
+                  />
+                  <Text style={styles.entryText}>
+                    {' '}
+                    Week {entry.week_number}
+                  </Text>
                 </View>
                 <View style={styles.iconRow}>
                   <Icon
@@ -188,9 +250,9 @@ export default function SymptomsScreen() {
           <Dialog.Content>
             <TextInput
               label="Week Number"
-              value={editData?.week_number.toString() || ""}
-              onChangeText={(text) =>
-                setEditData({ ...editData, week_number: text })
+              value={editData?.week_number.toString() || ''}
+              onChangeText={text =>
+                setEditData({...editData, week_number: text})
               }
               keyboardType="numeric"
               mode="outlined"
@@ -198,19 +260,15 @@ export default function SymptomsScreen() {
             />
             <TextInput
               label="Symptom"
-              value={editData?.symptom || ""}
-              onChangeText={(text) =>
-                setEditData({ ...editData, symptom: text })
-              }
+              value={editData?.symptom || ''}
+              onChangeText={text => setEditData({...editData, symptom: text})}
               mode="outlined"
               style={styles.input}
             />
             <TextInput
               label="Note"
-              value={editData?.note || ""}
-              onChangeText={(text) =>
-                setEditData({ ...editData, note: text })
-              }
+              value={editData?.note || ''}
+              onChangeText={text => setEditData({...editData, note: text})}
               mode="outlined"
               style={styles.input}
             />
@@ -226,24 +284,24 @@ export default function SymptomsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF5F8" },
-  content: { padding: 20, paddingBottom: 80 },
+  container: {flex: 1, backgroundColor: '#FFF5F8'},
+  content: {padding: 20, paddingBottom: 80},
 
   formCard: {
     borderRadius: 16,
-    backgroundColor: "#FFEFF5",
+    backgroundColor: '#FFEFF5',
     marginBottom: 30,
     elevation: 4,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "rgb(218,79,122)",
+    fontWeight: 'bold',
+    color: 'rgb(218,79,122)',
     marginBottom: 15,
-    textAlign: "center",
+    textAlign: 'center',
   },
   input: {
-    backgroundColor: "white",
+    backgroundColor: 'white',
     marginBottom: 15,
     borderRadius: 10,
   },
@@ -251,7 +309,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   button: {
-    backgroundColor: "rgb(218,79,122)",
+    backgroundColor: 'rgb(218,79,122)',
     marginTop: 10,
     paddingVertical: 8,
     borderRadius: 10,
@@ -259,12 +317,12 @@ const styles = StyleSheet.create({
 
   historyTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "rgb(218,79,122)",
+    fontWeight: 'bold',
+    color: 'rgb(218,79,122)',
     marginBottom: 10,
   },
   entryCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 15,
     paddingHorizontal: 10,
@@ -272,40 +330,40 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   entryRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
   entryRowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   entryText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#444",
+    fontWeight: '600',
+    color: '#444',
   },
   entrySub: {
     fontSize: 15,
-    color: "#555",
+    color: '#555',
     marginBottom: 2,
   },
   entryNote: {
     fontSize: 14,
-    color: "#777",
+    color: '#777',
     marginTop: 4,
   },
   entryDate: {
     fontSize: 12,
-    color: "#aaa",
+    color: '#aaa',
     marginTop: 6,
   },
   iconRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 12,
   },
   iconButton: {
     marginLeft: 10,
-  }
+  },
 });

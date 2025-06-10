@@ -1,10 +1,20 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
+from functools import wraps
 from db.db import open_db
 
 medicine_bp = Blueprint('medicine', __name__)
 
+def require_auth(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({"error": "Authentication required"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Create
 @medicine_bp.route('/set_medicine', methods=['POST'])
+@require_auth
 def add_medicine():
     db = open_db()
     data = request.json
@@ -16,6 +26,20 @@ def add_medicine():
 
     if not all([week, name, dose, time]):
         return jsonify({"error": "Missing fields"}), 400
+
+    # Validate data types and ranges
+    try:
+       week = int(week)
+       if week < 1 or week > 52:
+           return jsonify({"error": "Week number must be between 1 and 52"}), 400
+    except (ValueError, TypeError):
+       return jsonify({"error": "Week number must be a valid integer"}), 400
+   
+    if not isinstance(name, str) or len(name.strip()) == 0:
+       return jsonify({"error": "Medicine name must be a non-empty string"}), 400
+   
+    if not isinstance(dose, str) or len(dose.strip()) == 0:
+       return jsonify({"error": "Dose must be a non-empty string"}), 400
 
     db.execute(
         'INSERT INTO weekly_medicine (week_number, name, dose, time, note) VALUES (?, ?, ?, ?, ?)',

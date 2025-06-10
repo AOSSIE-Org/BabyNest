@@ -12,10 +12,26 @@ def log_weight():
     weight = data.get('weight')
     note = data.get('note')
 
-    if not (week and weight):
+    if not all([week, weight]):
         return jsonify({"error": "Missing week_number or weight"}), 400
 
+    # Validate week number
+    try:
+       week = int(week)
+       if week < 1 or week > 52:
+           return jsonify({"error": "Week number must be between 1 and 52"}), 400
+    except (ValueError, TypeError):
+       return jsonify({"error": "Week number must be a valid integer"}), 400
+   
+    # Validate weight
+    try:
+       weight = float(weight)
+       if weight <= 0 or weight > 1000:  # reasonable range in kg
+           return jsonify({"error": "Weight must be a positive number up to 1000kg"}), 400
+    except (ValueError, TypeError):
+       return jsonify({"error": "Weight must be a valid number"}), 400
     db.execute('INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)', (week, weight, note))
+
     db.commit()
     return jsonify({"status": "success", "message": "Weight added"}), 200
 
