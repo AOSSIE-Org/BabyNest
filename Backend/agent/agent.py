@@ -18,12 +18,19 @@ dispatch_intent = {
 
 class BabyNestAgent:
     def run(self, query: str, user_id: str):
-        structured = get_structured_context()
-        unstructured = get_unstructured_context(query)
+        if not query or not isinstance(query, str):
+            return "Invalid query. Please provide a valid string."
+        
+        try:
+            structured = get_structured_context()
+            unstructured = get_unstructured_context(query)
 
-        intent = classify_intent(query)
-        if intent in dispatch_intent:
-            return dispatch_intent[intent](query)
+            intent = classify_intent(query)
+            if intent in dispatch_intent:
+                return dispatch_intent[intent](query)
 
-        prompt = build_prompt(query, structured, unstructured)
-        return run_llm(prompt)
+            prompt = build_prompt(query, structured, unstructured)
+            return run_llm(prompt)
+        
+        except Exception as e:
+            return f"Error processing query: {e}"

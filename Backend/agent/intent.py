@@ -1,5 +1,8 @@
 # agent/intent.py
 def classify_intent(query: str) -> str:
+    if not query or not isinstance(query, str):
+        return "general"
+    
     query = query.lower()
     if "appointment" in query:
         return "appointments"

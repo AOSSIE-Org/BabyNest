@@ -31,11 +31,23 @@ agent = BabyNestAgent()
 
 @app.route("/agent", methods=["POST"])
 def run_agent():
+    if not request.is_json:
+        return jsonify({"error": "Invalid JSON format"}), 400
+    
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
     query = data.get("query")
+    if not query:
+        return jsonify({"error": "Query is required"}), 400
+    
     user_id = data.get("user_id", "user_123") 
-    response = agent.run(query, user_id)
-    return jsonify({"response": response})
+    try:
+        response = agent.run(query, user_id)
+        return jsonify({"response": response})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/')
 def index():
