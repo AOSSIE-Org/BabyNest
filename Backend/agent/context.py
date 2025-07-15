@@ -12,7 +12,7 @@ def _format_data_for_embedding(db: sqlite3.Connection) -> tuple[list, list, list
     for i, a in enumerate(appointments):
         doc_content = f"Appointment: {a['title']} on {a['appointment_date']} at {a['appointment_time']} (Status: {a['appointment_status']})"
         docs.append(doc_content)
-        ids.append(f"appt_{i}")
+        ids.append(f"appt_{a['id']}")
         metadatas.append({"source": "appointments"})
 
     # Fetch and format weight logs
@@ -20,7 +20,7 @@ def _format_data_for_embedding(db: sqlite3.Connection) -> tuple[list, list, list
     for i, w in enumerate(weights):
         doc_content = f"Weight Log Week {w['week_number']}: {w['weight']}kg. Note: {w['note']}"
         docs.append(doc_content)
-        ids.append(f"weight_{i}")
+        ids.append(f"weight_{a['id']}")
         metadatas.append({"source": "weight_logs"})
     
     # Fetch and format symptoms
@@ -28,7 +28,7 @@ def _format_data_for_embedding(db: sqlite3.Connection) -> tuple[list, list, list
     for i, s in enumerate(symptoms):
         doc_content = f"Symptom Week {s['week_number']}: {s['symptom']}. Note: {s['note']}"
         docs.append(doc_content)
-        ids.append(f"symptom_{i}")
+        ids.append(f"symptom_{a['id']}")
         metadatas.append({"source": "symptoms"})
         
     return docs, ids, metadatas

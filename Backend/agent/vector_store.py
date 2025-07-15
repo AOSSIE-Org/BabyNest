@@ -34,7 +34,7 @@ def update_vector_store(documents: list[str], ids: list[str], metadatas: list[di
     try:
         # Get the collection only when the function is called
         collection = _get_collection()
-        collection.add(
+        collection.upsert(
             documents=documents,
             ids=ids,
             metadatas=metadatas
