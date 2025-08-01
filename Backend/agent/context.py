@@ -57,14 +57,36 @@ def update_structured_context_in_vector_store():
 
 def get_relevant_context_from_vector_store(query: str) -> str:
     """
-    Retrieves context from the vector store that is semantically relevant to the user's query.
-    Also includes static, general guidance.
+    Retrieve relevant context from the vector store based on the query.
     """
-    # Query ChromaDB for relevant data based on the user's input
-    queried_context = query_vector_store(query, n_results=5)
-    
-    # Placeholder for general, non-vectorized knowledge
-    guidance = "Pregnancy-related health guidance snippets (offline)."
-    
-    return f"{queried_context}\n\n{guidance}"
+    try:
+        # Query the vector store for relevant guidelines
+        relevant_docs = query_vector_store(query, n_results=3)
+        
+        if relevant_docs:
+            # Join the documents into a single context string
+            context = "\n\n".join(relevant_docs)
+            return context
+        else:
+            return "Pregnancy-related health guidance snippets (offline)."
+            
+    except Exception as e:
+        print(f"Error retrieving context: {e}")
+        return "Pregnancy-related health guidance snippets (offline)."
+
+def initialize_knowledge_base():
+    """
+    Initialize the knowledge base with pregnancy guidelines.
+    Call this once when the app starts.
+    """
+    try:
+        success = update_vector_store()
+        if success:
+            print("Knowledge base initialized successfully")
+        else:
+            print("Failed to initialize knowledge base")
+        return success
+    except Exception as e:
+        print(f"Error initializing knowledge base: {e}")
+        return False
 
