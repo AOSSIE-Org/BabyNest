@@ -7,28 +7,28 @@ def _format_data_for_embedding(db: sqlite3.Connection) -> tuple[list, list, list
     """
     docs, ids, metadatas = [], [], []
 
-    # Fetch and format appointments
+    # Fetch and format appointments (using tuple indexing)
     appointments = db.execute("SELECT title, appointment_date, appointment_time, appointment_status FROM appointments ORDER BY appointment_date").fetchall()
     for i, a in enumerate(appointments):
-        doc_content = f"Appointment: {a['title']} on {a['appointment_date']} at {a['appointment_time']} (Status: {a['appointment_status']})"
+        doc_content = f"Appointment: {a[0]} on {a[1]} at {a[2]} (Status: {a[3]})"
         docs.append(doc_content)
-        ids.append(f"appt_{a['id']}")
+        ids.append(f"appt_{i}")  # Use enumerate index for unique ID
         metadatas.append({"source": "appointments"})
 
     # Fetch and format weight logs
     weights = db.execute("SELECT week_number, weight, note FROM weekly_weight ORDER BY week_number").fetchall()
     for i, w in enumerate(weights):
-        doc_content = f"Weight Log Week {w['week_number']}: {w['weight']}kg. Note: {w['note']}"
+        doc_content = f"Weight Log Week {w[0]}: {w[1]}kg. Note: {w[2]}"
         docs.append(doc_content)
-        ids.append(f"weight_{a['id']}")
+        ids.append(f"weight_{i}")  # Use enumerate index for unique ID
         metadatas.append({"source": "weight_logs"})
     
     # Fetch and format symptoms
     symptoms = db.execute("SELECT week_number, symptom, note FROM weekly_symptoms ORDER BY week_number").fetchall()
     for i, s in enumerate(symptoms):
-        doc_content = f"Symptom Week {s['week_number']}: {s['symptom']}. Note: {s['note']}"
+        doc_content = f"Symptom Week {s[0]}: {s[1]}. Note: {s[2]}"
         docs.append(doc_content)
-        ids.append(f"symptom_{a['id']}")
+        ids.append(f"symptom_{i}")  # Use enumerate index for unique ID
         metadatas.append({"source": "symptoms"})
         
     return docs, ids, metadatas

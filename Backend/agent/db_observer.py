@@ -29,6 +29,11 @@ class DatabaseObserver:
         except OSError:
             return 0.0
     
+    def _validate_table_name(self, table_name: str) -> bool:
+        """Validate table name to prevent SQL injection."""
+        import re
+        return re.match(r'^[a-zA-Z0-9_]+$', table_name) is not None
+    
     def _check_table_changes(self) -> bool:
         """Check if any monitored tables have changed by querying row counts and last modified times."""
         try:
@@ -39,9 +44,13 @@ class DatabaseObserver:
             current_state = {}
             
             for table in self.monitored_tables:
+                if not self._validate_table_name(table):
+                    print(f"Invalid table name: {table}")
+                    continue
+
                 try:
                     # Get row count
-                    cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                    cursor.execute("SELECT COUNT(*) FROM " + table)
                     row_count = cursor.fetchone()[0]
                     
                     # Get last modified time (using max created_at if available)

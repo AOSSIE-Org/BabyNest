@@ -28,10 +28,6 @@ class BabyNestAgent:
         self.db_path = db_path
         self.context_cache = get_context_cache(db_path)
         
-        # Set up database observer for automatic cache invalidation
-        def cache_invalidator():
-            self.context_cache.invalidate_cache()
-        
         # Register embedding refresh
         register_vector_store_updater(update_vector_store)
 

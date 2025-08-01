@@ -28,60 +28,64 @@ class ContextCache:
     
     def _calculate_db_hash(self) -> str:
         """Calculate hash of relevant database tables to detect changes."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
         
-        # Get data from relevant tables
-        tables_data = {}
+            # Get data from relevant tables
+            tables_data = {}
         
-        # Profile data
-        cursor.execute("SELECT lmp, cycleLength, periodLength, age, weight, user_location, dueDate FROM profile ORDER BY id DESC LIMIT 1")
-        profile = cursor.fetchone()
-        tables_data['profile'] = str(profile) if profile else ""
+            # Profile data
+            cursor.execute("SELECT lmp, cycleLength, periodLength, age, weight, user_location, dueDate FROM profile ORDER BY id DESC LIMIT 1")
+            profile = cursor.fetchone()
+            tables_data['profile'] = str(profile) if profile else ""
         
-        # Weekly tracking data (last 4 weeks)
-        cursor.execute("""
-            SELECT week_number, weight, note FROM weekly_weight 
-            ORDER BY week_number DESC LIMIT 4
-        """)
-        weight_data = cursor.fetchall()
-        tables_data['weekly_weight'] = str(weight_data)
+            # Weekly tracking data (last 4 weeks)
+            cursor.execute("""
+                SELECT week_number, weight, note FROM weekly_weight 
+                ORDER BY week_number DESC LIMIT 4
+            """)
+            weight_data = cursor.fetchall()
+            tables_data['weekly_weight'] = str(weight_data)
+            
+            cursor.execute("""
+                SELECT week_number, name, dose, time, taken, note FROM weekly_medicine 
+                ORDER BY week_number DESC LIMIT 4
+            """)
+            medicine_data = cursor.fetchall()
+            tables_data['weekly_medicine'] = str(medicine_data)
+            
+            cursor.execute("""
+                SELECT week_number, symptom, note FROM weekly_symptoms 
+                ORDER BY week_number DESC LIMIT 4
+            """)
+            symptoms_data = cursor.fetchall()
+            tables_data['weekly_symptoms'] = str(symptoms_data)
+            
+            # Blood pressure logs (last 7 entries)
+            cursor.execute("""
+                SELECT week_number, systolic, diastolic, time, note FROM blood_pressure_logs 
+                ORDER BY created_at DESC LIMIT 7
+            """)
+            bp_data = cursor.fetchall()
+            tables_data['blood_pressure'] = str(bp_data)
+            
+            # Discharge logs (last 7 entries)
+            cursor.execute("""
+                SELECT week_number, type, color, bleeding, note FROM discharge_logs 
+                ORDER BY created_at DESC LIMIT 7
+            """)
+            discharge_data = cursor.fetchall()
+            tables_data['discharge'] = str(discharge_data)
         
-        cursor.execute("""
-            SELECT week_number, name, dose, time, taken, note FROM weekly_medicine 
-            ORDER BY week_number DESC LIMIT 4
-        """)
-        medicine_data = cursor.fetchall()
-        tables_data['weekly_medicine'] = str(medicine_data)
+            # Create hash from all data
+            data_string = json.dumps(tables_data, sort_keys=True)
+            return hashlib.md5(data_string.encode()).hexdigest()
         
-        cursor.execute("""
-            SELECT week_number, symptom, note FROM weekly_symptoms 
-            ORDER BY week_number DESC LIMIT 4
-        """)
-        symptoms_data = cursor.fetchall()
-        tables_data['weekly_symptoms'] = str(symptoms_data)
-        
-        # Blood pressure logs (last 7 entries)
-        cursor.execute("""
-            SELECT week_number, systolic, diastolic, time, note FROM blood_pressure_logs 
-            ORDER BY created_at DESC LIMIT 7
-        """)
-        bp_data = cursor.fetchall()
-        tables_data['blood_pressure'] = str(bp_data)
-        
-        # Discharge logs (last 7 entries)
-        cursor.execute("""
-            SELECT week_number, type, color, bleeding, note FROM discharge_logs 
-            ORDER BY created_at DESC LIMIT 7
-        """)
-        discharge_data = cursor.fetchall()
-        tables_data['discharge'] = str(discharge_data)
-        
-        conn.close()
-        
-        # Create hash from all data
-        data_string = json.dumps(tables_data, sort_keys=True)
-        return hashlib.md5(data_string.encode()).hexdigest()
+        finally:
+            if conn:
+                conn.close()
     
     def _update_db_hash(self):
         """Update the database hash."""
@@ -120,90 +124,94 @@ class ContextCache:
     
     def _build_context(self) -> Dict[str, Any]:
         """Build context from database."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Get profile data
+            cursor.execute("""
+                SELECT lmp, cycleLength, periodLength, age, weight, user_location, dueDate 
+                FROM profile ORDER BY id DESC LIMIT 1
+            """)
+            profile = cursor.fetchone()
+            
+            if not profile:
+                conn.close()
+                return None
+            
+            lmp, cycle_length, period_length, age, weight, location, due_date = profile
+            
+            # Calculate current week
+            if due_date:
+                due_date_obj = datetime.strptime(due_date, "%Y-%m-%d").date()
+                today = date.today()
+                delta = due_date_obj - today
+                weeks_left = delta.days // 7
+                current_week = 40 - weeks_left
+                current_week = max(1, min(current_week, 40))
+            else:
+                current_week = 1
+            
+            # Get recent tracking data
+            cursor.execute("""
+                SELECT week_number, weight, note FROM weekly_weight 
+                ORDER BY week_number DESC LIMIT 4
+            """)
+            weight_data = cursor.fetchall()
+            
+            cursor.execute("""
+                SELECT week_number, name, dose, time, taken, note FROM weekly_medicine 
+                ORDER BY week_number DESC LIMIT 4
+            """)
+            medicine_data = cursor.fetchall()
+            
+            cursor.execute("""
+                SELECT week_number, symptom, note FROM weekly_symptoms 
+                ORDER BY week_number DESC LIMIT 4
+            """)
+            symptoms_data = cursor.fetchall()
+            
+            cursor.execute("""
+                SELECT week_number, systolic, diastolic, time, note FROM blood_pressure_logs 
+                ORDER BY created_at DESC LIMIT 7
+            """)
+            bp_data = cursor.fetchall()
+            
+            cursor.execute("""
+                SELECT week_number, type, color, bleeding, note FROM discharge_logs 
+                ORDER BY created_at DESC LIMIT 7
+            """)
+            discharge_data = cursor.fetchall()
         
-        # Get profile data
-        cursor.execute("""
-            SELECT lmp, cycleLength, periodLength, age, weight, user_location, dueDate 
-            FROM profile ORDER BY id DESC LIMIT 1
-        """)
-        profile = cursor.fetchone()
+            # Build context
+            context = {
+                "current_week": current_week,
+                "location": location,
+                "age": age,
+                "weight": weight,
+                "due_date": due_date,
+                "lmp": lmp,
+                "cycle_length": cycle_length,
+                "period_length": period_length,
+                "tracking_data": {
+                    "weight": [{"week": w, "weight": wt, "note": n} for w, wt, n in weight_data],
+                    "medicine": [{"week": w, "name": n, "dose": d, "time": t, "taken": tk, "note": nt} 
+                            for w, n, d, t, tk, nt in medicine_data],
+                    "symptoms": [{"week": w, "symptom": s, "note": n} for w, s, n in symptoms_data],
+                    "blood_pressure": [{"week": w, "systolic": s, "diastolic": d, "time": t, "note": n} 
+                                    for w, s, d, t, n in bp_data],
+                    "discharge": [{"week": w, "type": ty, "color": c, "bleeding": b, "note": n} 
+                                for w, ty, c, b, n in discharge_data]
+                },
+                "last_updated": datetime.now().isoformat()
+            }
+            
+            return context
         
-        if not profile:
-            conn.close()
-            return None
-        
-        lmp, cycle_length, period_length, age, weight, location, due_date = profile
-        
-        # Calculate current week
-        if due_date:
-            due_date_obj = datetime.strptime(due_date, "%Y-%m-%d").date()
-            today = date.today()
-            delta = due_date_obj - today
-            weeks_left = delta.days // 7
-            current_week = 40 - weeks_left
-            current_week = max(1, min(current_week, 40))
-        else:
-            current_week = 1
-        
-        # Get recent tracking data
-        cursor.execute("""
-            SELECT week_number, weight, note FROM weekly_weight 
-            ORDER BY week_number DESC LIMIT 4
-        """)
-        weight_data = cursor.fetchall()
-        
-        cursor.execute("""
-            SELECT week_number, name, dose, time, taken, note FROM weekly_medicine 
-            ORDER BY week_number DESC LIMIT 4
-        """)
-        medicine_data = cursor.fetchall()
-        
-        cursor.execute("""
-            SELECT week_number, symptom, note FROM weekly_symptoms 
-            ORDER BY week_number DESC LIMIT 4
-        """)
-        symptoms_data = cursor.fetchall()
-        
-        cursor.execute("""
-            SELECT week_number, systolic, diastolic, time, note FROM blood_pressure_logs 
-            ORDER BY created_at DESC LIMIT 7
-        """)
-        bp_data = cursor.fetchall()
-        
-        cursor.execute("""
-            SELECT week_number, type, color, bleeding, note FROM discharge_logs 
-            ORDER BY created_at DESC LIMIT 7
-        """)
-        discharge_data = cursor.fetchall()
-        
-        conn.close()
-        
-        # Build context
-        context = {
-            "current_week": current_week,
-            "location": location,
-            "age": age,
-            "weight": weight,
-            "due_date": due_date,
-            "lmp": lmp,
-            "cycle_length": cycle_length,
-            "period_length": period_length,
-            "tracking_data": {
-                "weight": [{"week": w, "weight": wt, "note": n} for w, wt, n in weight_data],
-                "medicine": [{"week": w, "name": n, "dose": d, "time": t, "taken": tk, "note": nt} 
-                           for w, n, d, t, tk, nt in medicine_data],
-                "symptoms": [{"week": w, "symptom": s, "note": n} for w, s, n in symptoms_data],
-                "blood_pressure": [{"week": w, "systolic": s, "diastolic": d, "time": t, "note": n} 
-                                 for w, s, d, t, n in bp_data],
-                "discharge": [{"week": w, "type": ty, "color": c, "bleeding": b, "note": n} 
-                            for w, ty, c, b, n in discharge_data]
-            },
-            "last_updated": datetime.now().isoformat()
-        }
-        
-        return context
+        finally:
+            if conn:
+                conn.close()
     
     def get_context(self, user_id: str = "default") -> Optional[Dict[str, Any]]:
         """Get user context from cache or build it if needed."""
