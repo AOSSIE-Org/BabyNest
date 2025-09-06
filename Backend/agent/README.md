@@ -19,7 +19,7 @@ The BabyNest agent system provides intelligent, personalized pregnancy assistanc
                               │
                               ▼
                        ┌──────────────────┐
-                       │ Database Observer│
+                       │ Manual Cache Refresh│
                        │ (Event Monitor)  │
                        └──────────────────┘
                               │
@@ -35,7 +35,7 @@ The BabyNest agent system provides intelligent, personalized pregnancy assistanc
 
 - **`agent.py`** - Main agent class with caching integration
 - **`cache.py`** - Context cache system for user data
-- **`db_observer.py`** - Database change monitoring
+- **`cache.py`** - Context cache system with manual invalidation
 - **`prompt.py`** - Enhanced prompt building with user context
 - **`llm.py`** - LLM interface (replace with your LLM)
 - **`intent.py`** - Intent classification
@@ -148,8 +148,8 @@ The cache system automatically monitors:
 ### Performance Tuning
 
 ```python
-# Adjust observer check interval
-observer._observer_loop()  # Modify sleep time
+# Manually refresh cache after database changes
+agent.refresh_cache_and_embeddings()
 
 # Force cache refresh
 agent.force_refresh_context("user_123")
@@ -194,14 +194,14 @@ This tests:
 ## Troubleshooting
 
 ### Cache Not Updating
-1. Check if database observer is running
+1. Check if cache needs manual refresh
 2. Verify table changes are being detected
 3. Force refresh with `/agent/refresh` endpoint
 
 ### Performance Issues
 1. Check cache file sizes in `Backend/agent/cache/`
 2. Monitor memory usage
-3. Adjust observer check interval if needed
+3. Call refresh_cache_and_embeddings() after database changes
 
 ### Context Missing
 1. Verify user profile exists in database

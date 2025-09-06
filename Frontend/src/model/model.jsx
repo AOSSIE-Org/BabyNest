@@ -114,24 +114,29 @@ export const generateResponse = async (conversation) => {
       "<|end▁of▁sentence|>"
     ];
   
-  
     try {
-      const filteredConversation = [
-        {
+      // Check if conversation already has a system message
+      const hasSystemMessage = conversation.some(msg => msg.role === "system");
+      
+      let messagesToSend = conversation;
+      
+      // If no system message exists, add a default pregnancy assistant prompt
+      if (!hasSystemMessage) {
+        const defaultSystemMessage = {
           role: "system",
-          content: "You are a highly specialized AI assistant focused on pregnancy-related topics.  "
-            + "Your expertise includes maternal health, fetal development, prenatal care, and pregnancy well-being.  "
-            + "- Provide responses that are concise, clear, and easy to understand.  "
-            + "- Maintain a warm, empathetic, and supportive tone to reassure users.  "
-            + "- Prioritize factual, evidence-based information while keeping answers short.  "
-            + "- If a question is outside pregnancy-related topics, gently redirect the user to relevant discussions.  "
-            + "- Avoid unnecessary details,deliver crisp, to-the-point answers with care and compassion."
-        },
-        ...conversation,
-      ];
+          content: "You are a highly specialized AI assistant focused on pregnancy-related topics. " +
+            "Your expertise includes maternal health, fetal development, prenatal care, and pregnancy well-being. " +
+            "- Provide responses that are concise, clear, and easy to understand. " +
+            "- Maintain a warm, empathetic, and supportive tone to reassure users. " +
+            "- Prioritize factual, evidence-based information while keeping answers short. " +
+            "- If a question is outside pregnancy-related topics, gently redirect the user to relevant discussions. " +
+            "- Avoid unnecessary details, deliver crisp, to-the-point answers with care and compassion."
+        };
+        messagesToSend = [defaultSystemMessage, ...conversation];
+      }
   
       const result = await context.completion({
-        messages: filteredConversation,
+        messages: messagesToSend,
         n_predict: 500,
         stop: stopWords
       });

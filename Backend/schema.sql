@@ -141,5 +141,3 @@ INSERT INTO weekly_symptoms (week_number, symptom, note) VALUES
 (9, 'Breast Tenderness', 'More sensitive than last week'),
 (10, 'Frequent Urination', 'Especially during the night');
 
-INSERT INTO profile (lmp, cycleLength, periodLength, age, weight, user_location, dueDate)
-VALUES ('2024-01-15', 28, 5, 28, 65.5, 'Mumbai, India', '2024-10-20');

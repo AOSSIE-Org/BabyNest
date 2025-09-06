@@ -1,5 +1,9 @@
 from flask import Blueprint, request, jsonify
 from db.db import open_db
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agent.agent import get_agent
 
 discharge_bp = Blueprint('discharge', __name__)
 
@@ -19,6 +23,12 @@ def add_discharge_log():
         (data['week_number'], data['type'], data['color'], data['bleeding'], data.get('note'))
     )
     db.commit()
+    
+    # Invalidate cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.invalidate_cache()
+    
     return jsonify({"status": "success", "message": "Discharge entry added"}), 201
 
 # Read all
@@ -65,6 +75,12 @@ def update_discharge_log(id):
         )
     )
     db.commit()
+    
+    # Invalidate cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.invalidate_cache()
+    
     return jsonify({"status": "success", "message": "Entry updated"}), 200
 
 # Delete
@@ -77,4 +93,10 @@ def delete_discharge_log(id):
 
     db.execute('DELETE FROM discharge_logs WHERE id = ?', (id,))
     db.commit()
+    
+    # Invalidate cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.invalidate_cache()
+    
     return jsonify({"status": "success", "message": "Entry deleted"}), 200

@@ -7,7 +7,6 @@ from agent.intent import classify_intent
 from agent.llm import run_llm
 from agent.prompt import build_prompt
 from agent.cache import get_context_cache
-from agent.db_observer import get_db_observer
 
 from agent.handlers.appointment import handle as handle_appointments
 from agent.handlers.weight import handle as handle_weight
@@ -30,15 +29,6 @@ class BabyNestAgent:
         
         # Register embedding refresh
         register_vector_store_updater(update_vector_store)
-
-        # Set up database observer
-        def cache_invalidator():
-            print("🔄 DB change detected → invalidating context + regenerating embeddings")
-            self.context_cache.invalidate_cache()
-            update_vector_store()
-
-        self.db_observer = get_db_observer(db_path, cache_invalidator)
-        self.db_observer.start()
     
     def get_user_context(self, user_id: str = "default"):
         """Get user context from cache."""
@@ -70,17 +60,15 @@ class BabyNestAgent:
         except Exception as e:
             return f"Error processing query: {e}"
     
-    def force_refresh_context(self, user_id: str = "default"):
-        """Force refresh the context cache for a user."""
-        return self.context_cache.force_refresh(user_id)
-    
     def invalidate_cache(self, user_id: str = None):
         """Invalidate cache for specific user or all users."""
         self.context_cache.invalidate_cache(user_id)
     
-    def stop(self):
-        """Stop the database observer."""
-        self.db_observer.stop()
+    def refresh_cache_and_embeddings(self):
+        """Manually refresh cache and regenerate embeddings after database changes."""
+        print("🔄 Manually refreshing cache and regenerating embeddings...")
+        self.context_cache.invalidate_cache()
+        update_vector_store()
 
 # Global agent instance
 _agent_instance = None

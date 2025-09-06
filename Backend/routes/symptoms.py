@@ -1,5 +1,9 @@
 from flask import Blueprint, request, jsonify
 from db.db import open_db
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agent.agent import get_agent
 
 symptoms_bp = Blueprint('symptoms', __name__)
 
@@ -17,6 +21,11 @@ def add_symptom():
 
     db.execute('INSERT INTO weekly_symptoms (week_number, symptom, note) VALUES (?, ?, ?)', (week, symptom, note))
     db.commit()
+
+    # Invalidate cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.invalidate_cache()
 
     return jsonify({"status": "success", "message": "Symptom added"}), 201
 
@@ -62,6 +71,11 @@ def update_symptom(id):
     )
     db.commit()
 
+    # Invalidate cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.invalidate_cache()
+
     return jsonify({"status": "success", "message": "Symptom updated"}), 200
 
 # Delete by ID
@@ -75,5 +89,10 @@ def delete_symptom(id):
 
     db.execute('DELETE FROM weekly_symptoms WHERE id = ?', (id,))
     db.commit()
+
+    # Invalidate cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.invalidate_cache()
 
     return jsonify({"status": "success", "message": "Symptom deleted"}), 200

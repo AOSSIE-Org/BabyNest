@@ -2,6 +2,10 @@ import sqlite3
 from flask import Blueprint, jsonify, request
 from db.db import open_db
 from datetime import datetime, timedelta
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agent.agent import get_agent
 
 def calculate_due_date(lmp_str, cycle_length):
     lmp_date = datetime.strptime(lmp_str, "%Y-%m-%d")
@@ -36,6 +40,11 @@ def set_profile():
         )
         db.commit()
 
+        # Invalidate cache after database update
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+        agent = get_agent(db_path)
+        agent.invalidate_cache()
+
         return jsonify({"status": "success", "message": "Profile set successfully with due date","dueDate": due_date}), 200
     
     except sqlite3.OperationalError as error:
@@ -65,6 +74,12 @@ def delete_profile():
     try:
         db.execute('DELETE FROM profile')
         db.commit()
+        
+        # Invalidate cache after database update
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+        agent = get_agent(db_path)
+        agent.invalidate_cache()
+        
         return jsonify({"status": "success", "message": "Profile deleted successfully"}), 200
     except sqlite3.OperationalError:
         return jsonify({"error": "Database Error"}), 500    
@@ -91,6 +106,12 @@ def update_profile():
             (lmp, cycle_length, period_length, age, weight, location)    
         )
         db.commit()
+        
+        # Invalidate cache after database update
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+        agent = get_agent(db_path)
+        agent.invalidate_cache()
+        
         return jsonify({"status": "success", "message": "Profile updated successfully"}), 200
     except sqlite3.OperationalError:    
         return jsonify({"error": "Database Error"}), 500    

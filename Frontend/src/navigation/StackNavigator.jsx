@@ -16,6 +16,7 @@ import SymptomsScreen from '../Screens/SymptomsScreen';
 import DueDateScreen from '../Screens/DueDateScreen';
 import DischargeScreen from '../Screens/DischargeScreen';
 import BloodPressureScreen from '../Screens/BloodPressureScreen';
+import AllTasksScreen from '../Screens/AllTasksScreen';
 
 const Stack = createStackNavigator();
 
@@ -43,6 +44,7 @@ export default function StackNavigation() {
         <Stack.Screen name="Symptoms" component={SymptomsScreen} />
         <Stack.Screen name="BloodPressure" component={BloodPressureScreen} />
         <Stack.Screen name="Discharge" component={DischargeScreen} />
+        <Stack.Screen name="AllTasks" component={AllTasksScreen} />
       </Stack.Navigator>
     </CustomDrawer>
   );
