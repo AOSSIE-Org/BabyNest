@@ -5,10 +5,15 @@ This script tests the automatic cache invalidation when database changes occur.
 """
 
 import os
+import sys
 import sqlite3
 import time
 import json
 from datetime import datetime, timedelta
+
+# Add the Backend directory to the path
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, backend_dir)
 
 from agent.cache import get_context_cache
 

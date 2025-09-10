@@ -1,0 +1,57 @@
+{
+  "current_week": 40,
+  "location": "New York",
+  "age": 25,
+  "weight": 66.0,
+  "due_date": "2024-10-01",
+  "lmp": "2024-01-01",
+  "cycle_length": 28,
+  "period_length": 5,
+  "tracking_data": {
+    "weight": [
+      {
+        "week": 21,
+        "weight": 66.0,
+        "note": "New weight entry",
+        "date": null
+      },
+      {
+        "week": 20,
+        "weight": 65.0,
+        "note": "Week 20 weight",
+        "date": "2024-01-10 10:00:00"
+      }
+    ],
+    "medicine": [
+      {
+        "week": 20,
+        "name": "Folic Acid",
+        "dose": "400mg",
+        "time": "Morning",
+        "taken": 1,
+        "note": "Daily supplement",
+        "date": "2024-01-10 08:00:00"
+      }
+    ],
+    "symptoms": [
+      {
+        "week": 20,
+        "symptom": "Morning sickness",
+        "note": "Mild nausea",
+        "date": "2024-01-10 09:00:00"
+      }
+    ],
+    "blood_pressure": [
+      {
+        "week": 20,
+        "systolic": 120,
+        "diastolic": 80,
+        "time": "Morning",
+        "note": "Normal reading",
+        "date": "2024-01-15 07:00:00"
+      }
+    ],
+    "discharge": []
+  },
+  "last_updated": "2025-09-10T06:46:44.869819"
+}

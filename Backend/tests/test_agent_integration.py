@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test script for the BabyNest agent integration.
 This script tests the agent context system and API endpoints.
