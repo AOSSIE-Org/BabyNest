@@ -51,10 +51,10 @@ def add_medicine():
     )
     db.commit()
 
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="medicine", operation="create")
 
     return jsonify({"status": "success", "message": "Medicine added"}), 200
 
@@ -124,10 +124,10 @@ def update_medicine(id):
     )
     db.commit()
 
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="medicine", operation="update")
 
     return jsonify({"status": "success", "message": "Medicine updated"}), 200
 
@@ -144,9 +144,9 @@ def delete_medicine(id):
     db.execute('DELETE FROM weekly_medicine WHERE id = ?', (id,))
     db.commit()
 
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="medicine", operation="delete")
 
     return jsonify({"status": "success", "message": "Medicine entry deleted"}), 200

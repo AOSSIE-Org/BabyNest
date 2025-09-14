@@ -22,10 +22,10 @@ def add_symptom():
     db.execute('INSERT INTO weekly_symptoms (week_number, symptom, note) VALUES (?, ?, ?)', (week, symptom, note))
     db.commit()
 
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="symptoms", operation="create")
 
     return jsonify({"status": "success", "message": "Symptom added"}), 201
 
@@ -71,10 +71,10 @@ def update_symptom(id):
     )
     db.commit()
 
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="symptoms", operation="update")
 
     return jsonify({"status": "success", "message": "Symptom updated"}), 200
 
@@ -90,9 +90,9 @@ def delete_symptom(id):
     db.execute('DELETE FROM weekly_symptoms WHERE id = ?', (id,))
     db.commit()
 
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="symptoms", operation="delete")
 
     return jsonify({"status": "success", "message": "Symptom deleted"}), 200

@@ -38,10 +38,10 @@ def log_weight():
 
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="weight", operation="create")
     
     return jsonify({"status": "success", "message": "Weight added"}), 200
 
@@ -87,10 +87,10 @@ def update_weight(id):
     )
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="weight", operation="update")
     
     return jsonify({"status": "success", "message": "Weight updated"}), 200
 
@@ -106,9 +106,9 @@ def delete_weight(id):
     db.execute('DELETE FROM weekly_weight WHERE id = ?', (id,))
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="weight", operation="delete")
     
     return jsonify({"status": "success", "message": "Weight entry deleted"}), 200

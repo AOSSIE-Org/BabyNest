@@ -137,6 +137,43 @@ def get_task_recommendations():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/agent/cache/stats", methods=["GET"])
+def get_cache_statistics():
+    """Get detailed cache statistics for monitoring."""
+    try:
+        stats = agent.get_cache_stats()
+        return jsonify({
+            "cache_management": "enabled",
+            "statistics": stats,
+            "limits": {
+                "max_cache_size_mb": stats["max_cache_size_mb"],
+                "max_tracking_entries": stats["max_tracking_entries"],
+                "max_cache_age_days": stats["max_cache_age_days"],
+                "max_memory_cache_size": stats["max_memory_cache_size"]
+            },
+            "current_usage": {
+                "memory_cache_size": stats["memory_cache_size"],
+                "cache_files": stats["cache_files"],
+                "total_cache_size_mb": round(stats["total_cache_size_mb"], 2)
+            }
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/agent/cache/cleanup", methods=["POST"])
+def cleanup_cache():
+    """Manually trigger cache cleanup."""
+    try:
+        agent.cleanup_cache()
+        stats = agent.get_cache_stats()
+        return jsonify({
+            "status": "success",
+            "message": "Cache cleanup completed",
+            "statistics": stats
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/')
 def index():
     from routes.appointments import get_appointments

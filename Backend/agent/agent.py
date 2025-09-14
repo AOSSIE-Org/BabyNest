@@ -60,6 +60,17 @@ class BabyNestAgent:
         except Exception as e:
             return f"Error processing query: {e}"
     
+    def update_cache(self, user_id: str = "default", data_type: str = None, operation: str = "update"):
+        """
+        Intelligently update cache based on database changes.
+        
+        Args:
+            user_id: User ID to update cache for
+            data_type: Type of data that changed ('profile', 'weight', 'medicine', 'symptoms', 'blood_pressure', 'discharge')
+            operation: Type of operation ('create', 'update', 'delete')
+        """
+        self.context_cache.update_cache(user_id, data_type, operation)
+    
     def invalidate_cache(self, user_id: str = None):
         """Invalidate cache for specific user or all users."""
         self.context_cache.invalidate_cache(user_id)
@@ -69,6 +80,16 @@ class BabyNestAgent:
         print("🔄 Manually refreshing cache and regenerating embeddings...")
         self.context_cache.invalidate_cache()
         update_vector_store()
+    
+    def get_cache_stats(self):
+        """Get cache statistics for monitoring."""
+        return self.context_cache.get_cache_stats()
+    
+    def cleanup_cache(self):
+        """Manually trigger cache cleanup."""
+        self.context_cache._cleanup_old_cache_files()
+        self.context_cache._cleanup_memory_cache()
+        print("🧹 Cache cleanup completed")
 
 # Global agent instance
 _agent_instance = None

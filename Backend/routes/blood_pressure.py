@@ -24,10 +24,10 @@ def add_bp_log():
     )
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="blood_pressure", operation="create")
     
     return jsonify({"status": "success", "message": "Blood pressure entry added"}), 201
 
@@ -86,10 +86,10 @@ def update_bp_log(id):
     )
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="blood_pressure", operation="update")
     
     return jsonify({"status": "success", "message": "Entry updated"}), 200
 
@@ -104,9 +104,9 @@ def delete_bp_log(id):
     db.execute('DELETE FROM blood_pressure_logs WHERE id = ?', (id,))
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="blood_pressure", operation="delete")
     
     return jsonify({"status": "success", "message": "Entry deleted"}), 200

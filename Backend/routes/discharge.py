@@ -24,10 +24,10 @@ def add_discharge_log():
     )
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="discharge", operation="create")
     
     return jsonify({"status": "success", "message": "Discharge entry added"}), 201
 
@@ -76,10 +76,10 @@ def update_discharge_log(id):
     )
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="discharge", operation="update")
     
     return jsonify({"status": "success", "message": "Entry updated"}), 200
 
@@ -94,9 +94,9 @@ def delete_discharge_log(id):
     db.execute('DELETE FROM discharge_logs WHERE id = ?', (id,))
     db.commit()
     
-    # Invalidate cache after database update
+    # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
-    agent.invalidate_cache()
+    agent.update_cache(data_type="discharge", operation="delete")
     
     return jsonify({"status": "success", "message": "Entry deleted"}), 200
