@@ -1,5 +1,9 @@
 from flask import Blueprint, request, jsonify
 from db.db import open_db
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agent.agent import get_agent
 
 weight_bp = Blueprint('weight', __name__)
 
@@ -33,6 +37,12 @@ def log_weight():
     db.execute('INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)', (week, weight, note))
 
     db.commit()
+    
+    # Update cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.update_cache(data_type="weight", operation="create")
+    
     return jsonify({"status": "success", "message": "Weight added"}), 200
 
 # Read all
@@ -76,6 +86,12 @@ def update_weight(id):
          id)
     )
     db.commit()
+    
+    # Update cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.update_cache(data_type="weight", operation="update")
+    
     return jsonify({"status": "success", "message": "Weight updated"}), 200
 
 # Delete by ID
@@ -89,4 +105,10 @@ def delete_weight(id):
 
     db.execute('DELETE FROM weekly_weight WHERE id = ?', (id,))
     db.commit()
+    
+    # Update cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.update_cache(data_type="weight", operation="delete")
+    
     return jsonify({"status": "success", "message": "Weight entry deleted"}), 200

@@ -1,6 +1,10 @@
 from flask import Blueprint, request, jsonify, session
 from functools import wraps
 from db.db import open_db
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agent.agent import get_agent
 
 medicine_bp = Blueprint('medicine', __name__)
 
@@ -46,6 +50,11 @@ def add_medicine():
         (week, name, dose, time, note)
     )
     db.commit()
+
+    # Update cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.update_cache(data_type="medicine", operation="create")
 
     return jsonify({"status": "success", "message": "Medicine added"}), 200
 
@@ -115,6 +124,11 @@ def update_medicine(id):
     )
     db.commit()
 
+    # Update cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.update_cache(data_type="medicine", operation="update")
+
     return jsonify({"status": "success", "message": "Medicine updated"}), 200
 
 # Delete by ID
@@ -129,5 +143,10 @@ def delete_medicine(id):
 
     db.execute('DELETE FROM weekly_medicine WHERE id = ?', (id,))
     db.commit()
+
+    # Update cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.update_cache(data_type="medicine", operation="delete")
 
     return jsonify({"status": "success", "message": "Medicine entry deleted"}), 200

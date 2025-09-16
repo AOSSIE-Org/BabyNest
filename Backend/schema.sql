@@ -86,6 +86,7 @@ INSERT INTO tasks (title, content, starting_week, ending_week, task_priority, is
 ('Final Checkups', 'Last medical assessments before labor.', 38, 40, 'high', FALSE,FALSE,'pending');
 
 DROP TABLE IF EXISTS profile;
+
 CREATE TABLE IF NOT EXISTS profile (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lmp Date NOT NULL,
@@ -139,3 +140,4 @@ INSERT INTO weekly_symptoms (week_number, symptom, note) VALUES
 (8, 'Morning Sickness', 'Worse after waking up'),
 (9, 'Breast Tenderness', 'More sensitive than last week'),
 (10, 'Frequent Urination', 'Especially during the night');
+

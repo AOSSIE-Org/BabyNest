@@ -1,0 +1,26 @@
+{
+  "profile": {
+    "row_count": 1,
+    "last_modified": 1
+  },
+  "weekly_weight": {
+    "row_count": 3,
+    "last_modified": "2025-08-01 03:18:14"
+  },
+  "weekly_medicine": {
+    "row_count": 3,
+    "last_modified": "2025-08-01 03:18:14"
+  },
+  "weekly_symptoms": {
+    "row_count": 3,
+    "last_modified": "2025-08-01 03:18:14"
+  },
+  "blood_pressure_logs": {
+    "row_count": 0,
+    "last_modified": null
+  },
+  "discharge_logs": {
+    "row_count": 0,
+    "last_modified": null
+  }
+}
