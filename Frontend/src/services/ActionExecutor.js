@@ -28,54 +28,72 @@ class ActionExecutor {
         };
       }
 
-      // Log action for undo functionality
-      this.logAction(action, userContext);
-
-      // Route to appropriate handler
+      // Execute the action and get result
+      let result;
       switch (action.type) {
         case 'create_appointment':
-          return await this.createAppointment(action.payload, userContext);
+          result = await this.createAppointment(action.payload, userContext);
+          break;
         
         case 'update_appointment':
-          return await this.updateAppointment(action.payload, userContext);
+          result = await this.updateAppointment(action.payload, userContext);
+          break;
         
         case 'delete_appointment':
-          return await this.deleteAppointment(action.payload, userContext);
+          result = await this.deleteAppointment(action.payload, userContext);
+          break;
         
         case 'create_weight':
-          return await this.createWeight(action.payload, userContext);
+          result = await this.createWeight(action.payload, userContext);
+          break;
         
         case 'create_mood':
-          return await this.createMood(action.payload, userContext);
+          result = await this.createMood(action.payload, userContext);
+          break;
         
         case 'create_sleep':
-          return await this.createSleep(action.payload, userContext);
+          result = await this.createSleep(action.payload, userContext);
+          break;
         
         case 'create_symptom':
-          return await this.createSymptom(action.payload, userContext);
+          result = await this.createSymptom(action.payload, userContext);
+          break;
         
         case 'create_medicine':
-          return await this.createMedicine(action.payload, userContext);
+          result = await this.createMedicine(action.payload, userContext);
+          break;
         
         case 'create_blood_pressure':
-          return await this.createBloodPressure(action.payload, userContext);
+          result = await this.createBloodPressure(action.payload, userContext);
+          break;
         
         case 'query_stats':
-          return await this.queryStats(action.payload, userContext);
+          result = await this.queryStats(action.payload, userContext);
+          break;
         
         case 'undo_last':
-          return await this.undoLastAction(userContext);
+          result = await this.undoLastAction(userContext);
+          break;
         
         case 'navigate':
-          return await this.navigate(action.payload, userContext);
+          result = await this.navigate(action.payload, userContext);
+          break;
         
         default:
-          return {
+          result = {
             success: false,
             message: `❌ Unknown action type: ${action.type}`,
             error: 'Unsupported action type'
           };
+          break;
       }
+
+      // Only log successful actions that can be undone
+      if (result.success && this.isUndoableAction(action.type)) {
+        this.logAction(action, userContext, result);
+      }
+
+      return result;
     } catch (error) {
       console.error('ActionExecutor error:', error);
       return {
@@ -106,15 +124,35 @@ class ActionExecutor {
   }
 
   /**
+   * Check if an action type can be undone
+   */
+  isUndoableAction(actionType) {
+    const undoableActions = [
+      'create_appointment',
+      'update_appointment', 
+      'delete_appointment',
+      'create_weight',
+      'create_mood',
+      'create_sleep',
+      'create_symptom',
+      'create_medicine',
+      'create_blood_pressure'
+    ];
+    return undoableActions.includes(actionType);
+  }
+
+  /**
    * Log action for undo functionality
    */
-  logAction(action, userContext) {
+  logAction(action, userContext, result) {
     const actionLog = {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
       action: action,
       userContext: userContext,
-      executed: false
+      result: result,
+      executed: true,
+      undone: false
     };
     
     this.actionHistory.push(actionLog);
@@ -167,7 +205,8 @@ class ActionExecutor {
           success: true,
           message: `✅ Appointment "${payload.title}" created successfully!\n\n📅 Date: ${appointmentData.appointment_date}\n⏰ Time: ${appointmentData.appointment_time}\n📍 Location: ${appointmentData.location}`,
           data: result,
-          actionType: 'create_appointment'
+          actionType: 'create_appointment',
+          appointmentId: result.id || result.appointment_id // Include ID for rollback
         };
       } else {
         throw new Error('Failed to create appointment');
@@ -288,10 +327,12 @@ class ActionExecutor {
       });
 
       if (response.ok) {
+        const result = await response.json();
         return {
           success: true,
           message: `⚖️ Weight logged successfully!\n\n**Weight:** ${payload.weight}\n**Week:** ${weightData.week_number}`,
-          actionType: 'create_weight'
+          actionType: 'create_weight',
+          weightId: result.id || result.weight_id // Include ID for rollback
         };
       } else {
         throw new Error('Failed to log weight');
@@ -634,11 +675,253 @@ class ActionExecutor {
   }
 
   /**
+   * Rollback Methods - These perform the actual database operations to undo actions
+   */
+
+  async rollbackCreateAppointment(result) {
+    try {
+      if (result.appointmentId) {
+        const response = await fetch(`${BASE_URL}/appointments/${result.appointmentId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Appointment creation rolled back - appointment deleted'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'No appointment ID found in result to rollback'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback appointment creation: ${error.message}`
+      };
+    }
+  }
+
+  async rollbackUpdateAppointment(originalPayload, result) {
+    try {
+      if (result.appointmentId && result.previousData) {
+        const response = await fetch(`${BASE_URL}/appointments/${result.appointmentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result.previousData)
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Appointment update rolled back - previous values restored'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'Cannot rollback appointment update - missing data'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback appointment update: ${error.message}`
+      };
+    }
+  }
+
+  async rollbackDeleteAppointment(result) {
+    try {
+      if (result.deletedAppointment) {
+        const response = await fetch(`${BASE_URL}/appointments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result.deletedAppointment)
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Appointment deletion rolled back - appointment restored'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'Cannot rollback appointment deletion - missing data'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback appointment deletion: ${error.message}`
+      };
+    }
+  }
+
+  async rollbackCreateWeight(result) {
+    try {
+      if (result.weightId) {
+        const response = await fetch(`${BASE_URL}/weight/${result.weightId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Weight creation rolled back - weight entry deleted'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'No weight ID found in result to rollback'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback weight creation: ${error.message}`
+      };
+    }
+  }
+
+  async rollbackCreateMood(result) {
+    try {
+      if (result.moodId) {
+        const response = await fetch(`${BASE_URL}/mood/${result.moodId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Mood creation rolled back - mood entry deleted'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'No mood ID found in result to rollback'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback mood creation: ${error.message}`
+      };
+    }
+  }
+
+  async rollbackCreateSleep(result) {
+    try {
+      if (result.sleepId) {
+        const response = await fetch(`${BASE_URL}/sleep/${result.sleepId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Sleep creation rolled back - sleep entry deleted'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'No sleep ID found in result to rollback'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback sleep creation: ${error.message}`
+      };
+    }
+  }
+
+  async rollbackCreateSymptom(result) {
+    try {
+      if (result.symptomId) {
+        const response = await fetch(`${BASE_URL}/symptoms/${result.symptomId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Symptom creation rolled back - symptom entry deleted'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'No symptom ID found in result to rollback'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback symptom creation: ${error.message}`
+      };
+    }
+  }
+
+  async rollbackCreateMedicine(result) {
+    try {
+      if (result.medicineId) {
+        const response = await fetch(`${BASE_URL}/medicine/${result.medicineId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Medicine creation rolled back - medicine entry deleted'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'No medicine ID found in result to rollback'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback medicine creation: ${error.message}`
+      };
+    }
+  }
+
+  async rollbackCreateBloodPressure(result) {
+    try {
+      if (result.bpId) {
+        const response = await fetch(`${BASE_URL}/blood_pressure/${result.bpId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: 'Blood pressure creation rolled back - BP entry deleted'
+          };
+        }
+      }
+      return {
+        success: false,
+        message: 'No BP ID found in result to rollback'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to rollback blood pressure creation: ${error.message}`
+      };
+    }
+  }
+
+  /**
    * Utility: Format ISO date to YYYY-MM-DD
    */
   formatDate(isoString) {
     if (!isoString) return null;
-    return new Date(isoString).toISOString().split('T')[0];
+    
   }
 
   /**
