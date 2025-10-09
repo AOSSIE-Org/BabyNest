@@ -404,7 +404,7 @@ export default function ChatScreen() {
           replies.push('500mg', '1 tablet', '2 tablets', '1 spoon');
           break;
         case 'start_date':
-          replies.push('Today', 'Yesterday', 'Last week', 'This month');
+          replies.push('Today', 'Tomorrow', 'Last week', 'This month');
           break;
         case 'end_date':
           replies.push('Next week', 'This month', 'When better', 'Continue');
@@ -434,7 +434,7 @@ export default function ChatScreen() {
         // Common CRUD quick replies
         case 'date':
         case 'update_date':
-          replies.push('Today', 'Yesterday', 'This week', 'Last week');
+          replies.push('Today', 'Tomorrow', 'Day after tomorrow');
           break;
         case 'update_time':
           replies.push('Morning', 'Afternoon', 'Evening', 'Night');

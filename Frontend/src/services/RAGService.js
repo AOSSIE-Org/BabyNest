@@ -193,20 +193,103 @@ class RAGService {
 
       // Analytics and query intents
       'query_analytics': {
-        keywords: ['analytics', 'stats', 'statistics', 'trend', 'average', 'summary', 'report'],
+        keywords: ['analytics', 'stats', 'statistics', 'trend', 'average', 'summary', 'report', 'show', 'chart', 'graph', 'visualization'],
         examples: [
+          'show weight analytics',
           'show weight trend',
-          'how much did I gain',
-          'average sleep this week',
-          'weight statistics',
-          'mood summary',
+          'weight analytics',
           'sleep analytics',
-          'show me my data',
-          'generate report'
+          'mood analytics',
+          'blood pressure analytics',
+          'show sleep data',
+          'weight chart',
+          'sleep trend',
+          'mood summary',
+          'analytics dashboard',
+          'show my health data',
+          'generate health report',
+          'weight statistics',
+          'sleep statistics',
+          'mood statistics'
         ],
         action: 'queryAnalytics',
         requiredFields: ['metric'],
         optionalFields: ['timeframe', 'chart_type']
+      },
+
+      // View logs intents
+      'view_weight_logs': {
+        keywords: ['weight logs', 'weight history', 'weight entries', 'show weight', 'view weight', 'my weights', 'weight records'],
+        examples: [
+          'show my weight logs',
+          'view weight history',
+          'display weight entries',
+          'show all weights',
+          'my weight records',
+          'weight tracking history'
+        ],
+        action: 'viewWeightLogs',
+        requiredFields: [],
+        optionalFields: ['week_number', 'limit']
+      },
+
+      'view_medicine_logs': {
+        keywords: ['medicine logs', 'medicine history', 'medicine entries', 'show medicine', 'view medicine', 'my medicines', 'medicine records', 'prescription history'],
+        examples: [
+          'show my medicine logs',
+          'view medicine history',
+          'display medicine entries',
+          'show all medicines',
+          'my medicine records',
+          'prescription tracking history'
+        ],
+        action: 'viewMedicineLogs',
+        requiredFields: [],
+        optionalFields: ['week_number', 'limit']
+      },
+
+      'view_symptoms_logs': {
+        keywords: ['symptoms logs', 'symptoms history', 'symptoms entries', 'show symptoms', 'view symptoms', 'my symptoms', 'symptoms records'],
+        examples: [
+          'show my symptoms logs',
+          'view symptoms history',
+          'display symptoms entries',
+          'show all symptoms',
+          'my symptoms records',
+          'symptoms tracking history'
+        ],
+        action: 'viewSymptomsLogs',
+        requiredFields: [],
+        optionalFields: ['week_number', 'limit']
+      },
+
+      'view_blood_pressure_logs': {
+        keywords: ['blood pressure logs', 'bp logs', 'bp history', 'blood pressure history', 'bp entries', 'show blood pressure', 'view blood pressure', 'my bp records'],
+        examples: [
+          'show my blood pressure logs',
+          'view bp history',
+          'display blood pressure entries',
+          'show all bp readings',
+          'my blood pressure records',
+          'bp tracking history'
+        ],
+        action: 'viewBloodPressureLogs',
+        requiredFields: [],
+        optionalFields: ['week_number', 'limit']
+      },
+
+      'view_discharge_logs': {
+        keywords: ['discharge logs', 'discharge history', 'discharge entries', 'show discharge', 'view discharge', 'my discharge records'],
+        examples: [
+          'show my discharge logs',
+          'view discharge history',
+          'display discharge entries',
+          'show all discharge records',
+          'my discharge tracking'
+        ],
+        action: 'viewDischargeLogs',
+        requiredFields: [],
+        optionalFields: ['week_number', 'limit']
       },
 
       // Undo/delete intents
@@ -557,11 +640,9 @@ class RAGService {
       
       // 1. Find the best matching intent
       const bestIntent = await this.findBestIntent(userQuery);
-      console.log('🎯 Best intent:', bestIntent);
 
       // 2. Extract structured data from the query
       const extractedData = await this.extractData(userQuery, bestIntent);
-      console.log('📊 Extracted data:', extractedData);
 
       // 3. Check if we have all required information
       const missingFields = this.checkMissingFields(extractedData, bestIntent);
@@ -600,6 +681,82 @@ class RAGService {
         action: 'unknown',
         confidence: 0
       };
+    }
+
+    // Special case: If query contains analytics-related keywords, prioritize analytics intent
+    const analyticsKeywords = ['analytics', 'stats', 'statistics', 'trend', 'chart', 'graph', 'report'];
+    const hasAnalyticsKeyword = analyticsKeywords.some(keyword => query.includes(keyword));
+    
+    if (hasAnalyticsKeyword) {
+      const analyticsIntent = this.intentEmbeddings['query_analytics'];
+      if (analyticsIntent) {
+        return {
+          name: 'query_analytics',
+          ...analyticsIntent,
+          confidence: 1.0
+        };
+      }
+    }
+
+    // Special case: If query contains view-related keywords, prioritize view logs intents
+    const viewLogsKeywords = ['logs', 'history', 'entries', 'records', 'show', 'view', 'display', 'my', 'all'];
+    const hasViewLogsKeyword = viewLogsKeywords.some(keyword => query.includes(keyword));
+    
+    if (hasViewLogsKeyword) {
+      if (query.includes('weight')) {
+        const weightLogsIntent = this.intentEmbeddings['view_weight_logs'];
+        if (weightLogsIntent) {
+          return {
+            name: 'view_weight_logs',
+            ...weightLogsIntent,
+            confidence: 1.0
+          };
+        }
+      }
+      
+      if (query.includes('medicine')) {
+        const medicineLogsIntent = this.intentEmbeddings['view_medicine_logs'];
+        if (medicineLogsIntent) {
+          return {
+            name: 'view_medicine_logs',
+            ...medicineLogsIntent,
+            confidence: 1.0
+          };
+        }
+      }
+      
+      if (query.includes('symptoms')) {
+        const symptomsLogsIntent = this.intentEmbeddings['view_symptoms_logs'];
+        if (symptomsLogsIntent) {
+          return {
+            name: 'view_symptoms_logs',
+            ...symptomsLogsIntent,
+            confidence: 1.0
+          };
+        }
+      }
+      
+      if (query.includes('blood pressure') || query.includes('bp')) {
+        const bpLogsIntent = this.intentEmbeddings['view_blood_pressure_logs'];
+        if (bpLogsIntent) {
+          return {
+            name: 'view_blood_pressure_logs',
+            ...bpLogsIntent,
+            confidence: 1.0
+          };
+        }
+      }
+      
+      if (query.includes('discharge')) {
+        const dischargeLogsIntent = this.intentEmbeddings['view_discharge_logs'];
+        if (dischargeLogsIntent) {
+          return {
+            name: 'view_discharge_logs',
+            ...dischargeLogsIntent,
+            confidence: 1.0
+          };
+        }
+      }
     }
 
     for (const [intentName, intentData] of Object.entries(this.intentEmbeddings)) {
@@ -774,6 +931,31 @@ class RAGService {
         data.chart_type = this.extractChartType(query);
         break;
 
+      case 'view_weight_logs':
+        data.week_number = this.extractWeek(query);
+        data.limit = this.extractLimit(query);
+        break;
+
+      case 'view_medicine_logs':
+        data.week_number = this.extractWeek(query);
+        data.limit = this.extractLimit(query);
+        break;
+
+      case 'view_symptoms_logs':
+        data.week_number = this.extractWeek(query);
+        data.limit = this.extractLimit(query);
+        break;
+
+      case 'view_blood_pressure_logs':
+        data.week_number = this.extractWeek(query);
+        data.limit = this.extractLimit(query);
+        break;
+
+      case 'view_discharge_logs':
+        data.week_number = this.extractWeek(query);
+        data.limit = this.extractLimit(query);
+        break;
+
       case 'undo_action':
         data.action_type = this.extractActionType(query);
         break;
@@ -922,6 +1104,14 @@ class RAGService {
   extractWeek(query) {
     const weekMatch = query.match(/week\s+(\d+)/);
     return weekMatch ? parseInt(weekMatch[1]) : null;
+  }
+
+  /**
+   * Extract limit from query
+   */
+  extractLimit(query) {
+    const limitMatch = query.match(/(?:last|recent|top)\s+(\d+)/);
+    return limitMatch ? parseInt(limitMatch[1]) : null;
   }
 
   /**
@@ -1290,6 +1480,16 @@ class RAGService {
           return await this.logSleep(data, userContext);
         case 'queryAnalytics':
           return await this.queryAnalytics(data, userContext);
+        case 'viewWeightLogs':
+          return await this.viewWeightLogs(data, userContext);
+        case 'viewMedicineLogs':
+          return await this.viewMedicineLogs(data, userContext);
+        case 'viewSymptomsLogs':
+          return await this.viewSymptomsLogs(data, userContext);
+        case 'viewBloodPressureLogs':
+          return await this.viewBloodPressureLogs(data, userContext);
+        case 'viewDischargeLogs':
+          return await this.viewDischargeLogs(data, userContext);
         case 'undoAction':
           return await this.undoAction(data, userContext);
         case 'emergency':
@@ -2492,49 +2692,72 @@ class RAGService {
         
         let message = `📊 **${data.metric.charAt(0).toUpperCase() + data.metric.slice(1)} Analytics**\n\n`;
         
-        switch (data.metric) {
-          case 'weight':
-            if (result.trend) {
-              message += `**Trend:** ${result.trend > 0 ? '↗️' : result.trend < 0 ? '↘️' : '➡️'} ${Math.abs(result.trend).toFixed(1)} kg\n`;
-            }
-            if (result.average) {
-              message += `**Average:** ${result.average} kg\n`;
-            }
-            if (result.total_gain) {
-              message += `**Total gain:** ${result.total_gain} kg\n`;
-            }
-            break;
-            
-          case 'sleep':
-            if (result.average_duration) {
-              message += `**Average sleep:** ${result.average_duration} hours\n`;
-            }
-            if (result.sleep_quality) {
-              message += `**Quality:** ${result.sleep_quality}\n`;
-            }
-            break;
-            
-          case 'mood':
-            if (result.mood_distribution) {
-              message += `**Mood breakdown:**\n`;
-              for (const [mood, count] of Object.entries(result.mood_distribution)) {
-                message += `• ${mood}: ${count} entries\n`;
+        // Use the insights from the backend response
+        if (result.insights) {
+          for (const [key, value] of Object.entries(result.insights)) {
+            if (key === 'trend') {
+              message += `**Trend:** ${value}\n`;
+            } else if (key === 'average') {
+              if (data.metric === 'weight') {
+                message += `**Average:** ${value} kg\n`;
+              } else if (data.metric === 'sleep') {
+                message += `**Average:** ${value} hours\n`;
+              } else {
+                message += `**Average:** ${value}\n`;
               }
+            } else if (key === 'change') {
+              message += `**Change:** ${value}\n`;
+            } else if (key === 'dominant') {
+              message += `**Dominant:** ${value}\n`;
+            } else if (key === 'recommendation') {
+              message += `**Recommendation:** ${value}\n`;
+            } else if (key === 'message') {
+              message += `**Summary:** ${value}\n`;
+            } else if (key === 'min_weight') {
+              message += `**Min Weight:** ${value}kg\n`;
+            } else if (key === 'max_weight') {
+              message += `**Max Weight:** ${value}kg\n`;
+            } else if (key === 'min_sleep') {
+              message += `**Min Sleep:** ${value} hours\n`;
+            } else if (key === 'max_sleep') {
+              message += `**Max Sleep:** ${value} hours\n`;
+            } else if (key === 'total_entries') {
+              message += `**Total Entries:** ${value}\n`;
+            } else if (key === 'happy_percentage') {
+              message += `**Happiness:** ${value}%\n`;
+            } else if (key === 'calm_percentage') {
+              message += `**Calmness:** ${value}%\n`;
+            } else if (key === 'unique_weeks') {
+              message += `**Weeks Tracked:** ${value}\n`;
             }
-            break;
-            
-          default:
-            message += `**Summary:** ${result.summary || 'Data available'}\n`;
+          }
         }
         
-        if (result.chart_data) {
-          message += `\n📈 Chart data ready for visualization`;
+        // Add chart visualization
+        if (result.data && result.data.labels && result.data.datasets) {
+          message += `\n📊 **Chart Visualization:**\n`;
+          
+          const labels = result.data.labels;
+          const dataset = result.data.datasets[0];
+          const dataPoints = dataset.data;
+          
+          // Create a simple text-based chart
+          if (result.chartConfig.type === 'line' || result.chartConfig.type === 'bar') {
+            message += this.createTextChart(labels, dataPoints, dataset.label, result.chartConfig.type);
+          } else if (result.chartConfig.type === 'pie') {
+            message += this.createPieChart(labels, dataPoints);
+          }
+          
+          message += `\n📈 **Chart Data:** ${result.chartConfig.type} chart with ${dataPoints.length} data points\n`;
         }
 
         return {
           success: true,
           message: message,
-          data: result
+          data: result.data,
+          chartConfig: result.chartConfig,
+          insights: result.insights,
+          chartReady: true
         };
       } else {
         throw new Error('Failed to fetch analytics');
@@ -2543,6 +2766,412 @@ class RAGService {
       return {
         success: false,
         message: `❌ Failed to get analytics: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * Create a text-based chart visualization
+   */
+  createTextChart(labels, dataPoints, label, chartType) {
+    let chart = '';
+    
+    // Find min and max values for scaling
+    const minValue = Math.min(...dataPoints);
+    const maxValue = Math.max(...dataPoints);
+    const range = maxValue - minValue;
+    const scale = range > 0 ? range : 1;
+    
+    // Chart header
+    chart += `\`\`\`\n`;
+    chart += `${label}\n`;
+    chart += `┌${'─'.repeat(50)}┐\n`;
+    
+    if (chartType === 'line') {
+      // Create line chart
+      for (let i = 0; i < labels.length; i++) {
+        const value = dataPoints[i];
+        const normalizedValue = ((value - minValue) / scale) * 40; // Scale to 40 chars
+        const barLength = Math.max(1, Math.round(normalizedValue));
+        
+        chart += `│ ${labels[i].padEnd(10)} █${'█'.repeat(barLength)} ${value}${i < labels.length - 1 ? '\n' : ''}`;
+      }
+    } else if (chartType === 'bar') {
+      // Create bar chart
+      for (let i = 0; i < labels.length; i++) {
+        const value = dataPoints[i];
+        const normalizedValue = ((value - minValue) / scale) * 40; // Scale to 40 chars
+        const barLength = Math.max(1, Math.round(normalizedValue));
+        
+        chart += `│ ${labels[i].padEnd(10)} █${'█'.repeat(barLength)} ${value}${i < labels.length - 1 ? '\n' : ''}`;
+      }
+    }
+    
+    chart += `\n└${'─'.repeat(50)}┘\n`;
+    chart += `Range: ${minValue} - ${maxValue}\n`;
+    chart += `\`\`\`\n`;
+    
+    return chart;
+  }
+
+  /**
+   * Create a text-based pie chart visualization
+   */
+  createPieChart(labels, dataPoints) {
+    let chart = '';
+    const total = dataPoints.reduce((a, b) => a + b, 0);
+    
+    chart += `\`\`\`\n`;
+    chart += `Distribution:\n`;
+    chart += `┌${'─'.repeat(40)}┐\n`;
+    
+    // Calculate percentages and create bars
+    for (let i = 0; i < labels.length; i++) {
+      const value = dataPoints[i];
+      const percentage = ((value / total) * 100).toFixed(1);
+      const barLength = Math.round((value / total) * 30); // Scale to 30 chars
+      
+      chart += `│ ${labels[i].padEnd(15)} █${'█'.repeat(barLength)} ${percentage}%\n`;
+    }
+    
+    chart += `└${'─'.repeat(40)}┘\n`;
+    chart += `Total: ${total}\n`;
+    chart += `\`\`\`\n`;
+    
+    return chart;
+  }
+
+  /**
+   * View weight logs
+   */
+  async viewWeightLogs(data, userContext) {
+    try {
+      const response = await fetch(`${BASE_URL}/weight`);
+      if (response.ok) {
+        const logs = await response.json();
+        
+        // Filter by week if specified
+        let filteredLogs = logs;
+        if (data.week_number) {
+          filteredLogs = logs.filter(log => log.week_number === data.week_number);
+        }
+        
+        // Limit results if specified
+        if (data.limit) {
+          filteredLogs = filteredLogs.slice(0, data.limit);
+        }
+        
+        if (filteredLogs.length === 0) {
+          return {
+            success: true,
+            message: `📊 **Weight Logs**\n\nNo weight entries found${data.week_number ? ` for week ${data.week_number}` : ''}.`
+          };
+        }
+        
+        let message = `📊 **Weight Logs**\n\n`;
+        
+        // Add summary info
+        message += `📈 **Total Entries:** ${filteredLogs.length}\n`;
+        if (filteredLogs.length > 1) {
+          const weights = filteredLogs.map(log => log.weight);
+          const minWeight = Math.min(...weights);
+          const maxWeight = Math.max(...weights);
+          const avgWeight = (weights.reduce((a, b) => a + b, 0) / weights.length).toFixed(1);
+          message += `⚖️ **Range:** ${minWeight}kg - ${maxWeight}kg\n`;
+          message += `📊 **Average:** ${avgWeight}kg\n\n`;
+        }
+        
+        // Format individual entries
+        filteredLogs.forEach((log, index) => {
+          message += `**${index + 1}. Week ${log.week_number}**\n`;
+          message += `   ⚖️ **Weight:** ${log.weight}kg\n`;
+          if (log.note) message += `   📝 **Note:** ${log.note}\n`;
+          if (log.created_at) {
+            const date = new Date(log.created_at).toLocaleDateString();
+            message += `   📅 **Date:** ${date}\n`;
+          }
+          message += `\n`;
+        });
+        
+        return {
+          success: true,
+          message: message,
+          data: filteredLogs
+        };
+      } else {
+        throw new Error('Failed to fetch weight logs');
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Failed to get weight logs: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * View medicine logs
+   */
+  async viewMedicineLogs(data, userContext) {
+    try {
+      const response = await fetch(`${BASE_URL}/get_medicine`);
+      if (response.ok) {
+        const logs = await response.json();
+        
+        // Filter by week if specified
+        let filteredLogs = logs;
+        if (data.week_number) {
+          filteredLogs = logs.filter(log => log.week_number === data.week_number);
+        }
+        
+        // Limit results if specified
+        if (data.limit) {
+          filteredLogs = filteredLogs.slice(0, data.limit);
+        }
+        
+        if (filteredLogs.length === 0) {
+          return {
+            success: true,
+            message: `💊 **Medicine Logs**\n\nNo medicine entries found${data.week_number ? ` for week ${data.week_number}` : ''}.`
+          };
+        }
+        
+        let message = `💊 **Medicine Logs**\n\n`;
+        
+        // Add summary info
+        message += `📈 **Total Entries:** ${filteredLogs.length}\n`;
+        const uniqueMedicines = [...new Set(filteredLogs.map(log => log.name))];
+        if (uniqueMedicines.length > 1) {
+          message += `💊 **Medicines:** ${uniqueMedicines.join(', ')}\n\n`;
+        }
+        
+        // Format individual entries
+        filteredLogs.forEach((log, index) => {
+          message += `**${index + 1}. ${log.name}**\n`;
+          message += `   💊 **Medicine:** ${log.name}\n`;
+          message += `   📏 **Dose:** ${log.dose}\n`;
+          message += `   ⏰ **Time:** ${log.time}\n`;
+          message += `   📅 **Week:** ${log.week_number}\n`;
+          if (log.note) message += `   📝 **Note:** ${log.note}\n`;
+          if (log.created_at) {
+            const date = new Date(log.created_at).toLocaleDateString();
+            message += `   📅 **Date:** ${date}\n`;
+          }
+          message += `\n`;
+        });
+        
+        return {
+          success: true,
+          message: message,
+          data: filteredLogs
+        };
+      } else {
+        throw new Error('Failed to fetch medicine logs');
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Failed to get medicine logs: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * View symptoms logs
+   */
+  async viewSymptomsLogs(data, userContext) {
+    try {
+      const response = await fetch(`${BASE_URL}/symptoms`);
+      if (response.ok) {
+        const logs = await response.json();
+        
+        // Filter by week if specified
+        let filteredLogs = logs;
+        if (data.week_number) {
+          filteredLogs = logs.filter(log => log.week_number === data.week_number);
+        }
+        
+        // Limit results if specified
+        if (data.limit) {
+          filteredLogs = filteredLogs.slice(0, data.limit);
+        }
+        
+        if (filteredLogs.length === 0) {
+          return {
+            success: true,
+            message: `🤒 **Symptoms Logs**\n\nNo symptom entries found${data.week_number ? ` for week ${data.week_number}` : ''}.`
+          };
+        }
+        
+        let message = `🤒 **Symptoms Logs**\n\n`;
+        
+        // Add summary info
+        message += `📈 **Total Entries:** ${filteredLogs.length}\n`;
+        const uniqueSymptoms = [...new Set(filteredLogs.map(log => log.symptom))];
+        if (uniqueSymptoms.length > 1) {
+          message += `🤒 **Symptoms:** ${uniqueSymptoms.join(', ')}\n\n`;
+        }
+        
+        // Format individual entries
+        filteredLogs.forEach((log, index) => {
+          message += `**${index + 1}. ${log.symptom}**\n`;
+          message += `   🤒 **Symptom:** ${log.symptom}\n`;
+          message += `   📅 **Week:** ${log.week_number}\n`;
+          if (log.note) message += `   📝 **Note:** ${log.note}\n`;
+          if (log.created_at) {
+            const date = new Date(log.created_at).toLocaleDateString();
+            message += `   📅 **Date:** ${date}\n`;
+          }
+          message += `\n`;
+        });
+        
+        return {
+          success: true,
+          message: message,
+          data: filteredLogs
+        };
+      } else {
+        throw new Error('Failed to fetch symptoms logs');
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Failed to get symptoms logs: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * View blood pressure logs
+   */
+  async viewBloodPressureLogs(data, userContext) {
+    try {
+      const response = await fetch(`${BASE_URL}/blood_pressure`);
+      if (response.ok) {
+        const logs = await response.json();
+        
+        // Filter by week if specified
+        let filteredLogs = logs;
+        if (data.week_number) {
+          filteredLogs = logs.filter(log => log.week_number === data.week_number);
+        }
+        
+        // Limit results if specified
+        if (data.limit) {
+          filteredLogs = filteredLogs.slice(0, data.limit);
+        }
+        
+        if (filteredLogs.length === 0) {
+          return {
+            success: true,
+            message: `🩸 **Blood Pressure Logs**\n\nNo BP entries found${data.week_number ? ` for week ${data.week_number}` : ''}.`
+          };
+        }
+        
+        let message = `🩸 **Blood Pressure Logs**\n\n`;
+        
+        // Add summary info
+        message += `📈 **Total Entries:** ${filteredLogs.length}\n`;
+        if (filteredLogs.length > 1) {
+          const readings = filteredLogs.map(log => ({ systolic: log.systolic, diastolic: log.diastolic }));
+          const avgSystolic = (readings.reduce((a, b) => a + b.systolic, 0) / readings.length).toFixed(0);
+          const avgDiastolic = (readings.reduce((a, b) => a + b.diastolic, 0) / readings.length).toFixed(0);
+          message += `📊 **Average:** ${avgSystolic}/${avgDiastolic} mmHg\n\n`;
+        }
+        
+        // Format individual entries
+        filteredLogs.forEach((log, index) => {
+          message += `**${index + 1}. ${log.systolic}/${log.diastolic} mmHg**\n`;
+          message += `   🩸 **Reading:** ${log.systolic}/${log.diastolic} mmHg\n`;
+          message += `   ⏰ **Time:** ${log.time}\n`;
+          message += `   📅 **Week:** ${log.week_number}\n`;
+          if (log.note) message += `   📝 **Note:** ${log.note}\n`;
+          if (log.created_at) {
+            const date = new Date(log.created_at).toLocaleDateString();
+            message += `   📅 **Date:** ${date}\n`;
+          }
+          message += `\n`;
+        });
+        
+        return {
+          success: true,
+          message: message,
+          data: filteredLogs
+        };
+      } else {
+        throw new Error('Failed to fetch blood pressure logs');
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Failed to get blood pressure logs: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * View discharge logs
+   */
+  async viewDischargeLogs(data, userContext) {
+    try {
+      const response = await fetch(`${BASE_URL}/discharge`);
+      if (response.ok) {
+        const logs = await response.json();
+        
+        // Filter by week if specified
+        let filteredLogs = logs;
+        if (data.week_number) {
+          filteredLogs = logs.filter(log => log.week_number === data.week_number);
+        }
+        
+        // Limit results if specified
+        if (data.limit) {
+          filteredLogs = filteredLogs.slice(0, data.limit);
+        }
+        
+        if (filteredLogs.length === 0) {
+          return {
+            success: true,
+            message: `🩸 **Discharge Logs**\n\nNo discharge entries found${data.week_number ? ` for week ${data.week_number}` : ''}.`
+          };
+        }
+        
+        let message = `🩸 **Discharge Logs**\n\n`;
+        
+        // Add summary info
+        message += `📈 **Total Entries:** ${filteredLogs.length}\n`;
+        const uniqueTypes = [...new Set(filteredLogs.map(log => log.type))];
+        if (uniqueTypes.length > 1) {
+          message += `🩸 **Types:** ${uniqueTypes.join(', ')}\n\n`;
+        }
+        
+        // Format individual entries
+        filteredLogs.forEach((log, index) => {
+          message += `**${index + 1}. ${log.type}**\n`;
+          message += `   🩸 **Type:** ${log.type}\n`;
+          message += `   🎨 **Color:** ${log.color}\n`;
+          if (log.bleeding === 'yes') message += `   ⚠️ **Bleeding:** Yes\n`;
+          message += `   📅 **Week:** ${log.week_number}\n`;
+          if (log.note) message += `   📝 **Note:** ${log.note}\n`;
+          if (log.created_at) {
+            const date = new Date(log.created_at).toLocaleDateString();
+            message += `   📅 **Date:** ${date}\n`;
+          }
+          message += `\n`;
+        });
+        
+        return {
+          success: true,
+          message: message,
+          data: filteredLogs
+        };
+      } else {
+        throw new Error('Failed to fetch discharge logs');
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Failed to get discharge logs: ${error.message}`
       };
     }
   }
