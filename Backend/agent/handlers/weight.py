@@ -1,9 +1,81 @@
 from db.db import open_db
+import re
+
+def parse_weight_command(query: str):
+    """Parse weight logging commands from natural language."""
+    query_lower = query.lower()
+    
+    # Extract weight value
+    weight_patterns = [
+        r'(?:log|record|add|my\s+weight\s+as?|weight\s+is?)\s*(\d+(?:\.\d+)?)\s*(?:kg|kilos?)?',
+        r'(\d+(?:\.\d+)?)\s*(?:kg|kilos?)(?:\s+for\s+week\s+(\d+))?',
+    ]
+    
+    weight = None
+    week = None
+    
+    for pattern in weight_patterns:
+        match = re.search(pattern, query_lower)
+        if match:
+            weight = float(match.group(1))
+            if len(match.groups()) > 1 and match.group(2):
+                week = int(match.group(2))
+            break
+    
+    # Extract week if not found above
+    if not week:
+        week_match = re.search(r'(?:week|for\s+week)\s+(\d+)', query_lower)
+        if week_match:
+            week = int(week_match.group(1))
+    
+    # Extract note
+    note_match = re.search(r'(?:note|comment)\s+(.+)', query_lower)
+    note = note_match.group(1).strip() if note_match else None
+    
+    return {
+        'weight': weight,
+        'week': week,
+        'note': note
+    }
+
+def create_weight_entry(weight_data, user_context):
+    """Create a new weight entry in the database."""
+    db = open_db()
+    
+    try:
+        # Use current week if not specified
+        week = weight_data['week'] or user_context.get('current_week', 1)
+        
+        db.execute(
+            'INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)',
+            (week, weight_data['weight'], weight_data['note'] or 'Logged via chat')
+        )
+        db.commit()
+        return True
+    except Exception as e:
+        print(f"Error creating weight entry: {e}")
+        return False
 
 def handle(query: str, user_context=None):
     if not query or not isinstance(query, str):
         return "Invalid query. Please provide a valid string."
     
+    query_lower = query.lower()
+    
+    # Check if this is a weight logging command
+    if any(word in query_lower for word in ['log', 'record', 'add', 'weight']) and any(char.isdigit() for char in query):
+        parsed = parse_weight_command(query)
+        
+        if parsed['weight']:
+            if create_weight_entry(parsed, user_context):
+                week = parsed['week'] or user_context.get('current_week', 'current')
+                return f"✅ Weight of {parsed['weight']}kg has been logged for week {week}"
+            else:
+                return "❌ Failed to log weight. Please try again."
+        else:
+            return "❌ Could not understand the weight value. Please specify your weight in kg."
+    
+    # Default: show weight records
     try:
         db = open_db()
         rows = db.execute("""

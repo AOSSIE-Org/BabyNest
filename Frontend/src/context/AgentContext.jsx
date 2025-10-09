@@ -1,6 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BASE_URL } from '@env';
 
+/**
+ * AgentContext - Manages AI agent context and user data
+ * 
+ * IMPORTANT: This context no longer automatically fetches data on mount.
+ * Context initialization is now lazy and only happens when needed.
+ * 
+ * Usage:
+ * 1. Call initializeContext() when user is ready (after login/profile setup)
+ * 2. Use isContextReady() to check if context is available
+ * 3. Context will be automatically initialized on first chat interaction
+ */
+
 const AgentContext = createContext();
 
 export const useAgentContext = () => {
@@ -16,8 +28,14 @@ export const AgentProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const fetchContext = async (user_id = "default") => {
+  const fetchContext = async (user_id = "default", force = false) => {
+    // Don't fetch if already initialized and not forced
+    if (isInitialized && !force) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
@@ -36,9 +54,12 @@ export const AgentProvider = ({ children }) => {
       const data = await response.json();
       setContext(data);
       setLastUpdated(new Date());
+      setIsInitialized(true);
     } catch (err) {
       setError(err.message);
       console.error('Error fetching agent context:', err);
+      // Don't mark as initialized if there was an error
+      setIsInitialized(false);
     } finally {
       setLoading(false);
     }
@@ -58,11 +79,17 @@ export const AgentProvider = ({ children }) => {
         throw new Error(`Failed to refresh context: ${response.status}`);
       }
 
-      // Fetch the updated context
-      await fetchContext(user_id);
+      // Fetch the updated context with force=true to bypass initialization check
+      await fetchContext(user_id, true);
     } catch (err) {
-      setError(err.message);
-      console.error('Error refreshing context:', err);
+      console.warn('Context refresh failed, falling back to direct fetch:', err.message);
+      // Fallback: just fetch the context directly without refresh
+      try {
+        await fetchContext(user_id, true);
+      } catch (fallbackErr) {
+        setError(fallbackErr.message);
+        console.error('Error refreshing context:', fallbackErr);
+      }
     }
   };
 
@@ -113,18 +140,28 @@ export const AgentProvider = ({ children }) => {
     }
   };
 
-  // Auto-fetch context on mount
-  useEffect(() => {
-    fetchContext();
-  }, []);
+  // Initialize context when user is ready (e.g., after login/profile setup)
+  const initializeContext = async (user_id = "default") => {
+    await fetchContext(user_id, true);
+  };
+
+  // Check if context is ready for use
+  const isContextReady = () => {
+    return isInitialized && context !== null;
+  };
+
+  // Remove automatic fetch on mount - context will be initialized when needed
 
   const value = {
     context,
     loading,
     error,
     lastUpdated,
+    isInitialized,
     fetchContext,
     refreshContext,
+    initializeContext,
+    isContextReady,
     getTaskRecommendations,
     getCacheStatus,
   };

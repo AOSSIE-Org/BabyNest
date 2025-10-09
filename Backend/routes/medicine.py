@@ -18,7 +18,6 @@ def require_auth(f):
 
 # Create
 @medicine_bp.route('/set_medicine', methods=['POST'])
-@require_auth
 def add_medicine():
     db = open_db()
     data = request.json
@@ -60,7 +59,6 @@ def add_medicine():
 
 # Read all
 @medicine_bp.route('/get_medicine', methods=['GET'])
-@require_auth
 def get_all_medicine():
     db = open_db()
     rows = db.execute('SELECT * FROM weekly_medicine').fetchall()
