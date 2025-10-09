@@ -373,10 +373,12 @@ class ActionExecutor {
       });
 
       if (response.ok) {
+        const result = await response.json();
         return {
           success: true,
           message: `😊 Mood logged successfully!\n\n**Mood:** ${payload.mood}\n**Intensity:** ${moodData.intensity}`,
-          actionType: 'create_mood'
+          actionType: 'create_mood',
+          moodId: result.id || result.mood_id // Include ID for rollback
         };
       } else {
         throw new Error('Failed to log mood');
@@ -419,10 +421,12 @@ class ActionExecutor {
       });
 
       if (response.ok) {
+        const result = await response.json();
         return {
           success: true,
           message: `😴 Sleep logged successfully!\n\n**Duration:** ${payload.duration} hours\n**Quality:** ${sleepData.quality}`,
-          actionType: 'create_sleep'
+          actionType: 'create_sleep',
+          sleepId: result.id || result.sleep_id // Include ID for rollback
         };
       } else {
         throw new Error('Failed to log sleep');
@@ -462,10 +466,12 @@ class ActionExecutor {
       });
 
       if (response.ok) {
+        const result = await response.json();
         return {
           success: true,
           message: `🤒 Symptom logged successfully!\n\n**Symptom:** ${payload.symptom}`,
-          actionType: 'create_symptom'
+          actionType: 'create_symptom',
+          symptomId: result.id || result.symptom_id // Include ID for rollback
         };
       } else {
         throw new Error('Failed to log symptom');
@@ -507,10 +513,12 @@ class ActionExecutor {
       });
 
       if (response.ok) {
+        const result = await response.json();
         return {
           success: true,
           message: `💊 Medicine logged successfully!\n\n**Medicine:** ${payload.name}\n**Dose:** ${medicineData.dose}`,
-          actionType: 'create_medicine'
+          actionType: 'create_medicine',
+          medicineId: result.id || result.medicine_id // Include ID for rollback
         };
       } else {
         throw new Error('Failed to log medicine');
@@ -551,10 +559,12 @@ class ActionExecutor {
       });
 
       if (response.ok) {
+        const result = await response.json();
         return {
           success: true,
           message: `🩸 Blood pressure logged successfully!\n\n**BP:** ${payload.systolic}/${payload.diastolic} mmHg`,
-          actionType: 'create_blood_pressure'
+          actionType: 'create_blood_pressure',
+          bpId: result.id || result.bp_id // Include ID for rollback
         };
       } else {
         throw new Error('Failed to log blood pressure');
@@ -618,30 +628,95 @@ class ActionExecutor {
    */
   async undoLastAction(userContext) {
     try {
-      const lastAction = this.actionHistory[this.actionHistory.length - 1];
+      // Find the last executed, non-undone action
+      const lastAction = this.actionHistory
+        .slice()
+        .reverse()
+        .find(action => action.executed && !action.undone);
       
       if (!lastAction) {
         return {
           success: false,
           message: '❌ No actions to undo',
-          error: 'No action history available'
+          error: 'No undoable action history available'
         };
       }
 
-      // Mark action as undone
-      lastAction.undone = true;
+      // Perform the actual rollback operation
+      const rollbackResult = await this.performRollback(lastAction);
       
-      return {
-        success: true,
-        message: `↩️ Last action undone successfully!`,
-        actionType: 'undo_last',
-        undoneAction: lastAction.action.type
-      };
+      if (rollbackResult.success) {
+        // Mark action as undone
+        lastAction.undone = true;
+        
+        return {
+          success: true,
+          message: `↩️ Last action undone successfully!`,
+          actionType: 'undo_last',
+          undoneAction: lastAction.action.type,
+          rollbackDetails: rollbackResult.message
+        };
+      } else {
+        return {
+          success: false,
+          message: `❌ Failed to undo action: ${rollbackResult.message}`,
+          error: rollbackResult.message
+        };
+      }
     } catch (error) {
       return {
         success: false,
         message: `❌ Failed to undo action: ${error.message}`,
         error: error.message
+      };
+    }
+  }
+
+  /**
+   * Perform the actual rollback operation
+   */
+  async performRollback(actionLog) {
+    try {
+      const { action, result } = actionLog;
+      
+      switch (action.type) {
+        case 'create_appointment':
+          return await this.rollbackCreateAppointment(result);
+        
+        case 'update_appointment':
+          return await this.rollbackUpdateAppointment(action.payload, result);
+        
+        case 'delete_appointment':
+          return await this.rollbackDeleteAppointment(result);
+        
+        case 'create_weight':
+          return await this.rollbackCreateWeight(result);
+        
+        case 'create_mood':
+          return await this.rollbackCreateMood(result);
+        
+        case 'create_sleep':
+          return await this.rollbackCreateSleep(result);
+        
+        case 'create_symptom':
+          return await this.rollbackCreateSymptom(result);
+        
+        case 'create_medicine':
+          return await this.rollbackCreateMedicine(result);
+        
+        case 'create_blood_pressure':
+          return await this.rollbackCreateBloodPressure(result);
+        
+        default:
+          return {
+            success: false,
+            message: `Cannot undo action type: ${action.type}`
+          };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Rollback failed: ${error.message}`
       };
     }
   }
@@ -922,6 +997,17 @@ class ActionExecutor {
   formatDate(isoString) {
     if (!isoString) return null;
     
+    const directMatch = isoString.match(/^\d{4}-\d{2}-\d{2}/);
+    if (directMatch) {
+      return directMatch[0];
+    }
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
   }
 
   /**
