@@ -1,16 +1,19 @@
  // src/components/ProfileScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image
+  Image,
+  Alert,
+  RefreshControl
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Modal, Portal, Button, Provider } from 'react-native-paper'; // Import from paper
 import CustomHeader from '../Components/CustomHeader';
+import { BASE_URL } from '@env';
 
 const IconButton = ({ icon, label }) => {
   const { theme } = useTheme();
@@ -39,12 +42,71 @@ const ProfileField = ({ label, value }) => {
 export default function SettingsScreen() {
   const { theme, updateTheme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: 'Guest',
+    due_date: 'Not set',
+    location: 'Not set'
+  });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch profile data from backend
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  const fetchProfileData = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/get_profile`);
+      if (response.ok) {
+        const data = await response.json();
+        setProfileData({
+          name: data.name || 'Guest',
+          due_date: data.due_date || 'Not set',
+          location: data.location || 'Not set'
+        });
+      } else {
+        // If profile not found, keep default values
+        console.log('Profile not found, using default values');
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      Alert.alert('Error', 'Failed to load profile data');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchProfileData();
+  };
+
+  const handleEditProfile = () => {
+    Alert.alert(
+      'Edit Profile',
+      'This will open the profile editing screen. For now, you can refresh to see updated data.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Refresh', onPress: onRefresh }
+      ]
+    );
+  };
 
   return (
     <Provider>
       <ScrollView 
         style={[styles.container, { backgroundColor: theme.background }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.primary]}
+            tintColor={theme.primary}
+          />
+        }
       >
         <CustomHeader />
 
@@ -53,7 +115,9 @@ export default function SettingsScreen() {
             source={require('../assets/Avatar.jpeg')}
             style={styles.profileImage}
           />
-          <Text style={[styles.name, { color: theme.text }]}>Ishaan Gupta</Text>
+          <Text style={[styles.name, { color: theme.text }]}>
+            {loading ? 'Loading...' : profileData.name}
+          </Text>
         </View>
 
         <View style={styles.iconsRow}>
@@ -110,12 +174,13 @@ export default function SettingsScreen() {
         </Portal>
 
         <View style={[styles.infoCard, { backgroundColor: theme.cardBackground }]}>
-          <ProfileField label="Due Date" value="1234-123-5674" />
-          <ProfileField label="Country" value="India" />
+          <ProfileField label="Due Date" value={loading ? 'Loading...' : profileData.due_date} />
+          <ProfileField label="Location" value={loading ? 'Loading...' : profileData.location} />
         </View>
 
         <TouchableOpacity 
           style={[styles.editButton, { backgroundColor: theme.primary }]}
+          onPress={handleEditProfile}
         >
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>

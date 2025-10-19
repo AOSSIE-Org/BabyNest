@@ -127,7 +127,7 @@ def move_to_appointment(task_id):
 
         # add that task to appointments
         db.execute(
-            'INSERT INTO appointments (title, content, appointment_date, appointment_time, appointment_location, appointment_status) VALUES (?, ?, ?, ?, ?, ?)',y
+            'INSERT INTO appointments (title, content, appointment_date, appointment_time, appointment_location, appointment_status) VALUES (?, ?, ?, ?, ?, ?)',
             (appointment_title, appointment_content, appointment_date, appointment_time, appointment_location, 'pending')
         )
 

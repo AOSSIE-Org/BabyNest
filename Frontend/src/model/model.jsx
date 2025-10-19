@@ -7,6 +7,32 @@ import {MODEL_NAME, HF_TO_GGUF, GGUF_FILE} from "@env";
 
 let context = null;
 
+const MAX_CACHE_SIZE = 100;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const responseCache = new Map();
+
+const setCache = (key, value) => {
+  // Enforce size limit
+  if (responseCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = responseCache.keys().next().value;
+        responseCache.delete(firstKey);
+  }
+  responseCache.set(key, { value, timestamp: Date.now() });
+};
+
+
+const getCache = (key) => {
+  const entry = responseCache.get(key);
+  if (!entry) return null;
+
+  // Check expiration
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    responseCache.delete(key);
+    return null;
+  }
+  return entry.value;
+};
+
 export const fetchAvailableGGUFs = async () => {
   try {
     const repoPath = HF_TO_GGUF;
@@ -102,6 +128,17 @@ export const generateResponse = async (conversation) => {
     if (!context) {
       Alert.alert("Model Not Loaded", "Please load the model first.");
       return null;
+    }
+
+    const lastMessage = conversation.filter(msg => msg.role === "user").pop();
+    const cacheKey = lastMessage?.content?.trim();
+
+    if (cacheKey) {
+      const cachedResponse = getCache(cacheKey);
+      if (cachedResponse) {
+        console.log("Returning cached response for:", cacheKey);
+        return cachedResponse;
+      }
     }
   
     const stopWords = [
