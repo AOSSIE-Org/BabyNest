@@ -12,97 +12,98 @@ Ensure you have the following installed:
 - *Git* (For version control)
 
 ## 1. Clone the Repository
-sh
+```sh
 git clone https://github.com/AOSSIE-Org/BabyNest.git
 cd Frontend
+```
 
 
 ---
 ## Android Setup
 
 ### 2. Install Dependencies
-sh
+```sh
 npm install
-
+```
 
 ### 3. Set Up Android Development Environment
 - Install *Android Studio* and ensure the latest SDK versions are installed.
 - Set up an Android Virtual Device (AVD) or connect a physical device.
 - Ensure ANDROID_HOME is set in your environment variables.
 - Install dependencies:
-  sh
+  ```sh
   npx react-native doctor
-  
+  ```
 - If needed, install missing dependencies.
 
 ### 4. Configure SQLite
 BabyNest uses SQLite for local storage:
 - Ensure react-native-sqlite-storage is installed:
-  sh
+  ```sh
   npm install react-native-sqlite-storage
-  
+  ```
 - Link dependencies (if necessary):
-  sh
+  ```sh
   npx pod-install
-  
+  ```
 
 ### 5. Run the App on Android
-sh
+```sh
 npx react-native run-android
-
+```
 
 ---
 ## iOS Setup
 
 ### 2. Install Dependencies
-sh
+```sh
 npm install
-
+```
 
 ### 3. Set Up iOS Development Environment
 - Install *Xcode* from the Mac App Store.
 - Install *CocoaPods* (if not installed):
-  sh
+  ```sh
   sudo gem install cocoapods
-  
+  ```
 - Install pods:
-  sh
+  ```sh
   cd ios
   pod install
   cd ..
-  
+  ```
 - Set up a simulator or use a physical device.
 
 ### 4. Configure SQLite
 BabyNest uses SQLite for local storage:
 - Ensure react-native-sqlite-storage is installed:
-  sh
+  ```sh
   npm install react-native-sqlite-storage
-  
+  ```
 - Link dependencies:
-  sh
+  ```sh
   npx pod-install
-  
+  ```
 
 ### 5. Run the App on iOS
-sh
+```sh
 npx react-native run-ios
-
+```
 
 ---
 ## Backend Setup (Offline Flask API)
 BabyNest includes an offline backend using Flask.
 
 ### 1. Install Python Dependencies
-sh
+```sh
 pip install flask flask-cors chromadb
-
+```
 
 ### 2. Run the Backend Locally
-sh
+```sh
 cd Backend
 python app.py
-
+```
 
 This will start the API locally.
 
@@ -110,13 +111,13 @@ This will start the API locally.
 ## Handling Vector Search (ChromaDB)
 BabyNest uses ChromaDB for offline vector search.
 ### 1. Install ChromaDB
-sh
+```sh
 pip install chromadb
-
+```
 ### 2. Run ChromaDB
-sh
+```sh
 python -m chromadb
-
+```
 This starts the local vector database.
 
 ---
@@ -127,71 +128,71 @@ This starts the local vector database.
   - adb devices lists a device.
   - npx react-native start is running.
 - If you encounter a Java heap space error, increase heap size:
-  sh
+  ```sh
   export NODE_OPTIONS=--max_old_space_size=4096
-  
+  ```
 - If build fails with Gradle errors, try:
-  sh
+  ```sh
   cd android
   ./gradlew clean
   cd ..
-  
+  ```
 
 ### iOS Issues
 - Try uninstalling any app in ios simulator and close the terminal and run all the commands again as mentioned here.
 
 - If the issues still persist and build fails, try:
-  sh
+  ```sh
   cd ios
   pod install --verbose
   cd ..
-  
+  ```
 - Ensure Xcode command-line tools are installed:
-  sh
+  ```sh
   sudo xcode-select --install
-  
+  ```
 - If the Metro bundler crashes, clear the cache:
-  sh
+  ```sh
   npx react-native start --reset-cache
-  
+  ```
 - If CocoaPods fails with dependency issues, try:
-  sh
+  ```sh
   cd ios
   pod repo update
   pod install --verbose
   cd ..
-  
+  ```
 - If you encounter Podfile.lock conflicts, remove and reinstall pods:
-  sh
+  ```sh
   cd ios
   rm -rf Pods Podfile.lock
   pod install
   cd ..
-  
+  ```
 - If linking issues occur, ensure dependencies are correctly linked:
-  sh
+  ```sh
   npx react-native link
-  
+  ```
 
 ### Backend Issues
 - If Flask doesn’t start, check dependencies:
-  sh
+  ```sh
   pip install -r backend/requirements.txt
-  
+  ```
 - Ensure Python version is 3.8+.
 - If Flask crashes with Address already in use, free the port:
-  sh
+  ```sh
   lsof -i :5000
   kill -9 <PID>
-  
+  ```
 
 ### Database Issues
 - If SQLite doesn’t initialize, ensure:
   - The database file exists in the correct directory.
   - Correct permissions are set:
-    sh
+    ```sh
     chmod 777 database.db
-    
+    ```
 
 ---
 ## Conclusion
