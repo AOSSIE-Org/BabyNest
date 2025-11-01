@@ -12,21 +12,67 @@ Thank you for your interest in contributing to **BabyNest**! We appreciate your 
   git clone https://github.com/your-username/babynest.git
   cd babynest
   ```
+### 2. Install dependencies
+-Before contributing, please ensure you can run the project on your machine.BabyNest has both Frontend and Backend components.
+-Frontend Setup
+-Navigate to the Frontend directory
+  ```sh
+    cd Frontend
+  ```
+-Install dependencies:
+  ```sh
+  npm install
+  ```
+-Start the frontend server:
+  ```sh
+  npm start
+  ```
+-The frontend should now be running at:http://localhost:3000
 
-### 2. Create a Feature Branch
+-Backend setup
+-Open a new terminal and navigate to the backend directory:
+  ```sh
+  cd Backend
+  ```
+-Create a virtual environment (Optional but recommended):
+    ```sh
+  python -m venv venv
+  source venv/bin/activate       
+    ```
+-On Windows:
+  ```sh
+  venv\Scripts\activate
+  ```
+-Install backend dependencies:
+  ```sh
+  pip install -r requirements.txt
+  ```
+-Apply database migrations(if applicable)
+-Start the backend server:
+ ```sh
+ python manage.py runserver
+ ```
+-The backend should now be running at:http://localhost:8000
+
+### 3. Configure Environment Variables
+-In both frontend and backend folders, look for a .env.example file.
+-Copy it to create a new [.env] file.
+-Update any required field.
+
+### 4. Create a Feature Branch
 - Always create a new branch for your contributions:
   ```sh
   git checkout -b feature-name
   ```
 
-### 3. Make Changes and Commit
+### 5. Make Changes and Commit
 - Follow coding best practices and maintain code consistency.
 - Write clear commit messages:
   ```sh
   git commit -m "Added [feature/fix]: Short description"
   ```
 
-### 4. Push Changes and Open a Pull Request
+### 6. Push Changes and Open a Pull Request
 - Push your changes to your forked repository:
   ```sh
   git push origin feature-name
