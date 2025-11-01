@@ -12,21 +12,22 @@ Thank you for your interest in contributing to **BabyNest**! We appreciate your 
   git clone https://github.com/your-username/babynest.git
   cd babynest
   ```
+### 2. To install dependencies, see [setup.md](./setup.md).
 
-### 2. Create a Feature Branch
+### 3. Create a Feature Branch
 - Always create a new branch for your contributions:
   ```sh
   git checkout -b feature-name
   ```
 
-### 3. Make Changes and Commit
+### 4. Make Changes and Commit
 - Follow coding best practices and maintain code consistency.
 - Write clear commit messages:
   ```sh
   git commit -m "Added [feature/fix]: Short description"
   ```
 
-### 4. Push Changes and Open a Pull Request
+### 5. Push Changes and Open a Pull Request
 - Push your changes to your forked repository:
   ```sh
   git push origin feature-name
