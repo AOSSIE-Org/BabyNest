@@ -12,7 +12,7 @@ Thank you for your interest in contributing to **BabyNest**! We appreciate your 
   git clone https://github.com/your-username/babynest.git
   cd babynest
   ```
-### 2. To install dependencies navigate to [setup.md] directory.
+### 2. To install dependencies, see [setup.md](./setup.md).
 
 ### 3. Create a Feature Branch
 - Always create a new branch for your contributions:
