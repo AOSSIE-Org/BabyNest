@@ -28,33 +28,58 @@ function Hero() {
           personalized AI recommendations.
         </p>
 
+     
+
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-          <button className="bg-linear-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all transform hover:scale-105 shadow-lg shadow-emerald-500/30">
+          <a
+            href="https://github.com/AOSSIE-Org/BabyNest/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-linear-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all transform hover:scale-105 shadow-lg shadow-emerald-500/30 relative"
+            aria-label="Download for iOS - Coming Soon"
+          >
             Download for iOS
-          </button>
-          <button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all transform hover:scale-105 border border-gray-700">
+            <span className="absolute -top-2 -right-2 bg-yellow-400 text-gray-900 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+              Coming Soon
+            </span>
+          </a>
+
+          <a
+            href="https://github.com/AOSSIE-Org/BabyNest/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all transform hover:scale-105 border border-gray-700 relative"
+            aria-label="Download for Android - Coming Soon"
+          >
             Download for Android
-          </button>
+            <span className="absolute -top-2 -right-2 bg-yellow-400 text-gray-900 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+               Coming Soon
+            </span>
+          </a>
         </div>
+
+        <p className="text-center text-gray-500 text-sm mt-4">
+          🚧 App launching soon! Click to follow progress on GitHub
+        </p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
           <div className="text-center">
-            <div className="text-3xl font-bold text-emerald-400 mb-2">50K+</div>
-            <div className="text-gray-400 text-sm">Active Users</div>
+            <div className="text-2xl font-bold text-emerald-400 mb-2">Our 2025 Goals:</div>
+             <div className="text-gray-400 text-xl">is to reach </div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-emerald-400 mb-2">50K+ </div>
+            <div className="text-gray-400 text-lg">Users</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-emerald-400 mb-2">30+</div>
-            <div className="text-gray-400 text-sm">Countries</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-emerald-400 mb-2">4.9</div>
-            <div className="text-gray-400 text-sm">App Rating</div>
+            <div className="text-gray-400 text-lg">Countries</div>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
               <Heart size={24} className="text-pink-400 fill-pink-400" />
             </div>
-            <div className="text-gray-400 text-sm">Made with Love</div>
+            <div className="text-gray-400 text-sm">Made with Love!! Trusted by Healthcare Professionals</div>
           </div>
         </div>
       </div>

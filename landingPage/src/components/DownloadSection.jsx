@@ -55,11 +55,19 @@ function DownloadSection() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button className="bg-white hover:bg-gray-100 text-gray-900 px-8 py-4 rounded-full font-semibold text-lg transition-all transform hover:scale-105 flex items-center justify-center space-x-2 shadow-lg">
                     <Smartphone size={20} />
-                    <span>Download for iOS</span>
+                    <span>Download for iOS
+                       <span className="absolute -top-2 -right-2 bg-yellow-400 text-white-900 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                         Soon
+                      </span>
+                    </span>
                   </button>
                   <button className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all transform hover:scale-105 flex items-center justify-center space-x-2 border border-gray-700">
                     <Smartphone size={20} />
-                    <span>Download for Android</span>
+                    <span>Download for Android
+                      <span className="absolute -top-2 -right-2 bg-yellow-400 text-white-900 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                         Soon
+                      </span>
+                    </span>
                   </button>
                 </div>
               </div>
@@ -81,18 +89,6 @@ function DownloadSection() {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-emerald-400 mb-1">50K+</div>
-                      <div className="text-gray-400 text-xs">Downloads</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-emerald-400 mb-1">4.9</div>
-                      <div className="text-gray-400 text-xs">Rating</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-emerald-400 mb-1">30+</div>
-                      <div className="text-gray-400 text-xs">Countries</div>
-                    </div>
                   </div>
                 </div>
               </div>
