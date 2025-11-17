@@ -1,4 +1,4 @@
-import { Smartphone, Star } from 'lucide-react';
+import { Smartphone} from 'lucide-react';
 
 function DownloadSection() {
   return (
@@ -12,13 +12,6 @@ function DownloadSection() {
           <div className="bg-gray-900 rounded-3xl p-12 lg:p-16">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
-                <div className="inline-flex items-center space-x-1 mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={20} className="text-yellow-400 fill-yellow-400" />
-                  ))}
-                  <span className="text-white ml-2 font-semibold">4.9/5 Rating</span>
-                </div>
-
                 <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
                   Ready to Start Your
                   <br />
@@ -87,8 +80,6 @@ function DownloadSection() {
                         <div className="text-white text-sm">QR Code</div>
                       </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
                   </div>
                 </div>
               </div>

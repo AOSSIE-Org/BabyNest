@@ -28,7 +28,7 @@ function Hero() {
           personalized AI recommendations.
         </p>
 
-     
+
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <a
@@ -53,7 +53,7 @@ function Hero() {
           >
             Download for Android
             <span className="absolute -top-2 -right-2 bg-yellow-400 text-gray-900 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-               Coming Soon
+              Coming Soon
             </span>
           </a>
         </div>
@@ -61,11 +61,10 @@ function Hero() {
         <p className="text-center text-gray-500 text-sm mt-4">
           🚧 App launching soon! Click to follow progress on GitHub
         </p>
-
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
           <div className="text-center">
-            <div className="text-2xl font-bold text-emerald-400 mb-2">Our 2025 Goals:</div>
-             <div className="text-gray-400 text-xl">is to reach </div>
+            <div className="text-3xl font-bold text-emerald-400 mb-2">2025</div>
+            <div className="text-gray-400 text-lg">Target Year</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-emerald-400 mb-2">50K+ </div>
@@ -79,7 +78,7 @@ function Hero() {
             <div className="flex items-center justify-center mb-2">
               <Heart size={24} className="text-pink-400 fill-pink-400" />
             </div>
-            <div className="text-gray-400 text-sm">Made with Love!! Trusted by Healthcare Professionals</div>
+            <div className="text-gray-400 text-lg">Made with Love</div>
           </div>
         </div>
       </div>
