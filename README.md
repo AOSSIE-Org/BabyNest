@@ -24,7 +24,7 @@
 ## Tech Stack
 
 - **Frontend**: React Native
-- **Backend**: FastAPI (Python)
+- **Backend**: Flask (Python)
 - **AI & NLP**: Python, LangChain
 - **Database**: SQLite
 
