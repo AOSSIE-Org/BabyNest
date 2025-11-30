@@ -343,7 +343,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: '#f5f5f5',
-    marginBottom: 20,
     padding: 10,
     marginBottom: 20,
   },
