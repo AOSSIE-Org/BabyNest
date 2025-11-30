@@ -31,12 +31,12 @@ cd Frontend
 npm install
 ```
 
-### 3. Set Up Android Development Environment
+### 3) Set Up Android Development Environment
 
 - Install _Android Studio_ and ensure the latest SDK versions are installed.
 - Set up an Android Virtual Device (AVD) or connect a physical device.
 - Ensure ANDROID_HOME is set in your environment variables.
-  -- Install dependencies:
+  Install dependencies:
   ```sh
   npx react-native doctor
   ```
@@ -45,13 +45,13 @@ npm install
 ### 4. Configure SQLite
 
 BabyNest uses SQLite for local storage:
--- Ensure react-native-sqlite-storage is installed:
+Ensure react-native-sqlite-storage is installed:
 
 ```sh
 npm install react-native-sqlite-storage
 ```
 
--- Link dependencies (if necessary):
+Link dependencies (if necessary):
 
 ```sh
 npx pod-install
@@ -75,15 +75,15 @@ cd Frontend
 npm install
 ```
 
-### 3. Set Up iOS Development Environment
+### 3) Set Up iOS Development Environment
 
 - Install _Xcode_ from the Mac App Store.
-  -- Install _CocoaPods_ (if not installed):
+  Install _CocoaPods_ (if not installed):
   ```sh
   sudo gem install cocoapods
   ```
 
--- Install pods:
+Install pods:
 
 ```sh
 cd ios
@@ -96,13 +96,13 @@ cd ..
 ### 4. Configure SQLite
 
 BabyNest uses SQLite for local storage:
--- Ensure react-native-sqlite-storage is installed:
+Ensure react-native-sqlite-storage is installed:
 
 ```sh
 npm install react-native-sqlite-storage
 ```
 
--- Link dependencies:
+Link dependencies:
 
 ```sh
 npx pod-install
@@ -121,7 +121,7 @@ npx react-native run-ios
 
 BabyNest includes an offline backend using Flask.
 
-### 1) Install Python Dependencies
+### 6) Install Python Dependencies
 
 ```sh
 cd Backend
@@ -130,7 +130,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2) Run the Backend Locally
+### 7) Run the Backend Locally
 
 ```sh
 cd Backend
