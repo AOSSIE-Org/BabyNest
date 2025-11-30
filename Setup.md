@@ -119,7 +119,7 @@ npx react-native run-ios
 
 ## Backend Setup (Offline Flask API)
 
-BabyNest includes an offline backend using Flask.
+BabyNest includes an offline backend using Flask
 
 ### 6) Install Python Dependencies
 
