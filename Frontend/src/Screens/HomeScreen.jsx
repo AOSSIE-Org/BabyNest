@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { BASE_URL } from '@env';
 import { useDrawer } from '../context/DrawerContext';
+import sizes from '../data/sizeByWeek';
 
 export default function HomeScreen({ navigation }) {
   const [dueDate, setDueDate] = useState('');
@@ -133,7 +134,7 @@ export default function HomeScreen({ navigation }) {
           <Image source={require('../assets/Baby.jpeg')} style={styles.babyImage} />
           <View style={styles.babyInfo}>
             <Text style={styles.weekText}>Week {currentWeek}</Text>
-            <Text style={styles.babySize}>Size of an avocado</Text>
+            <Text style={styles.babySize}>{sizes[currentWeek] || 'Size information not available'}</Text>
             <Text style={styles.dueDate}>
               Due: {dueDate ? new Date(dueDate).toLocaleDateString('en-GB', {
                 day: 'numeric',

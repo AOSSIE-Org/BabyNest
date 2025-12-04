@@ -7,14 +7,17 @@ Thank you for your interest in contributing to **BabyNest**! We appreciate your 
 
 Before contributing, you need to set up your development environment:
 
+Before contributing, you need to set up your development environment:
+
 1. *Frontend Setup*: Follow the instructions in [Setup.md](./Setup.md) for React Native setup (Node.js, npm/pnpm, Android/iOS tools).
-2. *Backend Setup*: Install Python 3.8+, Flask, and dependencies as outlined in [Backend agent README](./Backend/agent/README.md).
-3. *Verify Installation*: Run the frontend and backend servers locally to ensure everything are working:
+2. *Backend Setup*: Install Python 3.8+, Flask, and dependencies as outlined in [Backend/agent/README.md].
+3. *Verify Installation*: Run the frontend and backend servers locally to ensure everything is working:
 
 - *Frontend*: npm start or npx react-native run-android/run-ios
 - *Backend*: python app.py (from the Backend folder)
 
 For detailed step-by-step instructions, refer to:
+
 - [Frontend Setup Guide](./Frontend/Setup.md)
 - [Backend Setup Guide](./Backend/agent/README.md)
 - [General Setup Guide](./Setup.md)
@@ -27,8 +30,8 @@ For detailed step-by-step instructions, refer to:
 - Click the **Fork** button in the top right corner.
 - Clone the forked repository to your local machine:
   ```sh
-  git clone https://github.com/your-username/BabyNest.git
-  cd babynest
+  git clone https://github.com/<your-username>/BabyNest.git
+  cd BabyNest
   ```
 
 ### 2. Create a Feature Branch
