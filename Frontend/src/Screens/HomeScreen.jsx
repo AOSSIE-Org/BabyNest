@@ -29,6 +29,13 @@ export default function HomeScreen({ navigation }) {
   const weekScrollRef = useRef(null);
   const { openDrawer } = useDrawer();
 
+  // Dynamically scale the baby image between base and max sizes across weeks 1..40
+  const baseImageSize = 80; // px at week 1
+  const maxImageSize = 140; // px at week 40
+  const imageSize = Math.round(
+    baseImageSize + ((currentWeek - 1) / 39) * (maxImageSize - baseImageSize)
+  );
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -131,7 +138,13 @@ export default function HomeScreen({ navigation }) {
 
         {/* Baby Info */}
         <View style={styles.babyInfoContainer}>
-          <Image source={require('../assets/Baby.jpeg')} style={styles.babyImage} />
+          <Image
+            source={require('../assets/Baby.jpeg')}
+            style={[
+              styles.babyImage,
+              { width: imageSize, height: imageSize, borderRadius: imageSize / 2 },
+            ]}
+          />
           <View style={styles.babyInfo}>
             <Text style={styles.weekText}>Week {currentWeek}</Text>
             <Text style={styles.babySize}>{sizes[currentWeek] || 'Size information not available'}</Text>
