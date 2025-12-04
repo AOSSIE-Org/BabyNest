@@ -7,16 +7,17 @@ Thank you for your interest in contributing to **BabyNest**! We appreciate your 
 
 Before contributing, you need to set up your development environment:
 
-1.⁠ ⁠*Frontend Setup*: Follow the instructions in [Setup.md](./Setup.md) for React Native setup (Node.js, npm/pnpm, Android/iOS tools).
-2.⁠ ⁠*Backend Setup*: Install Python 3.8+, Flask, and dependencies as outlined in [Backend README](./Backend/README.md).
-3.⁠ ⁠*Verify Installation*: Run the frontend and backend servers locally to ensure everything is working:
-   - *Frontend*: ⁠ npm start ⁠ or ⁠ npx react-native run-android/run-ios ⁠
-   - *Backend*: ⁠ python app.py ⁠ (from the Backend folder)
+1. *Frontend Setup*: Follow the instructions in [Setup.md](./Setup.md) for React Native setup (Node.js, npm/pnpm, Android/iOS tools).
+2. *Backend Setup*: Install Python 3.8+, Flask, and dependencies as outlined in [Backend agent README](./Backend/agent/README.md).
+3. *Verify Installation*: Run the frontend and backend servers locally to ensure everything are working:
+
+- *Frontend*: npm start or npx react-native run-android/run-ios
+- *Backend*: python app.py (from the Backend folder)
 
 For detailed step-by-step instructions, refer to:
-•⁠  ⁠[Frontend Setup Guide](./Frontend/Setup.md)
-•⁠  ⁠[Backend Setup Guide](./Backend/README.md)
-•⁠  ⁠[General Setup Guide](./Setup.md)
+- [Frontend Setup Guide](./Frontend/Setup.md)
+- [Backend Setup Guide](./Backend/agent/README.md)
+- [General Setup Guide](./Setup.md)
 
 
 ## How to Contribute
@@ -64,7 +65,7 @@ To help maintainers understand your changes, submit a short video showcasing the
 
 ## Reporting Issues
 If you find a bug or have a feature request:
-- Open an issue [here](https://github.com/AOSSIE-Org/BabyNest/issues ).
+- Open an issue on [GitHub Issues](https://github.com/AOSSIE-Org/BabyNest/issues).
 - Clearly describe the problem and suggest possible solutions.
 
 We look forward to your contributions! 🚀
