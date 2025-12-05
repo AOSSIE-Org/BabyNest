@@ -34,7 +34,10 @@ def log_weight():
            return jsonify({"error": "Weight must be a positive number up to 1000kg"}), 400
     except (ValueError, TypeError):
        return jsonify({"error": "Weight must be a valid number"}), 400
-    db.execute('INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)', (week, weight, note))
+    existing = db.execute('SELECT * FROM weekly_weight WHERE week_number = ?', (week,)).fetchone()
+    if existing:
+        return jsonify({"error": f"Weight entry for week {week} already exists"}), 400
+    db.execute('INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)',(week, weight, note))
 
     db.commit()
     
