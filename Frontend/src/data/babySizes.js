@@ -1,7 +1,7 @@
 export const babySizes = [
-  'Pregnancy hasn’t started yet, but your body is preparing.'// 1
-  'Fertilization happens around this time', // 2
-  'The fertilized egg implants itself into the lining of your uterus', // 3
+  'Pregnancy hasn’t started yet, but your body is preparing.',// 1
+  'Fertilization happens around this time.', // 2
+  'The fertilized egg implants itself into the lining of your uterus.', // 3
   'poppy seed', // 4
   'apple seed', // 5
   'sweet pea', // 6
