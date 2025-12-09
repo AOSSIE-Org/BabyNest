@@ -10,11 +10,14 @@ import {
   FlatList,
   Modal,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {countries} from '../data/countries';
 import {BASE_URL} from '@env';
 import {Calendar} from 'react-native-calendars';
+
+const { width } = Dimensions.get('window');
 export default function BasicDetailsScreen() {
   const navigation = useNavigation();
 
@@ -93,180 +96,204 @@ export default function BasicDetailsScreen() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContainer}
-      keyboardShouldPersistTaps="handled">
-      <View style={styles.container}>
-        <Text style={styles.title}>Enter Your Details</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Enter Your Details</Text>
 
-        {/* Country */}
-        <Text style={styles.title1}>Select Country</Text>
-        <TouchableOpacity
-          style={[styles.input, errors.country ? styles.errorBorder : null]}
-          onPress={() => setShowCountryModal(true)}>
-          <View style={styles.inputContainer}>
-            <Text style={country ? styles.inputText : styles.placeholderText}>
-              {country || 'Select Your Country'}
-            </Text>
-            <Text style={styles.dropdownArrow}>▼</Text>
-          </View>
-        </TouchableOpacity>
-        {errors.country ? (
-          <Text style={styles.errorText}>{errors.country}</Text>
-        ) : null}
-
-        <Modal
-          visible={showCountryModal}
-          animationType="slide"
-          transparent={true}>
-          <SafeAreaView style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select a Country</Text>
-              <FlatList
-                data={countries}
-                keyExtractor={item => item}
-                renderItem={({item}) => (
-                  <TouchableOpacity
-                    style={styles.countryItem}
-                    onPress={() => handleSelectCountry(item)}>
-                    <Text style={styles.countryText}>{item}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowCountryModal(false)}>
-                <Text style={styles.closeButtonText}>Cancel</Text>
-              </TouchableOpacity>
+          {/* Country */}
+          <Text style={styles.title1}>Select Country</Text>
+          <TouchableOpacity
+            style={[styles.input, errors.country ? styles.errorBorder : null]}
+            onPress={() => setShowCountryModal(true)}
+            activeOpacity={0.7}>
+            <View style={styles.inputContainer}>
+              <Text style={country ? styles.inputText : styles.placeholderText}>
+                {country || 'Select Your Country'}
+              </Text>
+              <Text style={styles.dropdownArrow}>▼</Text>
             </View>
-          </SafeAreaView>
-        </Modal>
+          </TouchableOpacity>
+          {errors.country ? (
+            <Text style={styles.errorText}>{errors.country}</Text>
+          ) : null}
 
-        {/* Inputs */}
-        <Text style={styles.title1}>Last Menstrual Period</Text>
-        <View style={styles.calendarContainer}>
-          <Calendar
-            current={lmpDate}
-            maxDate={new Date().toISOString().split('T')[0]}
-            onDayPress={day => setLmpDate(day.dateString)}
-            markedDates={{
-              [lmpDate]: {selected: true, selectedColor: '#ff4081'},
-            }}
-            theme={{
-              todayTextColor: '#ff4081',
-              arrowColor: '#ff4081',
-            }}
+          <Modal
+            visible={showCountryModal}
+            animationType="slide"
+            transparent={true}>
+            <SafeAreaView style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select a Country</Text>
+                <FlatList
+                  data={countries}
+                  keyExtractor={item => item}
+                  renderItem={({item}) => (
+                    <TouchableOpacity
+                      style={styles.countryItem}
+                      onPress={() => handleSelectCountry(item)}
+                      activeOpacity={0.6}>
+                      <Text style={styles.countryText}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                  scrollEnabled={true}
+                  nestedScrollEnabled={true}
+                />
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setShowCountryModal(false)}
+                  activeOpacity={0.7}>
+                  <Text style={styles.closeButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </SafeAreaView>
+          </Modal>
+
+          {/* Inputs */}
+          <Text style={styles.title1}>Last Menstrual Period</Text>
+          <View style={styles.calendarContainer}>
+            <Calendar
+              current={lmpDate}
+              maxDate={new Date().toISOString().split('T')[0]}
+              onDayPress={day => setLmpDate(day.dateString)}
+              markedDates={{
+                [lmpDate]: {selected: true, selectedColor: '#ff4081'},
+              }}
+              theme={{
+                todayTextColor: '#ff4081',
+                arrowColor: '#ff4081',
+                calendarBackground: '#fff',
+                textDayFontSize: Platform.OS === 'ios' ? 14 : 16,
+                textMonthFontSize: Platform.OS === 'ios' ? 16 : 18,
+              }}
+            />
+          </View>
+          {errors.lmpDate ? (
+            <Text style={styles.errorText}>{errors.lmpDate}</Text>
+          ) : null}
+
+          <Text style={styles.title1}>Cycle Length (days)</Text>
+          <TextInput
+            placeholder="28"
+            placeholderTextColor="#999"
+            keyboardType="numeric"
+            value={cycleLength}
+            onChangeText={setCycleLength}
+            style={[styles.input, errors.cycleLength ? styles.errorBorder : null]}
           />
+          {errors.cycleLength ? (
+            <Text style={styles.errorText}>{errors.cycleLength}</Text>
+          ) : null}
+
+          <Text style={styles.title1}>Period Length (days)</Text>
+          <TextInput
+            placeholder="5"
+            placeholderTextColor="#999"
+            keyboardType="numeric"
+            value={periodLength}
+            onChangeText={setPeriodLength}
+            style={[
+              styles.input,
+              errors.periodLength ? styles.errorBorder : null,
+            ]}
+          />
+          {errors.periodLength ? (
+            <Text style={styles.errorText}>{errors.periodLength}</Text>
+          ) : null}
+
+          <Text style={styles.title1}>Age</Text>
+          <TextInput
+            placeholder="30"
+            placeholderTextColor="#999"
+            keyboardType="numeric"
+            value={age}
+            onChangeText={setAge}
+            style={[styles.input, errors.age ? styles.errorBorder : null]}
+          />
+          {errors.age ? <Text style={styles.errorText}>{errors.age}</Text> : null}
+
+          <Text style={styles.title1}>Weight (kg)</Text>
+          <TextInput
+            placeholder="65"
+            placeholderTextColor="#999"
+            keyboardType="numeric"
+            value={weight}
+            onChangeText={setWeight}
+            style={[styles.input, errors.weight ? styles.errorBorder : null]}
+          />
+          {errors.weight ? (
+            <Text style={styles.errorText}>{errors.weight}</Text>
+          ) : null}
+
+          {errors.form ? (
+            <Text style={styles.errorText}>{errors.form}</Text>
+          ) : null}
+
+          <Text style={styles.disclaimer}>
+            We are collecting this information solely to provide accurate
+            AI-generated insights based on your pregnancy duration.
+          </Text>
+
+          <TouchableOpacity style={styles.button} onPress={handleContinue} activeOpacity={0.8}>
+            <Text style={styles.buttonText}>Continue</Text>
+          </TouchableOpacity>
         </View>
-        {errors.lmpDate ? (
-          <Text style={styles.errorText}>{errors.lmpDate}</Text>
-        ) : null}
-
-        <Text style={styles.title1}>Cycle Length (days)</Text>
-        <TextInput
-          placeholder="28"
-          keyboardType="numeric"
-          value={cycleLength}
-          onChangeText={setCycleLength}
-          style={[styles.input, errors.cycleLength ? styles.errorBorder : null]}
-        />
-        {errors.cycleLength ? (
-          <Text style={styles.errorText}>{errors.cycleLength}</Text>
-        ) : null}
-
-        <Text style={styles.title1}>Period Length (days)</Text>
-        <TextInput
-          placeholder="5"
-          keyboardType="numeric"
-          value={periodLength}
-          onChangeText={setPeriodLength}
-          style={[
-            styles.input,
-            errors.periodLength ? styles.errorBorder : null,
-          ]}
-        />
-        {errors.periodLength ? (
-          <Text style={styles.errorText}>{errors.periodLength}</Text>
-        ) : null}
-
-        <Text style={styles.title1}>Age</Text>
-        <TextInput
-          placeholder="30"
-          keyboardType="numeric"
-          value={age}
-          onChangeText={setAge}
-          style={[styles.input, errors.age ? styles.errorBorder : null]}
-        />
-        {errors.age ? <Text style={styles.errorText}>{errors.age}</Text> : null}
-
-        <Text style={styles.title1}>Weight (kg)</Text>
-        <TextInput
-          placeholder="65"
-          keyboardType="numeric"
-          value={weight}
-          onChangeText={setWeight}
-          style={[styles.input, errors.weight ? styles.errorBorder : null]}
-        />
-        {errors.weight ? (
-          <Text style={styles.errorText}>{errors.weight}</Text>
-        ) : null}
-
-        {errors.form ? (
-          <Text style={styles.errorText}>{errors.form}</Text>
-        ) : null}
-
-        <Text style={styles.disclaimer}>
-          We are collecting this information solely to provide accurate
-          AI-generated insights based on your pregnancy duration.
-        </Text>
-
-        <TouchableOpacity style={styles.button} onPress={handleContinue}>
-          <Text style={styles.buttonText}>Continue</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   scrollContainer: {
     flexGrow: 1,
     backgroundColor: '#fff',
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    marginTop: Platform.OS === 'android' ? 30 : 0,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     backgroundColor: '#fff',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 24,
     textAlign: 'center',
   },
   title1: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 10,
+    marginTop: 12,
   },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
-    padding: 12,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 8,
     backgroundColor: '#fff',
     fontSize: 16,
+    minHeight: 44,
   },
   inputContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingRight: 4,
   },
   dropdownArrow: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#999',
   },
   inputText: {
@@ -279,60 +306,72 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: '#fff',
-    margin: 20,
-    borderRadius: 10,
-    padding: 20,
-    maxHeight: '80%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    maxHeight: Platform.OS === 'ios' ? '85%' : '80%',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 16,
     textAlign: 'center',
   },
   countryItem: {
-    padding: 15,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   countryText: {
     fontSize: 16,
+    color: '#000',
   },
   closeButton: {
-    marginTop: 15,
-    padding: 12,
+    marginTop: 12,
+    marginBottom: Platform.OS === 'ios' ? 16 : 12,
+    paddingVertical: 12,
     backgroundColor: '#ff4081',
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
   },
   closeButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   errorBorder: {
-    borderColor: 'red',
+    borderColor: '#ff6b6b',
   },
   errorText: {
-    color: 'red',
+    color: '#ff6b6b',
     marginBottom: 10,
+    fontSize: 13,
+    marginTop: -4,
   },
   disclaimer: {
-    fontSize: 14,
-    color: '#555',
+    fontSize: 13,
+    color: '#666',
     textAlign: 'center',
     marginTop: 20,
     marginBottom: 20,
+    lineHeight: 20,
   },
   button: {
     backgroundColor: '#ff4081',
-    padding: 15,
+    paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    marginTop: 8,
   },
   buttonText: {
     color: '#fff',
@@ -343,7 +382,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: '#f5f5f5',
-    padding: 10,
-    marginBottom: 20,
+    paddingVertical: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
 });

@@ -8,12 +8,17 @@ import {
   ScrollView,
   Image,
   Alert,
-  RefreshControl
+  RefreshControl,
+  Platform,
+  SafeAreaView,
+  Dimensions
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Modal, Portal, Button, Provider } from 'react-native-paper'; // Import from paper
 import CustomHeader from '../Components/CustomHeader';
 import { BASE_URL } from '@env';
+
+const { width } = Dimensions.get('window');
 
 const IconButton = ({ icon, label }) => {
   const { theme } = useTheme();
@@ -96,139 +101,163 @@ export default function SettingsScreen() {
 
   return (
     <Provider>
-      <ScrollView 
-        style={[styles.container, { backgroundColor: theme.background }]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[theme.primary]}
-            tintColor={theme.primary}
-          />
-        }
-      >
-        <CustomHeader />
-
-        <View style={styles.header}>
-          <Image
-            source={require('../assets/Avatar.jpeg')}
-            style={styles.profileImage}
-          />
-          <Text style={[styles.name, { color: theme.text }]}>
-            {loading ? 'Loading...' : profileData.name}
-          </Text>
-        </View>
-
-        <View style={styles.iconsRow}>
-          <IconButton icon="🔔" label="Notification" />
-        </View>
-
-        <TouchableOpacity style={[styles.openButton,{backgroundColor:theme.button}]} onPress={() => setModalVisible(true)}>
-          <Text style={styles.openButtonText}>Change Theme</Text>
-        </TouchableOpacity>
-
-        {/* Theme Selection Modal */}
-        <Portal>
-          <Modal 
-            visible={modalVisible} 
-            onDismiss={() => setModalVisible(false)} 
-            contentContainerStyle={[styles.modalContent, { backgroundColor: theme.factcardprimary }]}
-          >
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Select a Theme</Text>
-
-            {/* Theme Selection Buttons */}
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: 'rgb(255, 148, 182)' }]}
-              onPress={() => { updateTheme('light'); setModalVisible(false); }}
-            >
-              <Text style={styles.buttonText}>Light Theme</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor:'#fff3b0', }]}
-              onPress={() => { updateTheme('dark'); setModalVisible(false); }}
-            >
-              <Text style={styles.buttonText}>Dark Theme</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#AC87C5'}]}
-              onPress={() => { updateTheme('pastel'); setModalVisible(false); }}
-            >
-              <Text style={styles.buttonText}>Pastel Theme</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#ff4081' }]}
-              onPress={() => { updateTheme('default'); setModalVisible(false); }}
-            >
-              <Text style={styles.buttonText}>Default Theme</Text>
-            </TouchableOpacity>
-
-            {/* Close Button */}
-            <Button mode="contained" onPress={() => setModalVisible(false)} style={styles.closeButton}>
-              Close
-            </Button>
-          </Modal>
-        </Portal>
-
-        <View style={[styles.infoCard, { backgroundColor: theme.cardBackground }]}>
-          <ProfileField label="Due Date" value={loading ? 'Loading...' : profileData.due_date} />
-          <ProfileField label="Location" value={loading ? 'Loading...' : profileData.location} />
-        </View>
-
-        <TouchableOpacity 
-          style={[styles.editButton, { backgroundColor: theme.primary }]}
-          onPress={handleEditProfile}
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+        <ScrollView 
+          style={[styles.container, { backgroundColor: theme.background }]}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
+            />
+          }
         >
-          <Text style={styles.editButtonText}>Edit Profile</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          <CustomHeader />
+
+          <View style={styles.header}>
+            <Image
+              source={require('../assets/Avatar.jpeg')}
+              style={styles.profileImage}
+            />
+            <Text style={[styles.name, { color: theme.text }]}>
+              {loading ? 'Loading...' : profileData.name}
+            </Text>
+          </View>
+
+          <View style={styles.iconsRow}>
+            <IconButton icon="🔔" label="Notification" />
+          </View>
+
+          <TouchableOpacity style={[styles.openButton,{backgroundColor:theme.button}]} onPress={() => setModalVisible(true)}>
+            <Text style={styles.openButtonText}>Change Theme</Text>
+          </TouchableOpacity>
+
+          {/* Theme Selection Modal */}
+          <Portal>
+            <Modal 
+              visible={modalVisible} 
+              onDismiss={() => setModalVisible(false)} 
+              contentContainerStyle={[styles.modalContent, { backgroundColor: theme.factcardprimary }]}
+            >
+              <ScrollView style={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Select a Theme</Text>
+
+                {/* Theme Selection Buttons */}
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: 'rgb(255, 148, 182)' }]}
+                  onPress={() => { updateTheme('light'); setModalVisible(false); }}
+                >
+                  <Text style={styles.buttonText}>Light Theme</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor:'#fff3b0', }]}
+                  onPress={() => { updateTheme('dark'); setModalVisible(false); }}
+                >
+                  <Text style={styles.buttonText}>Dark Theme</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: '#AC87C5'}]}
+                  onPress={() => { updateTheme('pastel'); setModalVisible(false); }}
+                >
+                  <Text style={styles.buttonText}>Pastel Theme</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: '#ff4081' }]}
+                  onPress={() => { updateTheme('default'); setModalVisible(false); }}
+                >
+                  <Text style={styles.buttonText}>Default Theme</Text>
+                </TouchableOpacity>
+
+                {/* Close Button */}
+                <Button mode="contained" onPress={() => setModalVisible(false)} style={styles.closeButton}>
+                  Close
+                </Button>
+              </ScrollView>
+            </Modal>
+          </Portal>
+
+          <View style={[styles.infoCard, { backgroundColor: theme.cardBackground }]}>
+            <ProfileField label="Due Date" value={loading ? 'Loading...' : profileData.due_date} />
+            <ProfileField label="Location" value={loading ? 'Loading...' : profileData.location} />
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.editButton, { backgroundColor: theme.primary }]}
+            onPress={handleEditProfile}
+          >
+            <Text style={styles.editButtonText}>Edit Profile</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
     </Provider>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    padding: 20,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
+    flexGrow: 1,
   },
   openButton: {
     backgroundColor: '#6200EE',
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 10,
+    marginHorizontal: 0,
+    marginVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   openButtonText: {
     color: 'white',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   modalContent: {
     padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginHorizontal: 20,
+    borderRadius: 12,
+    maxHeight: Platform.OS === 'ios' ? '80%' : '90%',
+    width: width - 40,
+    alignSelf: 'center',
+  },
+  modalScrollContent: {
+    maxHeight: Platform.OS === 'ios' ? 500 : 600,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 20,
-    marginTop: 70,
+    paddingVertical: 24,
+    marginTop: Platform.OS === 'ios' ? 20 : 40,
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontSize: 22,
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'center',
   },
   email: {
     fontSize: 16,
@@ -236,53 +265,64 @@ const styles = StyleSheet.create({
   },
   iconsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 20,
+    justifyContent: 'center',
+    paddingVertical: 16,
+    marginVertical: 8,
   },
   iconContainer: {
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 10,
-    width: 100,
+    padding: 12,
+    borderRadius: 12,
+    width: 110,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 5,
+    marginBottom: 8,
   },
   iconText: {
-    fontSize: 20,
+    fontSize: 22,
   },
   iconLabel: {
-    fontSize: 14,
+    fontSize: 13,
+    textAlign: 'center',
   },
   infoCard: {
-    margin: 15,
-    padding: 15,
-    borderRadius: 15,
+    marginHorizontal: 0,
+    marginVertical: 12,
+    padding: 16,
+    borderRadius: 12,
   },
   fieldContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    alignItems: 'center',
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
   fieldLabel: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '500',
+    flex: 0.4,
   },
   fieldValue: {
-    fontSize: 16,
+    fontSize: 15,
     opacity: 0.7,
+    flex: 0.6,
+    textAlign: 'right',
   },
   editButton: {
-    margin: 15,
-    padding: 15,
+    marginHorizontal: 0,
+    marginVertical: 16,
+    paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   editButtonText: {
     color: '#FFFFFF',
@@ -290,11 +330,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   button: {
-    padding: 12,
-    marginVertical: 5,
+    padding: 13,
+    marginVertical: 8,
     width: '100%',
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  buttonText: {
+    color: '#000',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  closeButton: {
+    marginTop: 12,
   },
 });
 
