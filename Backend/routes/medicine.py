@@ -148,3 +148,43 @@ def delete_medicine(id):
     agent.update_cache(data_type="medicine", operation="delete")
 
     return jsonify({"status": "success", "message": "Medicine entry deleted"}), 200
+
+
+# Mark taken / skipped
+@medicine_bp.route('/medicine/<int:id>/mark', methods=['POST'])
+def mark_medicine(id):
+    """Mark a medicine entry as taken or skipped.
+
+    Request JSON should include:
+      - action: 'taken' or 'skipped'
+      - taken_time (optional ISO/time string) - when it was taken
+    """
+    db = open_db()
+    data = request.json or {}
+    action = data.get('action')
+
+    if action not in ('taken', 'skipped'):
+        return jsonify({"error": "Invalid action. Use 'taken' or 'skipped'."}), 400
+
+    entry = db.execute('SELECT * FROM weekly_medicine WHERE id = ?', (id,)).fetchone()
+    if not entry:
+        return jsonify({"error": "Entry not found"}), 404
+
+    # For now, represent 'skipped' as taken=0, 'taken' as taken=1 and update created_at or a taken_time column when provided
+    taken_value = 1 if action == 'taken' else 0
+    taken_time = data.get('taken_time')
+
+    # Update taken and optionally note the time in note field (non-destructive)
+    note = entry['note'] or ''
+    if taken_time:
+        note = (note + '\n' if note else '') + f"marked_{action}_at:{taken_time}"
+
+    db.execute('UPDATE weekly_medicine SET taken = ?, note = ? WHERE id = ?', (taken_value, note, id))
+    db.commit()
+
+    # Update cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.update_cache(data_type="medicine", operation="update")
+
+    return jsonify({"status": "success", "message": f"Entry marked as {action}"}), 200

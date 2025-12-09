@@ -220,6 +220,42 @@ export default function MedicineScreen() {
                     onPress={() => handleDelete(entry.id)}
                     style={styles.iconButton}
                   />
+                  <Icon
+                    name="check_circle"
+                    size={20}
+                    color="#2ecc71"
+                    onPress={async () => {
+                      try {
+                        await fetch(`${BASE_URL}/medicine/${entry.id}/mark`, {
+                          method: 'POST',
+                          headers: {'Content-Type': 'application/json'},
+                          body: JSON.stringify({action: 'taken'}),
+                        });
+                        fetchMedicineHistory();
+                      } catch (err) {
+                        console.error('Failed to mark taken:', err);
+                      }
+                    }}
+                    style={styles.iconButton}
+                  />
+                  <Icon
+                    name="remove_circle"
+                    size={20}
+                    color="#e67e22"
+                    onPress={async () => {
+                      try {
+                        await fetch(`${BASE_URL}/medicine/${entry.id}/mark`, {
+                          method: 'POST',
+                          headers: {'Content-Type': 'application/json'},
+                          body: JSON.stringify({action: 'skipped'}),
+                        });
+                        fetchMedicineHistory();
+                      } catch (err) {
+                        console.error('Failed to mark skipped:', err);
+                      }
+                    }}
+                    style={styles.iconButton}
+                  />
                 </View>
               </View>
               <Text style={styles.entrySub}>Dose: {entry.dose}</Text>
