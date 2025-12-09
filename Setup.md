@@ -130,34 +130,37 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Notes:
+- `chromadb` is already pinned in `Backend/requirements.txt`; no separate install step needed.
+- Run these commands from the `Backend` directory to avoid Python import path issues.
+
 ### 7) Run the Backend Locally
 
+Run from the `Backend` folder so local imports resolve correctly.
+
+Full mode (agent + vector store initialized):
+
 ```sh
-cd Backend
 python app.py
 ```
 
-This will start the API locally.
+Fast dev mode (skip heavy agent init; useful when iterating on routes):
+
+```sh
+SKIP_AGENT_INIT=1 python app.py
+```
+
+Health check (works in both modes):
+
+```sh
+curl http://127.0.0.1:5000/health
+```
 
 ---
 
 ## Handling Vector Search (ChromaDB)
 
-BabyNest uses ChromaDB for offline vector search.
-
-### 1) Install ChromaDB
-
-```sh
-pip install chromadb
-```
-
-### 2) Run ChromaDB
-
-```sh
-python -m chromadb
-```
-
-This starts the local vector database.
+BabyNest uses ChromaDB for offline vector search. It is installed automatically via `Backend/requirements.txt`.
 
 ---
 
