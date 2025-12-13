@@ -15,9 +15,12 @@ export default function CustomDrawer({ children }) {
 
   useEffect(() => {
     return () => {
+      // Stop any running animations
+      translateX.stopAnimation();
+      backdropOpacity.stopAnimation();
       isMounted.current = false;
     };
-  }, []);
+  }, [translateX, backdropOpacity]);
 
   const openDrawer = () => {
     if (isMounted.current) {
