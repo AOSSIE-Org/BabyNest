@@ -1,4 +1,32 @@
 # BabyNest
+<div name="readme-top"></div>
+
+<!-- Organization Logo -->
+<div align="center" style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+  <img alt="AOSSIE" src="public/AOSSIE-logo.png" width="175">
+  <!-- <img src="public/cross.svg" width="30" style="margin: 0;" /> -->
+</div>
+
+&nbsp;
+
+<!-- Organization Name -->
+<div align="center">
+
+
+<!-- Correct deployed url to be added -->
+
+</div>
+
+<!-- Organization/Project Social Handles -->
+<p align="center">
+<!-- X (formerly Twitter) -->
+<a href="https://twitter.com/aossie_org">
+<img src="https://img.shields.io/twitter/follow/AOSSIE" alt="X (formerly Twitter) Badge"/></a>
+&nbsp;&nbsp;
+<!-- Discord -->
+<a href="https://discord.gg/hjUhu33uAn">
+<img src="https://img.shields.io/discord/995968619034984528?style=flat&logo=discord&logoColor=white&logoSize=auto&label=Discord&labelColor=5865F2&color=57F287" alt="Discord Badge"/></a>
+&nbsp;&nbsp;
 
 ## Table of Contents
 
@@ -93,6 +121,23 @@ graph TD;
     A -->|Can Query AI Offline| G
     H -->|Provides Faster Query Results| F
 ```
+
+## Contributing
+
+We welcome contributions of all kinds! To contribute:
+
+1. Fork the repository and create your feature branch (`git checkout -b feature/AmazingFeature`).
+2. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+3. Run the development workflow commands to ensure code quality
+4. Push your branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request for review.
+
+If you encounter bugs, need help, or have feature requests:
+
+- Please open an issue in this repository providing detailed information.
+- Describe the problem clearly and include any relevant logs or screenshots.
+
+We appreciate your feedback and contributions!
 
 ## Contact
 
