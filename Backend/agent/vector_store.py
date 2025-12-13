@@ -26,7 +26,7 @@ def init_chroma_client(recreate_on_schema_mismatch: bool = True):
         is_sqlite_op = isinstance(e, sqlite3.OperationalError)
         schema_issue = "no such column" in message or "no such table" in message
         if recreate_on_schema_mismatch and (schema_issue or is_sqlite_op):
-+           logging.warning("[vector_store] Chromadb schema mismatch detected, recreating DB directory. All existing embeddings will be lost.")
+            logging.warning("[vector_store] Chromadb schema mismatch detected, recreating DB directory. All existing embeddings will be lost.")
             try:
                 shutil.rmtree("db/chromadb")
             except FileNotFoundError:
