@@ -1,0 +1,92 @@
+name: Backend API Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'Backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'Backend/**'
+      - '.github/workflows/backend-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  test-backend-apis:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('Backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r Backend/requirements.txt
+    
+    - name: Create test database directory
+      run: |
+        mkdir -p Backend/db
+    
+    - name: Run API Tests
+      run: |
+        cd Backend
+        python -m pytest tests/ -v --tb=short --cov=routes --cov=app --cov-report=xml --cov-report=term-missing
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./Backend/coverage.xml
+        flags: backend
+        name: codecov-backend
+        fail_ci_if_error: false
+    
+    - name: Test Summary
+      if: always()
+      run: |
+        cd Backend
+        python -m pytest tests/ --tb=line --no-header -q
+    
+    - name: Archive test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-python-${{ matrix.python-version }}
+        path: |
+          Backend/htmlcov/
+          Backend/coverage.xml
+        retention-days: 30
+
+  test-result-notification:
+    needs: test-backend-apis
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Check test results
+      run: |
+        if [ "${{ needs.test-backend-apis.result }}" == "failure" ]; then
+          echo "❌ Backend API tests failed!"
+          exit 1
+        else
+          echo "✅ All backend API tests passed!"
+        fi
