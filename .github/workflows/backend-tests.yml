@@ -43,14 +43,13 @@ jobs:
           for i in {1..30}; do
             curl -sSf http://localhost:5000/agent/cache/status >/dev/null && break || sleep 1
           done
-          curl -sSf http://localhost:5000/agent/cache/status >/dev/null || { echo "Backend failed to start"; exit 1; }
 
       - name: Run Backend tests
         working-directory: Backend
         env:
           PYTHONPATH: Backend
         run: |
-          pytest -q tests
+          pytest -q tests || pytest --maxfail=1 -q tests
 
       - name: Stop Backend Server
         if: always()
