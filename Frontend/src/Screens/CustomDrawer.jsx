@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Animated, View, Dimensions, StyleSheet, Text, TouchableOpacity, Alert, ScrollView, StatusBar } from 'react-native';
 import { DrawerContext } from '../context/DrawerContext';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -11,9 +11,18 @@ export default function CustomDrawer({ children }) {
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const openDrawer = () => {
-    setIsDrawerOpen(true);
+    if (isMounted.current) {
+      setIsDrawerOpen(true);
+    }
     Animated.parallel([
       Animated.timing(translateX, {
         toValue: 0,
@@ -41,7 +50,9 @@ export default function CustomDrawer({ children }) {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setIsDrawerOpen(false);
+      if (isMounted.current) {
+        setIsDrawerOpen(false);
+      }
     });
   };
 
@@ -96,6 +107,9 @@ export default function CustomDrawer({ children }) {
               style={styles.backdropTouchable}
               activeOpacity={1}
               onPress={closeDrawer}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Close drawer"
             />
           </Animated.View>
         )}
@@ -107,7 +121,13 @@ export default function CustomDrawer({ children }) {
           {/* Drawer Header with Close Button */}
           <View style={styles.drawerHeaderContainer}>
             <Text style={styles.drawerHeader}>BabyNest</Text>
-            <TouchableOpacity onPress={closeDrawer} style={styles.closeButton}>
+            <TouchableOpacity
+              onPress={closeDrawer}
+              style={styles.closeButton}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Close drawer"
+            >
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>

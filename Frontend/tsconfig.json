@@ -3,14 +3,15 @@
     "target": "esnext",
     "module": "commonjs",
     "lib": [
-      "es2017"
+      "es2017",
+      "es2021"
     ],
     "allowJs": true,
     "jsx": "react-native",
     "noEmit": true,
     "isolatedModules": true,
     "strict": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
