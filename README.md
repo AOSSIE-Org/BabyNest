@@ -186,10 +186,3 @@ Maintainers will review and merge if approved ✅
 📜 License
 This project is licensed under the MIT License.
 You are free to use, modify, and distribute this project with proper attribution.
-
-📬 Contact
-For queries, discussions, or collaboration:
-
-Organization: AOSSIE
-
-GitHub: https://github.com/AOSSIE-Org
