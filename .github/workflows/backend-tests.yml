@@ -49,7 +49,7 @@ jobs:
         env:
           PYTHONPATH: Backend
         run: |
-          pytest -q tests || pytest --maxfail=1 -q tests
+          pytest -q --maxfail=1 tests || pytest -q tests
 
       - name: Stop Backend Server
         if: always()
