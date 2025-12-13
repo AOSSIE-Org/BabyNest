@@ -115,7 +115,10 @@ export default function CustomDrawer({ children }) {
         )}
 
         {/* Animated Drawer Panel */}
-        <Animated.View style={[styles.drawer, { transform: [{ translateX }] }]}>
+        <Animated.View
+          style={[styles.drawer, { transform: [{ translateX }] }]}
+          pointerEvents={isDrawerOpen ? 'auto' : 'none'}
+        >
           <StatusBar backgroundColor="#fff" barStyle="dark-content" />
 
           {/* Drawer Header with Close Button */}
