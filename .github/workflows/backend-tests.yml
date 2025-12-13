@@ -1,0 +1,50 @@
+name: Backend API Tests
+
+on:
+  push: {}
+  pull_request: {}
+
+jobs:
+  test-backend:
+    name: Run Backend API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/Backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Backend/requirements.txt
+
+      - name: Start Backend Server (in background)
+        working-directory: Backend
+        run: |
+          python -u app.py &
+          echo $! > /tmp/backend.pid
+          for i in {1..30}; do
+            curl -sSf http://localhost:5000/agent/cache/status >/dev/null && break || sleep 1
+          done
+
+      - name: Run Backend tests
+        working-directory: Backend
+        run: |
+          pytest -q tests || pytest --maxfail=1 -q tests
+
+      - name: Stop Backend Server
+        if: always()
+        run: |
+          kill $(cat /tmp/backend.pid) || true
