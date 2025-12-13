@@ -1,10 +1,21 @@
 from db.db import open_db
 import re
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from agent.llm import extract_structured_data
 
-def parse_weight_command(query: str):
+def parse_weight_command(query: str, use_llm_first: bool = True):
     """Parse weight logging commands from natural language."""
     query_lower = query.lower()
     
+    # Try structured extraction first (simulates LLM)
+    if use_llm_first:
+        llm_result = extract_structured_data(query, "weight")
+        if llm_result["success"] and llm_result["confidence"] >= 0.6:
+            return llm_result["data"]
+    
+    # Fallback to regex parsing
     # Extract weight value
     weight_patterns = [
         r'(?:log|record|add|my\s+weight\s+as?|weight\s+is?)\s*(\d+(?:\.\d+)?)\s*(?:kg|kilos?)?',

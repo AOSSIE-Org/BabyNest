@@ -1,3 +1,55 @@
+import json
+import re
+
+def extract_structured_data(query: str, intent: str) -> dict:
+    """
+    Extract structured data from query using simple pattern matching.
+    This simulates what a properly prompted small LLM should do.
+    """
+    result = {"success": False, "data": {}, "confidence": 0.0}
+    
+    query_lower = query.lower()
+    
+    if intent == "weight":
+        # Extract weight value
+        weight_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:kg|kilo|kilogram)?', query_lower)
+        week_match = re.search(r'(?:week|wk)\s*(\d+)', query_lower)
+        
+        if weight_match:
+            result["success"] = True
+            result["data"]["weight"] = float(weight_match.group(1))
+            result["data"]["week"] = int(week_match.group(1)) if week_match else None
+            result["data"]["note"] = None
+            result["confidence"] = 0.9 if week_match else 0.7
+    
+    elif intent == "appointments":
+        # Extract appointment components
+        # Date patterns
+        date_match = re.search(r'(today|tomorrow|next\s+week|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2})', query_lower)
+        # Time patterns
+        time_match = re.search(r'(\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening)', query_lower)
+        # Action patterns
+        action_match = re.search(r'(schedule|book|make|create|cancel|reschedule)', query_lower)
+        
+        if action_match:
+            result["success"] = True
+            result["data"]["action"] = action_match.group(1)
+            result["data"]["date"] = date_match.group(1) if date_match else None
+            result["data"]["time"] = time_match.group(1) if time_match else None
+            result["confidence"] = 0.8 if (date_match or time_match) else 0.6
+    
+    elif intent == "symptoms":
+        # Extract symptom information
+        symptom_keywords = ['nausea', 'pain', 'tired', 'fatigue', 'headache', 'cramp', 'bleeding']
+        found_symptoms = [s for s in symptom_keywords if s in query_lower]
+        
+        if found_symptoms:
+            result["success"] = True
+            result["data"]["symptoms"] = found_symptoms
+            result["confidence"] = 0.8
+    
+    return result
+
 def run_llm(prompt: str) -> str:
     """
     Run LLM inference. 

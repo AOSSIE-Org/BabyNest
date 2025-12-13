@@ -45,8 +45,12 @@ class BabyNestAgent:
                 return "User profile not found. Please complete your profile setup first."
             
             # Step 2: Classify intent to see if a specialized handler should be used.
-            intent = classify_intent(query)
-            if intent in dispatch_intent:
+            intent, confidence = classify_intent(query)
+            
+            # Log confidence for debugging
+            print(f"Intent: {intent}, Confidence: {confidence:.2f}")
+            
+            if intent in dispatch_intent and confidence >= 0.5:
                 # Pass user context to handlers
                 return dispatch_intent[intent](query, user_context)
             
