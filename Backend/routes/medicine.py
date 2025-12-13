@@ -148,3 +148,27 @@ def delete_medicine(id):
     agent.update_cache(data_type="medicine", operation="delete")
 
     return jsonify({"status": "success", "message": "Medicine entry deleted"}), 200
+
+# Mark medicine as taken
+@medicine_bp.route('/medicine/<int:id>/taken', methods=['PATCH'])
+@require_auth
+def mark_medicine_taken(id):
+    db = open_db()
+    data = request.json
+    entry = db.execute('SELECT * FROM weekly_medicine WHERE id = ?', (id,)).fetchone()
+    
+    if not entry:
+        return jsonify({"error": "Entry not found"}), 404
+
+    taken_status = data.get('taken', True)  # Default to True if not specified
+    
+    db.execute('UPDATE weekly_medicine SET taken = ? WHERE id = ?', (taken_status, id))
+    db.commit()
+
+    # Update cache after database update
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
+    agent = get_agent(db_path)
+    agent.update_cache(data_type="medicine", operation="update")
+
+    status_text = "taken" if taken_status else "not taken"
+    return jsonify({"status": "success", "message": f"Medicine marked as {status_text}"}), 200
