@@ -3,15 +3,46 @@ from chromadb.utils import embedding_functions
 import json
 import os
 import hashlib
+import shutil
+import sqlite3
 
-os.makedirs("db/chromadb", exist_ok=True)
-client = chromadb.PersistentClient(path="db/chromadb")
+def init_chroma_client(recreate_on_schema_mismatch: bool = True):
+    """Initialize the persistent chromadb client and collection.
 
-# Use default embedding function instead of sentence transformers
-collection = client.get_or_create_collection(
-    "pregnancy_guidelines",
-    embedding_function=embedding_functions.DefaultEmbeddingFunction()
-)
+    If the database schema is incompatible (e.g. older version missing a
+    column), optionally remove and recreate the DB directory so the
+    library can initialize a fresh DB with the expected schema.
+    """
+    os.makedirs("db/chromadb", exist_ok=True)
+    try:
+        client = chromadb.PersistentClient(path="db/chromadb")
+        collection = client.get_or_create_collection(
+            "pregnancy_guidelines",
+            embedding_function=embedding_functions.DefaultEmbeddingFunction()
+        )
+        return client, collection
+    except Exception as e:
+        message = str(e).lower()
+        is_sqlite_op = isinstance(e, sqlite3.OperationalError)
+        schema_issue = "no such column" in message or "no such table" in message
+        if recreate_on_schema_mismatch and (schema_issue or is_sqlite_op):
+            print("[vector_store] Chromadb schema mismatch detected, recreating DB directory")
+            try:
+                shutil.rmtree("db/chromadb")
+            except FileNotFoundError:
+                pass
+            os.makedirs("db/chromadb", exist_ok=True)
+            client = chromadb.PersistentClient(path="db/chromadb")
+            collection = client.get_or_create_collection(
+                "pregnancy_guidelines",
+                embedding_function=embedding_functions.DefaultEmbeddingFunction()
+            )
+            return client, collection
+        raise
+
+
+# Initialize Chromadb client and collection using the safe initializer
+client, collection = init_chroma_client()
 
 _update_vector_store_callback = None
 
