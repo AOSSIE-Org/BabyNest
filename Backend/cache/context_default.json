@@ -1,105 +1,123 @@
 {
   "current_week": 40,
-  "location": "Updated City",
-  "age": 25,
-  "weight": 67,
-  "due_date": "2024-10-01",
-  "lmp": "2024-01-01",
+  "location": "Jaipur",
+  "age": 22,
+  "weight": 60,
+  "due_date": "2025-10-08",
+  "lmp": "2025-01-01",
   "cycle_length": 28,
   "period_length": 5,
   "tracking_data": {
     "weight": [
       {
-        "week": 34,
-        "weight": 72.0,
-        "note": "Test weight entry 14",
-        "date": "2025-09-10T06:41:08.439168"
+        "week": 10,
+        "weight": 61.3,
+        "note": "Started prenatal yoga, feeling good",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 33,
-        "weight": 71.5,
-        "note": "Test weight entry 13",
-        "date": "2025-09-10T06:41:08.439168"
+        "week": 9,
+        "weight": 60.9,
+        "note": "Appetite increasing slightly",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 32,
-        "weight": 71.0,
-        "note": "Test weight entry 12",
-        "date": "2025-09-10T06:41:08.439168"
+        "week": 8,
+        "weight": 60.5,
+        "note": "Slight nausea, but overall feeling okay",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 31,
-        "weight": 70.5,
-        "note": "Test weight entry 11",
-        "date": "2025-09-10T06:41:08.439168"
+        "week": 8,
+        "weight": 62.5,
+        "note": "pytest",
+        "date": "2025-12-13 20:08:48"
       }
     ],
     "medicine": [
       {
-        "week": 34,
-        "name": "Medicine 14",
-        "dose": "114mg",
-        "time": "Morning",
+        "week": 10,
+        "name": "Prenatal Vitamin",
+        "dose": "1 tablet",
+        "time": "08:00",
         "taken": 1,
-        "note": "Test medicine 14",
-        "date": "2025-09-10T06:41:08.440168"
+        "note": "No side effects, continuing as normal",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 33,
-        "name": "Medicine 13",
-        "dose": "113mg",
-        "time": "Morning",
+        "week": 9,
+        "name": "Iron Supplement",
+        "dose": "30mg",
+        "time": "13:00",
         "taken": 1,
-        "note": "Test medicine 13",
-        "date": "2025-09-10T06:41:08.440168"
+        "note": "Taking to help with mild anemia",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 32,
-        "name": "Medicine 12",
-        "dose": "112mg",
-        "time": "Morning",
+        "week": 8,
+        "name": "Prenatal Vitamin",
+        "dose": "1 tablet",
+        "time": "08:00",
         "taken": 1,
-        "note": "Test medicine 12",
-        "date": "2025-09-10T06:41:08.440168"
+        "note": "Daily multivitamin with folic acid",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 31,
-        "name": "Medicine 11",
-        "dose": "111mg",
-        "time": "Morning",
-        "taken": 1,
-        "note": "Test medicine 11",
-        "date": "2025-09-10T06:41:08.440168"
+        "week": 8,
+        "name": "Prenatal Vitamin",
+        "dose": "1 tablet",
+        "time": "08:00",
+        "taken": 0,
+        "note": "pytest",
+        "date": "2025-12-13 20:08:48"
       }
     ],
     "symptoms": [
       {
-        "week": 34,
-        "symptom": "Symptom 14",
-        "note": "Test symptom 14",
-        "date": "2025-09-10T06:41:08.440168"
+        "week": 10,
+        "symptom": "Frequent Urination",
+        "note": "Especially during the night",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 33,
-        "symptom": "Symptom 13",
-        "note": "Test symptom 13",
-        "date": "2025-09-10T06:41:08.440168"
+        "week": 9,
+        "symptom": "Breast Tenderness",
+        "note": "More sensitive than last week",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 32,
-        "symptom": "Symptom 12",
-        "note": "Test symptom 12",
-        "date": "2025-09-10T06:41:08.440168"
+        "week": 8,
+        "symptom": "Morning Sickness",
+        "note": "Worse after waking up",
+        "date": "2025-12-13 20:08:47"
       },
       {
-        "week": 31,
-        "symptom": "Symptom 11",
-        "note": "Test symptom 11",
-        "date": "2025-09-10T06:41:08.440168"
+        "week": 8,
+        "symptom": "nausea",
+        "note": "pytest",
+        "date": "2025-12-13 20:08:48"
       }
     ],
-    "blood_pressure": [],
-    "discharge": []
+    "blood_pressure": [
+      {
+        "week": 8,
+        "systolic": 120,
+        "diastolic": 80,
+        "time": "08:00",
+        "note": "pytest",
+        "date": "2025-12-13 20:08:48"
+      }
+    ],
+    "discharge": [
+      {
+        "week": 8,
+        "type": "normal",
+        "color": "clear",
+        "bleeding": "no",
+        "note": "pytest",
+        "date": "2025-12-13 20:08:48"
+      }
+    ]
   },
-  "last_updated": "2025-09-10T06:44:27.424436"
+  "last_updated": "2025-12-14T01:38:48.104350"
 }
