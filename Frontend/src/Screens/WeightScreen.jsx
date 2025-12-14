@@ -25,12 +25,31 @@ export default function WeightScreen() {
   const fetchWeightHistory = async () => {
     try {
       const res = await fetch(`${BASE_URL}/weight`);
+      if (!res.ok) {
+        throw new Error('Network response was not ok');
+      }
       const data = await res.json();
       setHistory(data.reverse());
     } catch (err) {
       console.error('Failed to fetch weights:', err);
     }
   };
+ 
+
+  const formatLocalDate = (utcDateString) => {
+    const dateStringWithZ = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
+    const date = new Date(dateStringWithZ);
+   return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true, 
+    });
+  };
+
 
   useEffect(() => {
     fetchWeightHistory();
@@ -135,7 +154,7 @@ export default function WeightScreen() {
               mode="outlined"
               left={<TextInput.Icon icon="calendar" />}
               style={styles.input}
-            />
+             />
             <TextInput
               label="Weight (kg)"
               value={weight}
@@ -201,7 +220,7 @@ export default function WeightScreen() {
                 <Text style={styles.entryNote}>Note: {entry.note}</Text>
               ) : null}
               <Text style={styles.entryDate}>
-                {new Date(entry.created_at).toLocaleString()}
+               {formatLocalDate(entry.created_at)}
               </Text>
             </Card.Content>
           </Card>
@@ -212,7 +231,7 @@ export default function WeightScreen() {
       <Portal>
         <Dialog visible={editVisible} onDismiss={() => setEditVisible(false)}>
           <Dialog.Title>Edit Entry</Dialog.Title>
-          <Dialog.Content>
+          <Dialog.Content >
             <TextInput
               label="Week Number"
               value={editData?.week_number?.toString() || ''}
@@ -271,6 +290,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginBottom: 15,
     borderRadius: 10,
+   
   },
   noteInput: {
     minHeight: 100,

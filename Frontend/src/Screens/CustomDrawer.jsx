@@ -1,34 +1,62 @@
-import React, { useRef } from 'react';
-import { Animated, View, Dimensions, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
+import React, { useRef ,useState} from 'react';
+import { Animated, View, Dimensions, StyleSheet, Text, TouchableOpacity, Alert ,Easing } from 'react-native';
 import { DrawerContext } from '../context/DrawerContext';
 import { useNavigation,CommonActions } from '@react-navigation/native';
 import {BASE_URL} from '@env';
-
+import Icon from 'react-native-vector-icons/Ionicons';
 const DRAWER_WIDTH = 260;
 
 export default function CustomDrawer({ children }) {
   const navigation = useNavigation();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
   const openDrawer = () => {
+    setIsDrawerOpen(true);
+    Animated.parallel([
     Animated.timing(translateX, {
       toValue: 0,
-      duration: 300,
+      duration: 350,
       useNativeDriver: true,
-    }).start();
+      easing: Easing.inOut(Easing.ease),
+    })
+    ,
+    Animated.timing(backdropOpacity, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+        easing: Easing.inOut(Easing.ease),
+      }),])
+      .start();
   };
 
   const closeDrawer = () => {
-    Animated.timing(translateX, {
-      toValue: -DRAWER_WIDTH,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+   Animated.parallel([
+      Animated.timing(translateX, {
+        toValue: -DRAWER_WIDTH,
+        duration: 350,
+        useNativeDriver: true,
+        easing: Easing.inOut(Easing.ease), 
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+        easing: Easing.inOut(Easing.ease), 
+      }),
+    ]).start(()=>{
+        setIsDrawerOpen(false); 
+    });
   };
 
   const navigateTo = (screen) => {
     closeDrawer();
+    if(screen=='Home'){
+      navigation.navigate('MainTabs',{screen :'Home'})
+    }
+    else{
     navigation.navigate(screen);
+    }
   };
 
   const handleLogout = async () => {
@@ -58,13 +86,42 @@ export default function CustomDrawer({ children }) {
   return (
     <DrawerContext.Provider value={{ openDrawer, closeDrawer }}>
       <View style={{ flex: 1 }}>
+
+        {/* Main Content */}
+        <View style={{ flex: 1 }}>
+          {children}
+        </View>
+
+        {isDrawerOpen && (
+          <TouchableOpacity 
+            activeOpacity={1} 
+            onPress={closeDrawer} 
+            style={styles.backdrop} 
+          >
+          <Animated.View style={[
+                styles.backdrop,
+                { opacity: backdropOpacity } // Apply the animated opacity
+              ]} 
+             />
+             </TouchableOpacity>
+        )}
+        
         {/* Animated Drawer Panel */}
         <Animated.View style={[styles.drawer, { transform: [{ translateX }] }]}>
-          <Text style={styles.drawerHeader}>BabyNest</Text>
+          
+          <View style={styles.drawerTopHeader}>
+                <Text style={styles.drawerHeader}>BabyNest</Text>
+                <TouchableOpacity 
+                    onPress={closeDrawer} 
+                    style={styles.closeButton}>
+                    <Icon name="close" size={28} color="#000" /> 
+                </TouchableOpacity>
+            </View>
+
           <TouchableOpacity onPress={() => navigateTo('Home')} style={styles.link}>
             <Text>Home</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigateTo('Tasks')} style={styles.link}>
+          <TouchableOpacity onPress={() => navigateTo('AllTasks')} style={styles.link}>
             <Text>Tasks & AI Recommendations</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigateTo('Weight')} style={styles.link}>
@@ -90,17 +147,21 @@ export default function CustomDrawer({ children }) {
             </TouchableOpacity>
           </View>
         </Animated.View>
-
-        {/* Main Content */}
-        <View style={{ flex: 1 }}>
-          {children}
-        </View>
       </View>
     </DrawerContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    zIndex: 999, 
+  },
   drawer: {
     position: 'absolute',
     left: 0,
@@ -112,6 +173,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     elevation: 5,
     zIndex: 1000,
+  },
+  drawerTopHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  closeButton: {
+    padding: 10, 
+    marginRight: -10, 
   },
   drawerHeader: {
     fontSize: 22,
