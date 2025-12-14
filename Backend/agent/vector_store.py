@@ -37,7 +37,7 @@ def get_file_hash(path):
     with open(path, "rb") as f:
         return hashlib.md5(f.read()).hexdigest()
     
-def update_guildelines_in_vector_store():
+def update_guidelines_in_vector_store():
     """Update the vector store with pregnancy guidelines."""
     try:
         # Load guidelines from JSON file
@@ -70,7 +70,7 @@ def update_guildelines_in_vector_store():
             if count > 0:
                 guidelines_collection.delete(where={"source": {"$ne": "none"}})
         except Exception:
-            pass
+            print(f"Warning: Failed to clear guidelines collection: {e}")
         
         documents, ids, metadatas = [], [], []
 
@@ -107,7 +107,7 @@ def update_user_details_in_vector_store(documents: list = None, ids: list = None
         print("No user detail documents to update.")
         return
     try:
-        user_details_collection.add(
+        user_details_collection.upsert(
             documents=documents,
             metadatas=metadatas,
             ids=ids

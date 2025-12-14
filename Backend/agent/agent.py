@@ -13,7 +13,7 @@ from agent.handlers.weight import handle as handle_weight
 from agent.handlers.symptoms import handle as handle_symptoms
 from agent.handlers.guidelines import handle as handle_guidelines
 
-from agent.vector_store import register_vector_store_updater, update_guildelines_in_vector_store
+from agent.vector_store import register_vector_store_updater, update_guidelines_in_vector_store
 
 dispatch_intent = {
     "appointments": handle_appointments,
@@ -28,7 +28,7 @@ class BabyNestAgent:
         self.context_cache = get_context_cache(db_path)
         
         # Register embedding refresh
-        register_vector_store_updater(update_guildelines_in_vector_store)
+        register_vector_store_updater(update_guidelines_in_vector_store)
     
     def get_user_context(self, user_id: str = "default"):
         """Get user context from cache."""
@@ -79,7 +79,7 @@ class BabyNestAgent:
         """Manually refresh cache and regenerate embeddings after database changes."""
         print("🔄 Manually refreshing cache and regenerating embeddings...")
         self.context_cache.invalidate_cache()
-        update_guildelines_in_vector_store()
+        update_guidelines_in_vector_store()
     
     def get_cache_stats(self):
         """Get cache statistics for monitoring."""

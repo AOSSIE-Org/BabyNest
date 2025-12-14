@@ -1,5 +1,5 @@
 import sqlite3
-from agent.vector_store import update_guildelines_in_vector_store, query_vector_store, update_user_details_in_vector_store
+from agent.vector_store import update_guidelines_in_vector_store, query_vector_store, update_user_details_in_vector_store
 
 def _format_data_for_embedding(db: sqlite3.Connection) -> tuple[list, list, list]:
     """
@@ -80,7 +80,7 @@ def initialize_knowledge_base():
     Call this once when the app starts.
     """
     try:
-        success = update_guildelines_in_vector_store()
+        success = update_guidelines_in_vector_store()
         if success:
             print("Knowledge base initialized successfully")
         else:
