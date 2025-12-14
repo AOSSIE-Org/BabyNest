@@ -93,17 +93,18 @@ export default function CustomDrawer({ children }) {
         </View>
 
         {isDrawerOpen && (
-          <TouchableOpacity 
-            activeOpacity={1} 
-            onPress={closeDrawer} 
-            style={styles.backdrop} 
+          <Animated.View 
+            style={[
+              styles.backdrop,
+              { opacity: backdropOpacity }
+            ]}
           >
-          <Animated.View style={[
-                styles.backdrop,
-                { opacity: backdropOpacity } // Apply the animated opacity
-              ]} 
-             />
-             </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={closeDrawer}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
         )}
         
         {/* Animated Drawer Panel */}
