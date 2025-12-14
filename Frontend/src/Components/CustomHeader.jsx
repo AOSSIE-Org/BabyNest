@@ -12,19 +12,24 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import {useDrawer} from '../context/DrawerContext'
+/**
+ * Renders the app header bar with a themed gradient background, a menu button that opens the navigation drawer, a centered "Home" title, and a profile button that navigates to the Settings screen.
+ *
+ * Uses theme colors for the gradient and text, sets the StatusBar background color, and displays the user's avatar image.
+ * @returns {JSX.Element} The header React element.
+ */
 export default function CustomHeader() {
   const navigation = useNavigation();
   const { theme } = useTheme();
-  const openDrawer = () => {
-    navigation.openDrawer();
-  };
+  const {openDrawer} = useDrawer()
 
   return (
     <>
       <LinearGradient
         colors={[theme.cardBackgroundprimary, theme.cardBackgroundsecondary]}
         style={styles.container}>
-        <StatusBar backgroundColor={theme.background}barStyle={theme.text} />
+        <StatusBar backgroundColor={theme.cardBackgroundprimary}/>
         <View style={styles.header}>
           <TouchableOpacity onPress={openDrawer} style={styles.menuButton}>
             <Icon name="menu" size={24} color={theme.text} />
