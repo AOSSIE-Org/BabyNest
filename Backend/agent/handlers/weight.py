@@ -1,9 +1,13 @@
 from db.db import open_db
 import re
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from agent.llm import extract_structured_data
+try:
+    from ..llm import extract_structured_data
+except ImportError:
+    # Fallback for direct script execution
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from agent.llm import extract_structured_data
 
 def parse_weight_command(query: str, use_llm_first: bool = True):
     """Parse weight logging commands from natural language."""

@@ -1,5 +1,19 @@
-import json
 import re
+
+def _validate_weight_data(data: dict) -> bool:
+    """Validate extracted weight data."""
+    weight = data.get("weight")
+    week = data.get("week")
+    
+    # Validate weight range (reasonable pregnancy weight range)
+    if weight is not None and (weight <= 0 or weight > 300):
+        return False
+    
+    # Validate week range (typical pregnancy is 1-42 weeks)
+    if week is not None and (week < 1 or week > 42):
+        return False
+    
+    return True
 
 def extract_structured_data(query: str, intent: str) -> dict:
     """
@@ -12,24 +26,32 @@ def extract_structured_data(query: str, intent: str) -> dict:
     
     if intent == "weight":
         # Extract weight value
-        weight_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:kg|kilo|kilogram)?', query_lower)
+        weight_match = re.search(r'\b(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kilograms?)?\b', query_lower)
         week_match = re.search(r'(?:week|wk)\s*(\d+)', query_lower)
         
         if weight_match:
-            result["success"] = True
             result["data"]["weight"] = float(weight_match.group(1))
             result["data"]["week"] = int(week_match.group(1)) if week_match else None
             result["data"]["note"] = None
+            
+            # Validate extracted data
+            if not _validate_weight_data(result["data"]):
+                result["success"] = False
+                result["data"] = {}
+                result["confidence"] = 0.0
+                return result
+            
+            result["success"] = True
             result["confidence"] = 0.9 if week_match else 0.7
     
     elif intent == "appointments":
         # Extract appointment components
         # Date patterns
-        date_match = re.search(r'(today|tomorrow|next\s+week|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2})', query_lower)
+        date_match = re.search(r'\b(today|tomorrow|next\s+week|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{2,4})\b', query_lower)
         # Time patterns
-        time_match = re.search(r'(\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening)', query_lower)
+        time_match = re.search(r'\b(\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening)\b', query_lower)
         # Action patterns
-        action_match = re.search(r'(schedule|book|make|create|cancel|reschedule)', query_lower)
+        action_match = re.search(r'\b(schedule|book|make|create|cancel|reschedule)\b', query_lower)
         
         if action_match:
             result["success"] = True

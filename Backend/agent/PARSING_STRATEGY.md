@@ -26,7 +26,8 @@ This document explains the hybrid approach implemented to improve context parsin
 ### Tier 2: Structured LLM Extraction (Primary)
 **File:** `agent/llm.py` - `extract_structured_data()`
 
-- Simulates what a properly prompted small LLM should do
+- **Currently implemented using regex patterns** (placeholder for future LLM integration)
+- Designed to be replaced with actual LLM when Qwen 0.5B prompting is ready
 - Returns structured JSON: `{"success": bool, "data": dict, "confidence": float}`
 - Intent-specific extraction patterns
 - Confidence threshold: 0.6
@@ -43,10 +44,10 @@ extract_structured_data("log 65kg for week 12", "weight")
 ```
 
 **Benefits:**
-- More flexible than pure regex
+- More structured than handler-level regex
 - Intent-aware extraction
 - Confidence-based fallback
-- Easy to replace with actual LLM when ready
+- **Ready to be replaced with actual LLM (Qwen 0.5B) in Phase 2**
 
 ### Tier 3: Regex Fallback (Safety Net)
 **Files:** `agent/handlers/*.py`
@@ -62,7 +63,7 @@ extract_structured_data("log 65kg for week 12", "weight")
 
 ## Implementation Flow
 
-```
+```text
 User Query
     ↓
 [Tier 1] Intent Classification with Confidence
@@ -181,11 +182,13 @@ print(result)
 
 ## Performance Comparison
 
+**Note:** The following are estimated comparisons based on expected behavior and industry standards for similar systems. Actual performance will be validated through production usage.
+
 | Approach | Accuracy | Flexibility | Mobile-Friendly | Maintainability |
-|----------|----------|-------------|-----------------|-----------------|
-| Pure Regex | 70% | ⭐ | ✅ | ⭐⭐ |
-| Qwen 1.5B+ | 85% | ⭐⭐⭐ | ❌ | ⭐⭐⭐ |
-| **Hybrid** | **80%** | **⭐⭐⭐** | **✅** | **⭐⭐⭐** |
+|----------|----------|-------------|-----------------|------------------|
+| Pure Regex | ~70% | ⭐ | ✅ | ⭐⭐ |
+| Qwen 1.5B+ | ~85% | ⭐⭐⭐ | ❌ | ⭐⭐⭐ |
+| **Hybrid** | **~80%** | **⭐⭐⭐** | **✅** | **⭐⭐⭐** |
 
 ## Conclusion
 

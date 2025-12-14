@@ -14,47 +14,53 @@ def classify_intent(query: str) -> tuple[str, float]:
     # Define intent patterns with weighted keywords
     intent_patterns = {
         "appointments": {
-            "strong": ["schedule", "book", "appointment", "reschedule", "cancel appointment"],
-            "medium": ["doctor", "checkup", "visit", "meeting"],
-            "weak": ["when", "date", "time"]
+            "strong": [r"\bschedule\b", r"\bbook\b", r"\bappointment\b", r"\breschedule\b", r"\bcancel appointment\b"],
+            "medium": [r"\bdoctor\b", r"\bcheckup\b", r"\bvisit\b", r"\bmeeting\b"],
+            "weak": []
         },
         "weight": {
-            "strong": ["log weight", "record weight", "my weight", r"\d+\s*kg"],
-            "medium": ["weight", "weigh", "gained", "lost"],
-            "weak": ["heavy", "scale"]
+            "strong": [r"\blog weight\b", r"\brecord weight\b", r"\bmy weight\b", r"\d+\s*kg"],
+            "medium": [r"\bweight\b", r"\bweigh\b", r"\bgained\b", r"\blost\b"],
+            "weak": []
         },
         "symptoms": {
-            "strong": ["symptom", "feeling", "experiencing", "hurts", "pain"],
-            "medium": ["nausea", "tired", "fatigue", "sick", "uncomfortable"],
-            "weak": ["feel", "strange"]
+            "strong": [r"\bsymptom\b", r"\bfeeling\b", r"\bexperiencing\b", r"\bhurts\b", r"\bpain\b"],
+            "medium": [r"\bnausea\b", r"\btired\b", r"\bfatigue\b", r"\bsick\b", r"\buncomfortable\b"],
+            "weak": []
         },
         "guidelines": {
-            "strong": ["guideline", "recommend", "should i", "what tests", "advice"],
-            "medium": ["vaccine", "nutrition", "exercise", "dos and don'ts"],
-            "weak": ["help", "info", "tell me"]
+            "strong": [r"\bguideline\b", r"\brecommend\b", r"\bshould i\b", r"\bwhat tests\b", r"\badvice\b"],
+            "medium": [r"\bvaccine\b", r"\bnutrition\b", r"\bexercise\b", r"\bdos and don'ts\b"],
+            "weak": []
         }
     }
     
     # Calculate confidence scores for each intent
     scores = {}
     for intent, patterns in intent_patterns.items():
-        score = 0.0
+        strong_score = 0.0
+        medium_score = 0.0
+        weak_score = 0.0
         
-        # Strong matches (weight: 1.0)
+        # Strong matches (weight: 1.0) - take max, not sum
         for pattern in patterns["strong"]:
             if re.search(pattern, query):
-                score += 1.0
+                strong_score = 1.0
+                break
         
-        # Medium matches (weight: 0.6)
+        # Medium matches (weight: 0.6) - take max, not sum
         for pattern in patterns["medium"]:
             if re.search(pattern, query):
-                score += 0.6
+                medium_score = 0.6
+                break
         
-        # Weak matches (weight: 0.3)
+        # Weak matches (weight: 0.3) - take max, not sum
         for pattern in patterns["weak"]:
             if re.search(pattern, query):
-                score += 0.3
+                weak_score = 0.3
+                break
         
+        score = strong_score + medium_score + weak_score
         scores[intent] = score
     
     # Get best intent
