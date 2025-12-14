@@ -1,85 +1,111 @@
-import React, { useRef ,useState} from 'react';
-import { Animated, View, Dimensions, StyleSheet, Text, TouchableOpacity, Alert ,Easing } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  Animated,
+  View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  Alert,
+  Easing,
+} from 'react-native';
 import { DrawerContext } from '../context/DrawerContext';
-import { useNavigation,CommonActions } from '@react-navigation/native';
-import {BASE_URL} from '@env';
+import { useNavigation, CommonActions } from '@react-navigation/native';
+import { BASE_URL } from '@env';
 import Icon from 'react-native-vector-icons/Ionicons';
+
 const DRAWER_WIDTH = 260;
 
 export default function CustomDrawer({ children }) {
   const navigation = useNavigation();
+
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const isAnimatingRef = useRef(false);
+
   const openDrawer = () => {
+    if (isAnimatingRef.current || isDrawerOpen) return;
+
+    isAnimatingRef.current = true;
     setIsDrawerOpen(true);
+
     Animated.parallel([
-    Animated.timing(translateX, {
-      toValue: 0,
-      duration: 350,
-      useNativeDriver: true,
-      easing: Easing.inOut(Easing.ease),
-    })
-    ,
-    Animated.timing(backdropOpacity, {
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 350,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
         toValue: 1,
         duration: 350,
         useNativeDriver: true,
-        easing: Easing.inOut(Easing.ease),
-      }),])
-      .start();
+      }),
+    ]).start(() => {
+      isAnimatingRef.current = false;
+    });
   };
 
-  const closeDrawer = () => {
-   Animated.parallel([
+  const closeDrawer = (cb) => {
+    if (isAnimatingRef.current) return;
+
+    isAnimatingRef.current = true;
+
+    Animated.parallel([
       Animated.timing(translateX, {
         toValue: -DRAWER_WIDTH,
         duration: 350,
+        easing: Easing.inOut(Easing.ease),
         useNativeDriver: true,
-        easing: Easing.inOut(Easing.ease), 
       }),
       Animated.timing(backdropOpacity, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
-        easing: Easing.inOut(Easing.ease), 
       }),
-    ]).start(()=>{
-        setIsDrawerOpen(false); 
+    ]).start(({ finished }) => {
+      isAnimatingRef.current = false;
+      if (!finished) return;
+
+      setIsDrawerOpen(false);
+      cb?.();
     });
   };
 
   const navigateTo = (screen) => {
-    closeDrawer();
-    if(screen=='Home'){
-      navigation.navigate('MainTabs',{screen :'Home'})
-    }
-    else{
-    navigation.navigate(screen);
-    }
+    closeDrawer(() => {
+      if (screen === 'Home') {
+        navigation.navigate('MainTabs', { screen: 'Home' });
+      } else {
+        navigation.navigate(screen);
+      }
+    });
   };
 
   const handleLogout = async () => {
+    if (isAnimatingRef.current) return;
+
     try {
       const res = await fetch(`${BASE_URL}/delete_profile`, {
         method: 'DELETE',
       });
-
       const data = await res.json();
 
-      if (!data.error) {
-        closeDrawer();
-        navigation.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: 'Onboarding' }],
-            })
-          );
-      } else {
-        Alert.alert("Logout Failed", data.error || "Something went wrong.");
+      if (data?.error) {
+        Alert.alert('Logout Failed', data.error);
+        return;
       }
-    } catch (error) {
-      Alert.alert("Logout Error", "Unable to logout. Please try again.");
+
+      closeDrawer(() => {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Onboarding' }],
+          })
+        );
+      });
+    } catch {
+      Alert.alert('Logout Error', 'Unable to logout. Please try again.');
     }
   };
 
@@ -87,11 +113,12 @@ export default function CustomDrawer({ children }) {
     <DrawerContext.Provider value={{ openDrawer, closeDrawer }}>
       <View style={{ flex: 1 }}>
 
-        {/* Main Content */}
+          {/* Main Content */}
         <View style={{ flex: 1 }}>
           {children}
-        </View>
-
+          </View>
+          
+          {/*BackDrop*/}
         {isDrawerOpen && (
           <Animated.View 
             style={[
@@ -106,20 +133,18 @@ export default function CustomDrawer({ children }) {
             />
           </Animated.View>
         )}
-        
-        {/* Animated Drawer Panel */}
+
+          {/* Animated Drawer Panel */}
         <Animated.View style={[styles.drawer, { transform: [{ translateX }] }]}>
           
           <View style={styles.drawerTopHeader}>
-                <Text style={styles.drawerHeader}>BabyNest</Text>
-                <TouchableOpacity 
-                    onPress={closeDrawer} 
-                    style={styles.closeButton}>
-                    <Icon name="close" size={28} color="#000" /> 
-                </TouchableOpacity>
-            </View>
+            <Text style={styles.drawerHeader}>BabyNest</Text>
+            <TouchableOpacity onPress={() => closeDrawer()}>
+              <Icon name="close" size={28} color="#000" />
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity onPress={() => navigateTo('Home')} style={styles.link}>
+           <TouchableOpacity onPress={() => navigateTo('Home')} style={styles.link}>
             <Text>Home</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigateTo('AllTasks')} style={styles.link}>
@@ -140,7 +165,6 @@ export default function CustomDrawer({ children }) {
           <TouchableOpacity onPress={() => navigateTo('Discharge')} style={styles.link}>
             <Text>Discharge Tracking</Text>
           </TouchableOpacity>
-          
 
           <View style={styles.logoutContainer}>
             <TouchableOpacity onPress={handleLogout}>
@@ -155,13 +179,9 @@ export default function CustomDrawer({ children }) {
 
 const styles = StyleSheet.create({
   backdrop: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    zIndex: 999, 
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    zIndex: 999,
   },
   drawer: {
     position: 'absolute',
@@ -175,26 +195,24 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 1000,
   },
+
   drawerTopHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 20,
   },
-  closeButton: {
-    padding: 10, 
-    marginRight: -10, 
-  },
+
   drawerHeader: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: 'rgb(218,79,122)',
+  fontSize: 22,
+  fontWeight: 'bold',
+  color: 'rgb(218,79,122)',
   },
+
   link: {
     paddingVertical: 12,
   },
   logoutContainer: {
-    
     marginBottom: 30,
   },
   logoutText: {
