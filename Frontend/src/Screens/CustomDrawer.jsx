@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Animated, View, Dimensions, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
 import { DrawerContext } from '../context/DrawerContext';
 import { useNavigation,CommonActions } from '@react-navigation/native';
@@ -10,8 +10,10 @@ export default function CustomDrawer({ children }) {
   const navigation = useNavigation();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const openDrawer = () => {
+    setIsDrawerOpen(true);
     Animated.parallel([
       Animated.timing(translateX, {
         toValue: 0,
@@ -38,7 +40,7 @@ export default function CustomDrawer({ children }) {
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]).start(() => setIsDrawerOpen(false));
   };
 
   const navigateTo = (screen) => {
@@ -82,15 +84,9 @@ export default function CustomDrawer({ children }) {
         <Animated.View
           style={[
             styles.overlay,
-            {
-              opacity: overlayOpacity,
-              pointerEvents: overlayOpacity.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['none', 'auto'],
-              }),
-            },
+            { opacity: overlayOpacity },
           ]}
-          pointerEvents={overlayOpacity._value > 0 ? 'auto' : 'none'}
+          pointerEvents={isDrawerOpen ? 'auto' : 'none'}
         >
           <TouchableOpacity
             style={styles.overlayTouchable}
