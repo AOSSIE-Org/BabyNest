@@ -37,8 +37,10 @@ export default function WeightScreen() {
  
 
   const formatLocalDate = (utcDateString) => {
+    if (!utcDateString) return '';
     const dateStringWithZ = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
     const date = new Date(dateStringWithZ);
+    if (isNaN(date.getTime())) return 'Invalid date';
    return date.toLocaleString(undefined, {
       year: 'numeric',
       month: '2-digit',
