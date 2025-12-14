@@ -76,11 +76,11 @@ def update_guidelines_in_vector_store():
 
         # Add guidelines to vector store
         for i, guideline in enumerate(guidelines):
-            content = f"Week {guideline.get('week_range', 'Unknown')}: {guideline.get('title', '')}"
+            content = f"Week Range {guideline.get('week_range', 'Unknown')}: {guideline.get('title', '')}"
             metadata = {
-                "week": guideline.get('week_range', 'Unknown'),
+                "week_range": guideline.get('week_range', 'Unknown'),
                 "priority": guideline.get('priority', 'general'),
-                "source": ", ".join(guideline.get('organization', ['government_guidelines'])),
+                "organization": ", ".join(guideline.get('organization', ['government_guidelines'])),
                 "purpose" : guideline.get('purpose', 'general')
             }
 
