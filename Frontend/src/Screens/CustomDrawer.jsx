@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Animated, View, Dimensions, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
 import { DrawerContext } from '../context/DrawerContext';
 import { useNavigation,CommonActions } from '@react-navigation/native';
@@ -9,21 +9,38 @@ const DRAWER_WIDTH = 260;
 export default function CustomDrawer({ children }) {
   const navigation = useNavigation();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const openDrawer = () => {
-    Animated.timing(translateX, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    setIsDrawerOpen(true);
+    Animated.parallel([
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(overlayOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const closeDrawer = () => {
-    Animated.timing(translateX, {
-      toValue: -DRAWER_WIDTH,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(translateX, {
+        toValue: -DRAWER_WIDTH,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setIsDrawerOpen(false));
   };
 
   const navigateTo = (screen) => {
@@ -58,6 +75,26 @@ export default function CustomDrawer({ children }) {
   return (
     <DrawerContext.Provider value={{ openDrawer, closeDrawer }}>
       <View style={{ flex: 1 }}>
+        {/* Main Content */}
+        <View style={{ flex: 1 }}>
+          {children}
+        </View>
+
+        {/* Overlay/Backdrop */}
+        <Animated.View
+          style={[
+            styles.overlay,
+            { opacity: overlayOpacity },
+          ]}
+          pointerEvents={isDrawerOpen ? 'auto' : 'none'}
+        >
+          <TouchableOpacity
+            style={styles.overlayTouchable}
+            activeOpacity={1}
+            onPress={closeDrawer}
+          />
+        </Animated.View>
+
         {/* Animated Drawer Panel */}
         <Animated.View style={[styles.drawer, { transform: [{ translateX }] }]}>
           <Text style={styles.drawerHeader}>BabyNest</Text>
@@ -90,17 +127,24 @@ export default function CustomDrawer({ children }) {
             </TouchableOpacity>
           </View>
         </Animated.View>
-
-        {/* Main Content */}
-        <View style={{ flex: 1 }}>
-          {children}
-        </View>
       </View>
     </DrawerContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999,
+  },
+  overlayTouchable: {
+    flex: 1,
+  },
   drawer: {
     position: 'absolute',
     left: 0,
@@ -112,6 +156,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     elevation: 5,
     zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   drawerHeader: {
     fontSize: 22,
