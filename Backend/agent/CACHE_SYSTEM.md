@@ -40,7 +40,7 @@ def refresh_cache_and_embeddings(self):
     """Manually refresh cache and regenerate embeddings after database changes."""
     print("🔄 Manually refreshing cache and regenerating embeddings...")
     self.context_cache.invalidate_cache()
-    update_vector_store()
+    update_guildelines_in_vector_store()
 ```
 
 ### 4. Context Rebuilding

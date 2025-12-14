@@ -8,8 +8,16 @@ os.makedirs("db/chromadb", exist_ok=True)
 client = chromadb.PersistentClient(path="db/chromadb")
 
 # Use default embedding function instead of sentence transformers
-collection = client.get_or_create_collection(
+
+# Collection for pregnancy guidelines embeddings
+guidelines_collection = client.get_or_create_collection(
     "pregnancy_guidelines",
+    embedding_function=embedding_functions.DefaultEmbeddingFunction()
+)
+
+# Separate collection for user details embeddings
+user_details_collection = client.get_or_create_collection(
+    "user_details",
     embedding_function=embedding_functions.DefaultEmbeddingFunction()
 )
 
@@ -29,7 +37,7 @@ def get_file_hash(path):
     with open(path, "rb") as f:
         return hashlib.md5(f.read()).hexdigest()
     
-def update_vector_store():
+def update_guildelines_in_vector_store():
     """Update the vector store with pregnancy guidelines."""
     try:
         # Load guidelines from JSON file
@@ -58,26 +66,33 @@ def update_vector_store():
         
         # Clear existing data (only if collection has data)
         try:
-            count = collection.count()
+            count = guidelines_collection.count()
             if count > 0:
-                collection.delete(where={"source": {"$ne": "none"}})
+                guidelines_collection.delete(where={"source": {"$ne": "none"}})
         except Exception:
             pass
         
+        documents, ids, metadatas = [], [], []
+
         # Add guidelines to vector store
         for i, guideline in enumerate(guidelines):
-            content = f"Week {guideline.get('week', 'Unknown')}: {guideline.get('content', '')}"
+            content = f"Week {guideline.get('week_range', 'Unknown')}: {guideline.get('title', '')}"
             metadata = {
-                "week": guideline.get('week', 'Unknown'),
-                "category": guideline.get('category', 'general'),
-                "source": guideline.get('source', 'government_guidelines')
+                "week": guideline.get('week_range', 'Unknown'),
+                "priority": guideline.get('priority', 'general'),
+                "source": ", ".join(guideline.get('organization', ['government_guidelines'])),
+                "purpose" : guideline.get('purpose', 'general')
             }
+
+            documents.append(content)
+            ids.append(f"guideline_{i}")
+            metadatas.append(metadata)
             
-            collection.add(
-                documents=[content],
-                metadatas=[metadata],
-                ids=[f"guideline_{i}"]
-            )
+        guidelines_collection.add(
+            documents=documents,
+            metadatas=metadatas,
+            ids=ids
+        )
         
         print(f"Vector store updated with {len(guidelines)} guidelines")
         return True
@@ -85,11 +100,26 @@ def update_vector_store():
     except Exception as e:
         print(f"Error updating vector store: {e}")
         return False
+    
+def update_user_details_in_vector_store(documents: list = None, ids: list = None, metadatas: list = None):
+    """Update user details in the vector store."""
+    if not documents or not ids or not metadatas:
+        print("No user detail documents to update.")
+        return
+    try:
+        user_details_collection.add(
+            documents=documents,
+            metadatas=metadatas,
+            ids=ids
+        )
+        print(f"Vector store updated with {len(documents)} user detail documents")
+    except Exception as e:
+        print(f"Error updating user details in vector store: {e}")
 
 def query_vector_store(query: str, n_results: int = 3):
     """Query the vector store for relevant guidelines."""
     try:
-        results = collection.query(
+        results = guidelines_collection.query(
             query_texts=[query],
             n_results=n_results
         )
