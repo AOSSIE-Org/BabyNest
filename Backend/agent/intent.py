@@ -19,7 +19,7 @@ def classify_intent(query: str) -> tuple[str, float]:
             "weak": []
         },
         "weight": {
-            "strong": [r"\blog weight\b", r"\brecord weight\b", r"\bmy weight\b", r"\d+\s*kg"],
+            "strong": [r"\blog +weight\b", r"\brecord +weight\b", r"\bmy +weight\b", r"\d+(?:\.\d+)?\s*kg"],
             "medium": [r"\bweight\b", r"\bweigh\b", r"\bgained\b", r"\blost\b"],
             "weak": []
         },
@@ -29,8 +29,8 @@ def classify_intent(query: str) -> tuple[str, float]:
             "weak": []
         },
         "guidelines": {
-            "strong": [r"\bguideline\b", r"\brecommend\b", r"\bshould i\b", r"\bwhat tests\b", r"\badvice\b"],
-            "medium": [r"\bvaccine\b", r"\bnutrition\b", r"\bexercise\b", r"\bdos and don'ts\b"],
+            "strong": [r"\bguideline\b", r"\brecommend\b", r"\bshould +i\b", r"\bwhat +tests\b", r"\badvice\b"],
+            "medium": [r"\bvaccine\b", r"\bnutrition\b", r"\bexercise\b", r"\bdos +and +don'ts\b"],
             "weak": []
         }
     }

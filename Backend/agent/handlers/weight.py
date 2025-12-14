@@ -1,5 +1,6 @@
 from db.db import open_db
 import re
+import logging
 try:
     from ..llm import extract_structured_data
 except ImportError:
@@ -9,15 +10,21 @@ except ImportError:
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from agent.llm import extract_structured_data
 
+logger = logging.getLogger(__name__)
+
 def parse_weight_command(query: str, use_llm_first: bool = True):
     """Parse weight logging commands from natural language."""
     query_lower = query.lower()
     
     # Try structured extraction first (simulates LLM)
     if use_llm_first:
-        llm_result = extract_structured_data(query, "weight")
-        if llm_result["success"] and llm_result["confidence"] >= 0.6:
-            return llm_result["data"]
+        try:
+            llm_result = extract_structured_data(query, "weight")
+            if llm_result.get("success") and llm_result.get("confidence", 0) >= 0.6:
+                return llm_result.get("data", {})
+        except Exception as e:
+            # Fall back to regex on any error
+            logger.debug(f"LLM extraction failed: {e}, falling back to regex")
     
     # Fallback to regex parsing
     # Extract weight value
@@ -56,6 +63,7 @@ def parse_weight_command(query: str, use_llm_first: bool = True):
 def create_weight_entry(weight_data, user_context):
     """Create a new weight entry in the database."""
     db = open_db()
+    user_context = user_context or {}
     
     try:
         # Use current week if not specified
@@ -72,6 +80,7 @@ def create_weight_entry(weight_data, user_context):
         return False
 
 def handle(query: str, user_context=None):
+    user_context = user_context or {}
     if not query or not isinstance(query, str):
         return "Invalid query. Please provide a valid string."
     

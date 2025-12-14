@@ -25,8 +25,11 @@ def extract_structured_data(query: str, intent: str) -> dict:
     query_lower = query.lower()
     
     if intent == "weight":
-        # Extract weight value
-        weight_match = re.search(r'\b(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kilograms?)?\b', query_lower)
+        # Extract weight value - require explicit unit OR "weight" keyword near the number
+        weight_match = re.search(
+            r'(?:\bweight\b[^0-9]{0,10})?\b(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kilograms?)\b',
+            query_lower
+        )
         week_match = re.search(r'(?:week|wk)\s*(\d+)', query_lower)
         
         if weight_match:
