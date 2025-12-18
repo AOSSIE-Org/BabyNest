@@ -33,7 +33,8 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at [INSERT CONTACT METHOD]. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported
+to the project maintainers via GitHub issues or by contacting the AOSSIE organization maintainers. All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 
@@ -71,4 +72,8 @@ This Code of Conduct is adapted from the Contributor Covenant, version 2.1, avai
 
 Community Impact Guidelines were inspired by Mozilla’s code of conduct enforcement ladder.
 
-For answers to common questions about this code of conduct, see the FAQ at https://www.contributor-covenant.org/faq. Translations are available at https://www.contributor-covenant.org/translations.
+For answers to common questions about this code of conduct, see the
+[Contributor Covenant FAQ](https://www.contributor-covenant.org/faq).
+Translations are available at
+[Contributor Covenant Translations](https://www.contributor-covenant.org/translations).
+
