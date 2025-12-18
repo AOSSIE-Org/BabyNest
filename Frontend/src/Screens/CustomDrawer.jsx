@@ -64,7 +64,7 @@ export default function CustomDrawer({ children }) {
           <TouchableOpacity onPress={() => navigateTo('Home')} style={styles.link}>
             <Text>Home</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigateTo('Tasks')} style={styles.link}>
+          <TouchableOpacity onPress={() => navigateTo('AllTasks')} style={styles.link}>
             <Text>Tasks & AI Recommendations</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigateTo('Weight')} style={styles.link}>
