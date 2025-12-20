@@ -7,7 +7,7 @@ def parse_symptom_command(query: str):
     
     # Extract symptom description
     symptom_patterns = [
-        r'(?:log|record|add|symptom|symptoms?)\s+(.+?)(?:\s+for\s+week\s+(\d+))?(?:\s+note\s+(.+))?$',
+        r'(?:log|record|add|symptom|symptoms?|suffering|from|had|have|felt|feel|feeling)\s+(.+?)(?:\s+for\s+week\s+(\d+)|\s+since\s+|\s+on\s+|\s+for\s+)?(?:\s+note\s+(.+))?$',
         r'(?:symptom|symptoms?)\s+(.+?)(?:\s+week\s+(\d+))?(?:\s+note\s+(.+))?$',
     ]
     
