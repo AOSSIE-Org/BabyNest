@@ -7,7 +7,7 @@ def parse_weight_command(query: str):
     
     # Extract weight value
     weight_patterns = [
-        r'(?:log|record|add|my\s+weight\s+as?|weight\s+is?)\s*(\d+(?:\.\d+)?)\s*(?:kg|kilos?)?',
+        r'(?:log|record|add|my\s+weight\s+as|weight\s+is|weight\s+)\s*(\d+(?:\.\d+)?)\s*(?:kg|kilos|kgs|lb|lbs|pound|pounds)?',
         r'(\d+(?:\.\d+)?)\s*(?:kg|kilos?)(?:\s+for\s+week\s+(\d+))?',
     ]
     
@@ -29,7 +29,7 @@ def parse_weight_command(query: str):
             week = int(week_match.group(1))
     
     # Extract note
-    note_match = re.search(r'(?:note|comment)\s+(.+)', query_lower)
+    note_match = re.search(r'\b(?:note|comment|felt|feel|feeling)\b\s+(.+)', query_lower)
     note = note_match.group(1).strip() if note_match else None
     
     return {
