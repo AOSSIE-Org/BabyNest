@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Platform,
   SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -22,7 +23,7 @@ const ProfileField = ({ label, value }) => (
   </View>
 );
 
-export default function SettingsScreen() {
+export default function ProfileScreen() {
   const navigation = useNavigation();
   const [profileData, setProfileData] = useState({
     name: 'Guest',
@@ -60,6 +61,8 @@ export default function SettingsScreen() {
     setRefreshing(true);
     fetchProfileData();
   };
+  
+ 
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -74,14 +77,22 @@ export default function SettingsScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-      <ScrollView
+   {loading
+    ?
+      (<View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="rgb(218,79,122)" />
+      </View>):
+  
+       (<ScrollView
         style={styles.content}
+        contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={["rgb(218,79,122)"]}
+            tintColor="rgb(218,79,122)"  // iOS
           />
         }
       >
@@ -96,7 +107,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           <Text style={styles.userName}>
-            {loading ? 'Loading...' : profileData.name}
+            {profileData.name}
           </Text>
         </View>
 
@@ -116,12 +127,18 @@ export default function SettingsScreen() {
         <View style={styles.footer}>
           <Text style={styles.footerText}>BabyNest v1.0.0</Text>
         </View>
-      </ScrollView>
+      </ScrollView>)}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+ centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#ffffff',
@@ -192,7 +209,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#rgb(218,79,122)',
+    color: 'rgb(218,79,122)',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 10,
@@ -211,12 +228,12 @@ const styles = StyleSheet.create({
   },
   fieldValue: {
     fontSize: 16,
-    color: '#rgb(218,79,122)',
+    color: 'rgb(218,79,122)',
     fontWeight: 'bold',
   },
   actionButton: {
     marginTop: 30,
-    backgroundColor: '#rgb(218,79,122)',
+    backgroundColor: 'rgb(218,79,122)',
     padding: 18,
     borderRadius: 15,
     alignItems: 'center',
