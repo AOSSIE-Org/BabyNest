@@ -1,9 +1,9 @@
-from db.db import open_db,close_db,first_time_setup
+from db.db import open_db, close_db, first_time_setup
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from routes.appointments import appointments_bp
-from routes.tasks import tasks_bp
+from routes.appointments import appointments_bp, get_appointments
+from routes.tasks import tasks_bp, get_tasks
 from routes.profile import profile_bp
 from routes.medicine import medicine_bp
 from routes.symptoms import symptoms_bp
@@ -15,6 +15,7 @@ from agent.agent import get_agent
 app = Flask(__name__)
 CORS(app)
 
+# Register blueprints
 app.register_blueprint(appointments_bp)
 app.register_blueprint(tasks_bp)
 app.register_blueprint(profile_bp)
@@ -24,18 +25,32 @@ app.register_blueprint(weight_bp)
 app.register_blueprint(bp_bp)
 app.register_blueprint(discharge_bp)
 
+# Database teardown
 @app.teardown_appcontext
 def teardown_db(exception):
     close_db(exception)
 
-# Initialize agent with database path
+# Initialize database and agent
 db_path = os.path.join(os.path.dirname(__file__), "db", "database.db")
-first_time_setup() # This needs to be called before initializing the agent
+first_time_setup()  # Must be called before initializing the agent
 
-agent = get_agent(db_path)
+AGENT_INITIALIZED = False
+
+if not os.getenv("SKIP_AGENT_INIT"):
+    agent = get_agent(db_path)
+    AGENT_INITIALIZED = True
+else:
+    agent = None
+
+# -----------------------
+# Agent routes
+# -----------------------
 
 @app.route("/agent", methods=["POST"])
 def run_agent():
+    if not AGENT_INITIALIZED:
+        return jsonify({"error": "Agent not initialized"}), 500
+
     if not request.is_json:
         return jsonify({"error": "Invalid JSON format"}), 400
     
@@ -55,14 +70,13 @@ def run_agent():
         return jsonify({"error": str(e)}), 500
 
 
-
 @app.route("/agent/cache/status", methods=["GET"])
 def get_cache_status():
-    """Get cache status information."""
+    if not AGENT_INITIALIZED:
+        return jsonify({"error": "Agent not initialized"}), 500
     try:
         user_id = request.args.get("user_id", "default")
         user_context = agent.get_user_context(user_id)
-        
         return jsonify({
             "cache_system": "event_driven",
             "cache_status": "active",
@@ -80,16 +94,16 @@ def get_cache_status():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/agent/context", methods=["GET"])
 def get_agent_context():
-    """Get the current agent context for frontend use."""
+    if not AGENT_INITIALIZED:
+        return jsonify({"error": "Agent not initialized"}), 500
     try:
         user_id = request.args.get("user_id", "default")
         context = agent.get_user_context(user_id)
-        
         if not context:
             return jsonify({"error": "No context available"}), 404
-            
         return jsonify({
             "context": context,
             "timestamp": context.get('timestamp'),
@@ -106,25 +120,21 @@ def get_agent_context():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/agent/tasks/recommendations", methods=["GET"])
 def get_task_recommendations():
-    """Get LLM-powered task recommendations based on current context."""
+    if not AGENT_INITIALIZED:
+        return jsonify({"error": "Agent not initialized"}), 500
     try:
         user_id = request.args.get("user_id", "default")
         week = request.args.get("week")
-        
-        # Get user context
         context = agent.get_user_context(user_id)
         if not context:
             return jsonify({"error": "No user context available"}), 404
         
-        # Build query for task recommendations
         current_week = week or context.get('current_week', 1)
         query = f"What are the most important tasks and recommendations for week {current_week} of pregnancy? Consider the user's current health data and provide personalized recommendations."
-        
-        # Get LLM response
         response = agent.run(query, user_id)
-        
         return jsonify({
             "recommendations": response,
             "current_week": current_week,
@@ -137,9 +147,11 @@ def get_task_recommendations():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/agent/cache/stats", methods=["GET"])
 def get_cache_statistics():
-    """Get detailed cache statistics for monitoring."""
+    if not AGENT_INITIALIZED:
+        return jsonify({"error": "Agent not initialized"}), 500
     try:
         stats = agent.get_cache_stats()
         return jsonify({
@@ -160,9 +172,11 @@ def get_cache_statistics():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/agent/cache/cleanup", methods=["POST"])
 def cleanup_cache():
-    """Manually trigger cache cleanup."""
+    if not AGENT_INITIALIZED:
+        return jsonify({"error": "Agent not initialized"}), 500
     try:
         agent.cleanup_cache()
         stats = agent.get_cache_stats()
@@ -174,15 +188,23 @@ def cleanup_cache():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/')
 def index():
-    from routes.appointments import get_appointments
-    from routes.tasks import get_tasks
-    appointment_db =  get_appointments()
+    appointment_db = get_appointments()
     task_db = get_tasks()
     return appointment_db
 
+
+@app.route("/health", methods=["GET"])
+def health():
+    return {"status": "ok", "agent_initialized": AGENT_INITIALIZED}
+
+
+# Run server
 if __name__ == '__main__':
-   app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
+
 
    
