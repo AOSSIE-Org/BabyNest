@@ -1,5 +1,9 @@
 # BabyNest
 
+
+![BabyNest](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3dTE4b2QxOWh6MTltajN1Z2NieWw3YnVtbHBpeHE4eDBrdTNzc3phOCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/feT68Q3Z0oDhDCNUok/giphy.gif)
+
+
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -14,12 +18,20 @@
 
 **BabyNest** is a minimalist React Native application designed to support expecting parents by tracking prenatal medical appointments, providing country-specific healthcare requirement notifications, and delivering AI-powered personalized recommendations. This intelligent pregnancy planner ensures parents stay informed, organized, and stress-free throughout their journey.
 
+
+![BabyNest](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMXFiMTJpaDFnZGFpdW1tcDR3anNrYnVyNTkwd3N0YnRqcm5iYm1vbCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/E6sbaMwC7PL7uUGMDE/giphy.gif)
+
+
 ## Features
 
 - **Automated Trimester Tracking**: Keeps track of medical appointments based on the pregnancy timeline.
 - **Country-Specific Notifications**: Alerts users about healthcare requirements specific to their region.
 - **Offline Access**: Provides essential pregnancy care guidelines without requiring internet access.
 - **AI-Powered Assistant**: Offers personalized recommendations, reminders, and scheduling assistance.
+
+
+![BabyNest](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3cTY3Mm0yc2JkcXZwcmU1djk0Mnk3NHJzeGMzZmE0ZXczZnFrMDRibyZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/BBBMPYc8U5XJl28wwu/giphy.gif)
+
 
 ## Tech Stack
 
@@ -35,6 +47,10 @@
 - Get notified of upcoming medical appointments and tasks.
 - Access offline pregnancy care guidelines.
 - Interact with the AI assistant for advice and recommendations.
+
+
+![BabyNest](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3cTY3Mm0yc2JkcXZwcmU1djk0Mnk3NHJzeGMzZmE0ZXczZnFrMDRibyZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/Svo3nI4UEBDoeQqZud/giphy.gif)
+
 
 ## Components
 
@@ -98,3 +114,4 @@ graph TD;
 
 For any inquiries or support, please reach out to us on [Discord](#).
 
+⬆️ **[Back to Top](#babynest)**
