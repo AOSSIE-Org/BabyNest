@@ -121,7 +121,7 @@ export default function HomeScreen({navigation}) {
             <Icon name="menu" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.appName}>BabyNest</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
             <Image
               source={require('../assets/Avatar.jpeg')}
               style={styles.profileImage}
