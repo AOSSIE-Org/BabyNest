@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agent.context import get_relevant_context_from_vector_store
@@ -15,6 +16,8 @@ from agent.handlers.guidelines import handle as handle_guidelines
 
 from agent.vector_store import register_vector_store_updater, update_guidelines_in_vector_store
 
+logger = logging.getLogger(__name__)
+
 dispatch_intent = {
     "appointments": handle_appointments,
     "weight": handle_weight,
@@ -23,6 +26,9 @@ dispatch_intent = {
 }
 
 class BabyNestAgent:
+    # Minimum confidence threshold for specialized handler dispatch
+    CONFIDENCE_THRESHOLD = 0.5
+    
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.context_cache = get_context_cache(db_path)
@@ -45,8 +51,12 @@ class BabyNestAgent:
                 return "User profile not found. Please complete your profile setup first."
             
             # Step 2: Classify intent to see if a specialized handler should be used.
-            intent = classify_intent(query)
-            if intent in dispatch_intent:
+            intent, confidence = classify_intent(query)
+            
+            # Log confidence for debugging
+            logger.debug(f"Intent: {intent}, Confidence: {confidence:.2f}")
+            
+            if intent in dispatch_intent and confidence >= self.CONFIDENCE_THRESHOLD:
                 # Pass user context to handlers
                 return dispatch_intent[intent](query, user_context)
             
