@@ -1,5 +1,4 @@
- // src/components/ProfileScreen.js
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -8,44 +7,47 @@ import {
   ScrollView,
   Image,
   Alert,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
-import { useTheme } from '../theme/ThemeContext';
-import { Modal, Portal, Button, Provider } from 'react-native-paper'; // Import from paper
+import {useTheme} from '../theme/ThemeContext';
+import {Modal, Portal, Button, Provider} from 'react-native-paper'; // Import from paper
 import CustomHeader from '../Components/CustomHeader';
-import { BASE_URL } from '@env';
+import {BASE_URL} from '@env';
 
-const IconButton = ({ icon, label }) => {
-  const { theme } = useTheme();
+const IconButton = ({icon, label}) => {
+  const {theme} = useTheme();
 
   return (
-    <View style={[styles.iconContainer, { backgroundColor: theme.iconBackground }]}>
-      <View style={[styles.iconCircle, { backgroundColor: theme.primary }]}>
+    <View
+      style={[styles.iconContainer, {backgroundColor: theme.iconBackground}]}>
+      <View style={[styles.iconCircle, {backgroundColor: theme.primary}]}>
         <Text style={styles.iconText}>{icon}</Text>
       </View>
-      <Text style={[styles.iconLabel, { color: theme.iconText || theme.text}]}>{label}</Text>
+      <Text style={[styles.iconLabel, {color: theme.iconText || theme.text}]}>
+        {label}
+      </Text>
     </View>
   );
 };
 
-const ProfileField = ({ label, value }) => {
-  const { theme } = useTheme();
+const ProfileField = ({label, value}) => {
+  const {theme} = useTheme();
 
   return (
     <View style={styles.fieldContainer}>
-      <Text style={[styles.fieldLabel, { color: theme.text }]}>{label}</Text>
-      <Text style={[styles.fieldValue, { color: theme.text }]}>{value}</Text>
+      <Text style={[styles.fieldLabel, {color: theme.text}]}>{label}</Text>
+      <Text style={[styles.fieldValue, {color: theme.text}]}>{value}</Text>
     </View>
   );
 };
 
 export default function SettingsScreen() {
-  const { theme, updateTheme } = useTheme();
+  const {theme, updateTheme} = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [profileData, setProfileData] = useState({
     name: 'Guest',
     due_date: 'Not set',
-    location: 'Not set'
+    location: 'Not set',
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,7 +65,7 @@ export default function SettingsScreen() {
         setProfileData({
           name: data.name || 'Guest',
           due_date: data.due_date || 'Not set',
-          location: data.location || 'Not set'
+          location: data.location || 'Not set',
         });
       } else {
         // If profile not found, keep default values
@@ -88,16 +90,16 @@ export default function SettingsScreen() {
       'Edit Profile',
       'This will open the profile editing screen. For now, you can refresh to see updated data.',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Refresh', onPress: onRefresh }
-      ]
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Refresh', onPress: onRefresh},
+      ],
     );
   };
 
   return (
     <Provider>
-      <ScrollView 
-        style={[styles.container, { backgroundColor: theme.background }]}
+      <ScrollView
+        style={[styles.container, {backgroundColor: theme.background}]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -106,8 +108,7 @@ export default function SettingsScreen() {
             colors={[theme.primary]}
             tintColor={theme.primary}
           />
-        }
-      >
+        }>
         <CustomHeader />
 
         <View style={styles.header}>
@@ -115,7 +116,7 @@ export default function SettingsScreen() {
             source={require('../assets/Avatar.jpeg')}
             style={styles.profileImage}
           />
-          <Text style={[styles.name, { color: theme.text }]}>
+          <Text style={[styles.name, {color: theme.text}]}>
             {loading ? 'Loading...' : profileData.name}
           </Text>
         </View>
@@ -124,64 +125,87 @@ export default function SettingsScreen() {
           <IconButton icon="🔔" label="Notification" />
         </View>
 
-        <TouchableOpacity style={[styles.openButton,{backgroundColor:theme.button}]} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity
+          style={[styles.openButton, {backgroundColor: theme.button}]}
+          onPress={() => setModalVisible(true)}>
           <Text style={styles.openButtonText}>Change Theme</Text>
         </TouchableOpacity>
 
         {/* Theme Selection Modal */}
         <Portal>
-          <Modal 
-            visible={modalVisible} 
-            onDismiss={() => setModalVisible(false)} 
-            contentContainerStyle={[styles.modalContent, { backgroundColor: theme.factcardprimary }]}
-          >
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Select a Theme</Text>
+          <Modal
+            visible={modalVisible}
+            onDismiss={() => setModalVisible(false)}
+            contentContainerStyle={[
+              styles.modalContent,
+              {backgroundColor: theme.factcardprimary},
+            ]}>
+            <Text style={[styles.modalTitle, {color: theme.text}]}>
+              Select a Theme
+            </Text>
 
             {/* Theme Selection Buttons */}
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: 'rgb(255, 148, 182)' }]}
-              onPress={() => { updateTheme('light'); setModalVisible(false); }}
-            >
+              style={[styles.button, {backgroundColor: 'rgb(255, 148, 182)'}]}
+              onPress={() => {
+                updateTheme('light');
+                setModalVisible(false);
+              }}>
               <Text style={styles.buttonText}>Light Theme</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor:'#fff3b0', }]}
-              onPress={() => { updateTheme('dark'); setModalVisible(false); }}
-            >
+              style={[styles.button, {backgroundColor: '#fff3b0'}]}
+              onPress={() => {
+                updateTheme('dark');
+                setModalVisible(false);
+              }}>
               <Text style={styles.buttonText}>Dark Theme</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#AC87C5'}]}
-              onPress={() => { updateTheme('pastel'); setModalVisible(false); }}
-            >
+              style={[styles.button, {backgroundColor: '#AC87C5'}]}
+              onPress={() => {
+                updateTheme('pastel');
+                setModalVisible(false);
+              }}>
               <Text style={styles.buttonText}>Pastel Theme</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: '#ff4081' }]}
-              onPress={() => { updateTheme('default'); setModalVisible(false); }}
-            >
+              style={[styles.button, {backgroundColor: '#ff4081'}]}
+              onPress={() => {
+                updateTheme('default');
+                setModalVisible(false);
+              }}>
               <Text style={styles.buttonText}>Default Theme</Text>
             </TouchableOpacity>
 
             {/* Close Button */}
-            <Button mode="contained" onPress={() => setModalVisible(false)} style={styles.closeButton}>
+            <Button
+              mode="contained"
+              onPress={() => setModalVisible(false)}
+              style={styles.closeButton}>
               Close
             </Button>
           </Modal>
         </Portal>
 
-        <View style={[styles.infoCard, { backgroundColor: theme.cardBackground }]}>
-          <ProfileField label="Due Date" value={loading ? 'Loading...' : profileData.due_date} />
-          <ProfileField label="Location" value={loading ? 'Loading...' : profileData.location} />
+        <View
+          style={[styles.infoCard, {backgroundColor: theme.cardBackground}]}>
+          <ProfileField
+            label="Due Date"
+            value={loading ? 'Loading...' : profileData.due_date}
+          />
+          <ProfileField
+            label="Location"
+            value={loading ? 'Loading...' : profileData.location}
+          />
         </View>
 
-        <TouchableOpacity 
-          style={[styles.editButton, { backgroundColor: theme.primary }]}
-          onPress={handleEditProfile}
-        >
+        <TouchableOpacity
+          style={[styles.editButton, {backgroundColor: theme.primary}]}
+          onPress={handleEditProfile}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -297,6 +321,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-
-
-

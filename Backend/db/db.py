@@ -9,6 +9,7 @@ def open_db():
     if "db" not in g:
         first_time_setup()
         g.db = sqlite3.connect(DATABASE)
+        g.db.execute("PRAGMA foreign_keys = ON")
         g.db.row_factory = sqlite3.Row
     return g.db
 
