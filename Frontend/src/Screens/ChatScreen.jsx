@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, Animated, Alert, ActivityIndicator, Keyboard,
-  KeyboardAvoidingView, Platform, TouchableWithoutFeedback,
-  SafeAreaView, Vibration
+  StyleSheet, Animated, Alert,
+  KeyboardAvoidingView, Platform,
+  SafeAreaView
 } from "react-native";
 import Clipboard from "@react-native-clipboard/clipboard";
 import Icon from "react-native-vector-icons/MaterialIcons";
@@ -14,8 +14,9 @@ import Markdown from "react-native-markdown-display";
 import { useTheme } from '../theme/ThemeContext';
 import { useAgentContext } from '../context/AgentContext';
 import { ragService } from '../services/RAGService';
-import { conversationContext } from '../services/ConversationContext'; 
+import { conversationContext } from '../services/ConversationContext';
 export default function ChatScreen() {
+  const [agentAvailable, setAgentAvailable] = useState(true);
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { context, refreshContext, initializeContext, isInitialized } = useAgentContext();
@@ -24,7 +25,7 @@ export default function ChatScreen() {
   const toggleCommandExamples = () => {
     const toValue = showCommandExamples ? 0 : 1;
     setShowCommandExamples(!showCommandExamples);
-    
+
     Animated.timing(commandExamplesHeight, {
       toValue: toValue,
       duration: 300,
@@ -40,7 +41,7 @@ export default function ChatScreen() {
   // Clear conversation with cool animation
   const clearConversation = () => {
     // Add immediate haptic feedback for button press
-    
+
     Alert.alert(
       "Clear Chat",
       "Are you sure you want to delete all messages? This action cannot be undone.",
@@ -157,13 +158,21 @@ export default function ChatScreen() {
         ])
       );
       pulse.start();
-      
+
       return () => pulse.stop();
     }
   }, [conversation.length, showCommandExamples]);
 
 
   const handleSendMessage = async () => {
+    if (!agentAvailable) {
+      Alert.alert(
+        "AI Unavailable",
+        "The AI assistant is currently disabled. Offline features are still accessible."
+      );
+      return;
+    }
+
     if (!userInput.trim()) {
       Alert.alert("Input Error", "Please enter a message.");
       return;
@@ -196,8 +205,16 @@ export default function ChatScreen() {
       let result = null;
 
       // Initialize RAG service
-      await ragService.initialize();
-      
+      try {
+        await ragService.initialize();
+      } catch (e) {
+        console.warn("Agent initialization skipped or failed");
+        setAgentAvailable(false);
+        throw new Error("Agent unavailable");
+      }
+
+
+
       // Set user context
       conversationContext.setUserContext(context);
 
@@ -231,7 +248,7 @@ export default function ChatScreen() {
         hasIntent: result && result.intent !== undefined,
         hasPartialData: result && result.partialData !== undefined
       });
-      
+
       // Additional debugging for undefined errors
       if (!result) {
         console.error('❌ RESULT IS NULL/UNDEFINED!');
@@ -284,12 +301,12 @@ export default function ChatScreen() {
             navigation.navigate('SOSAlert');
           }, 500);
         }
-          
-          // Refresh context after successful command execution
+
+        // Refresh context after successful command execution
         if (result.success) {
-            await refreshContext();
-          }
-        } else {
+          await refreshContext();
+        }
+      } else {
         // Fallback to general chat if RAG doesn't understand
         try {
           const agentResponse = await fetch(`${BASE_URL}/agent`, {
@@ -302,7 +319,7 @@ export default function ChatScreen() {
               user_id: "default"
             }),
           });
-          
+
           if (agentResponse.ok) {
             const agentData = await agentResponse.json();
             response = agentData.response;
@@ -315,21 +332,25 @@ export default function ChatScreen() {
           response = await generateResponse(updatedConversation);
         }
       }
-      
+
       if (response) {
         const botMessage = { id: (Date.now() + 1).toString(), role: "assistant", content: response };
         setConversation([...updatedConversation, botMessage]);
-        
+
         // Add bot response to conversation context
         conversationContext.addMessage('assistant', response);
-        
+
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to generate response: " + error.message);
-      console.error(error);
-    } finally {
-      setIsGenerating(false);
+      if (!agentAvailable) {
+        Alert.alert(
+          "AI Unavailable",
+          "The AI assistant is currently disabled. Offline features are still accessible."
+        );
+      } else {
+        Alert.alert("Error", "Failed to generate response: " + error.message);
+      }
     }
   };
 
@@ -350,12 +371,12 @@ export default function ChatScreen() {
   // Get quick replies based on pending follow-up context
   const getQuickReplies = () => {
     if (!conversationContext.hasPendingFollowUp()) return [];
-    
+
     const pendingFollowUp = conversationContext.pendingFollowUp;
     const missingFields = pendingFollowUp?.missingFields || [];
-    
+
     let replies = [];
-    
+
     // Generate quick replies based on missing fields
     missingFields.forEach(field => {
       switch (field) {
@@ -392,7 +413,7 @@ export default function ChatScreen() {
         case 'action_type':
           replies.push('Last', 'Weight', 'Appointment', 'Sleep');
           break;
-        
+
         // Medicine quick replies
         case 'medicine_name':
           replies.push('Paracetamol', 'Iron', 'Folic Acid', 'Calcium');
@@ -409,7 +430,7 @@ export default function ChatScreen() {
         case 'end_date':
           replies.push('Next week', 'This month', 'When better', 'Continue');
           break;
-        
+
         // Blood Pressure CRUD quick replies
         case 'systolic':
           replies.push('120', '110', '130', '140');
@@ -420,17 +441,17 @@ export default function ChatScreen() {
         case 'pressure_reading':
           replies.push('120/80', '110/70', '130/85', '140/90');
           break;
-        
+
         // Discharge CRUD quick replies
         case 'discharge_type':
           replies.push('Normal', 'Spotting', 'Bleeding', 'Heavy');
           break;
-        
+
         // Symptoms CRUD quick replies
         case 'symptom':
           replies.push('Nausea', 'Headache', 'Dizziness', 'Fatigue');
           break;
-        
+
         // Common CRUD quick replies
         case 'date':
         case 'update_date':
@@ -441,7 +462,7 @@ export default function ChatScreen() {
           break;
       }
     });
-    
+
     // Remove duplicates and limit to 4 replies
     return [...new Set(replies)].slice(0, 4);
   };
@@ -455,38 +476,38 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View style={[styles.header,{ backgroundColor: theme.primary }]}>
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color={theme.iconText || "#fff"}/>
+          <Icon name="arrow-back" size={24} color={theme.iconText || "#fff"} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle,{ color: theme.iconText || "#fff" }]}>Chat with BabyNest AI</Text>
-        
+        <Text style={[styles.headerTitle, { color: theme.iconText || "#fff" }]}>Chat with BabyNest AI</Text>
+
         {/* Mode Toggle Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={toggleMode}
           style={[
             styles.modeToggleButton,
-            { 
-              backgroundColor: useRAGMode 
-                ? 'rgba(255,255,255,0.2)' 
+            {
+              backgroundColor: useRAGMode
+                ? 'rgba(255,255,255,0.2)'
                 : 'rgba(255,255,255,0.15)'
             }
           ]}
         >
-          <Icon 
-            name={useRAGMode ? "smart-toy" : "stay-current-portrait"} 
-            size={20} 
+          <Icon
+            name={useRAGMode ? "smart-toy" : "stay-current-portrait"}
+            size={20}
             color={theme.iconText || "#fff"}
           />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           onPress={clearConversation}
           style={[
             styles.deleteButton,
-            { 
-              backgroundColor: conversation.length === 0 
-                ? 'rgba(255,255,255,0.1)' 
+            {
+              backgroundColor: conversation.length === 0
+                ? 'rgba(255,255,255,0.1)'
                 : 'rgba(255,255,255,0.2)',
               opacity: conversation.length === 0 ? 0.5 : 1
             }
@@ -496,13 +517,13 @@ export default function ChatScreen() {
           <Animated.View
             style={{
               transform: [
-                { 
+                {
                   rotate: deleteAnimation.interpolate({
                     inputRange: [0, 1],
                     outputRange: ['0deg', '15deg']
                   })
                 },
-                { 
+                {
                   scale: deleteAnimation.interpolate({
                     inputRange: [0, 0.5, 1],
                     outputRange: [1, 1.1, 1]
@@ -511,9 +532,9 @@ export default function ChatScreen() {
               ]
             }}
           >
-            <Icon 
-              name="delete" 
-              size={24} 
+            <Icon
+              name="delete"
+              size={24}
               color={conversation.length === 0 ? theme.iconText + '40' : theme.iconText || "#fff"}
             />
           </Animated.View>
@@ -526,38 +547,38 @@ export default function ChatScreen() {
           transform: [{ scale: conversation.length === 0 && !showCommandExamples ? pulseAnimation : 1 }]
         }}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={toggleCommandExamples}
           style={[styles.commandExamplesToggle, { backgroundColor: theme.factcardprimary }]}
         >
-        <View style={styles.commandExamplesHeader}>
-          <Icon 
-            name={showCommandExamples ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-            size={20} 
-            color={theme.text} 
-          />
-          <Text style={[styles.commandExamplesTitle, { color: theme.text }]}>
-            💬 Try these commands
-          </Text>
-          {!showCommandExamples && (
-            <Text style={[styles.commandExamplesHint, { color: theme.text }]}>
-              Tap to expand
+          <View style={styles.commandExamplesHeader}>
+            <Icon
+              name={showCommandExamples ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+              size={20}
+              color={theme.text}
+            />
+            <Text style={[styles.commandExamplesTitle, { color: theme.text }]}>
+              💬 Try these commands
             </Text>
-          )}
-        </View>
-        
-        <Animated.View 
-          style={[
-            styles.commandExamplesContent,
-            {
-              height: commandExamplesHeight.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 200], // Adjust height as needed
-              }),
-              opacity: commandExamplesHeight,
-            }
-          ]}
-        >
+            {!showCommandExamples && (
+              <Text style={[styles.commandExamplesHint, { color: theme.text }]}>
+                Tap to expand
+              </Text>
+            )}
+          </View>
+
+          <Animated.View
+            style={[
+              styles.commandExamplesContent,
+              {
+                height: commandExamplesHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 200], // Adjust height as needed
+                }),
+                opacity: commandExamplesHeight,
+              }
+            ]}
+          >
             <Text style={[styles.exampleText, { color: theme.text }]}>• "make an appointment at 2pm" (I'll ask for details)</Text>
             <Text style={[styles.exampleText, { color: theme.text }]}>• "my weight is 65kg" (I'll ask for the week)</Text>
             <Text style={[styles.exampleText, { color: theme.text }]}>• "took paracetamol" (I'll ask for dose, time, week)</Text>
@@ -567,49 +588,49 @@ export default function ChatScreen() {
             <Text style={[styles.exampleText, { color: theme.text }]}>• "go to weight screen"</Text>
             <Text style={[styles.exampleText, { color: theme.text }]}>• "update my due date to June 24, 2026"</Text>
             <Text style={[styles.exampleText, { color: theme.text }]}>• "Emergency" or "Logout"</Text>
-        </Animated.View>
-      </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
       </Animated.View>
 
       {/* Chat Messages */}
       <Animated.View style={{ flex: 1, opacity: conversationOpacity }}>
-      <FlatList
-        ref={flatListRef}
-        data={conversation}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity onLongPress={() => handleCopyMessage(item.content)}>
-            <View style={[styles.messageContainer, item.role === "user" ? [styles.userMessage , { backgroundColor: theme.primary }]: [styles.botMessage,{ backgroundColor: theme.factcardprimary }]]}>
-              {item.role === "assistant" ? (
-                <Markdown style={createMarkdownStyles(theme)}>{item.content}</Markdown>
-              ) : (
-                <Text style={[styles.messageText, { color: item.role === "user" ? theme.iconText || "#fff" : theme.text }]}>{item.content}</Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={styles.chatArea}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        onScroll={(event) => {
-          const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-          const isBottom =
-            layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
-          setShowScrollToBottom(!isBottom);
-        }}
-      />
+        <FlatList
+          ref={flatListRef}
+          data={conversation}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity onLongPress={() => handleCopyMessage(item.content)}>
+              <View style={[styles.messageContainer, item.role === "user" ? [styles.userMessage, { backgroundColor: theme.primary }] : [styles.botMessage, { backgroundColor: theme.factcardprimary }]]}>
+                {item.role === "assistant" ? (
+                  <Markdown style={createMarkdownStyles(theme)}>{item.content}</Markdown>
+                ) : (
+                  <Text style={[styles.messageText, { color: item.role === "user" ? theme.iconText || "#fff" : theme.text }]}>{item.content}</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          )}
+          contentContainerStyle={styles.chatArea}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          onScroll={(event) => {
+            const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+            const isBottom =
+              layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
+            setShowScrollToBottom(!isBottom);
+          }}
+        />
       </Animated.View>
 
       {/* Floating Scroll to Bottom Button */}
       {showScrollToBottom && (
-        <TouchableOpacity style={[styles.scrollToBottomButton,{ backgroundColor: theme.background }]} onPress={scrollToBottom}>
+        <TouchableOpacity style={[styles.scrollToBottomButton, { backgroundColor: theme.background }]} onPress={scrollToBottom}>
           <Icon name="keyboard-arrow-down" size={30} color={theme.text} />
         </TouchableOpacity>
       )}
 
       {/* Typing Indicator */}
       {isGenerating && (
-        <View style={[styles.messageContainer, styles.botMessage,{ backgroundColor: theme.factcardprimary }]}>
+        <View style={[styles.messageContainer, styles.botMessage, { backgroundColor: theme.factcardprimary }]}>
           <TypingIndicator />
         </View>
       )}
@@ -638,24 +659,34 @@ export default function ChatScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "position" : undefined}>
         <View style={[styles.inputContainer, { borderColor: theme.factcardsecondary || "#ddd" }]}>
           <TextInput
-            style={[styles.input, {
-              backgroundColor: theme.factcardsecondary || "#f8f8f8",
-              color: theme.text
-            }]}
-            placeholder={useRAGMode ? "Ask me to book appointments, track health..." : "Chat with me about anything..."}
-            placeholderTextColor={theme.placeholderText}
-            multiline
-            scrollEnabled
+            style={styles.input}
             value={userInput}
             onChangeText={setUserInput}
-            onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)}
+            editable={agentAvailable}
+            placeholder={
+              agentAvailable
+                ? "Ask me to book appointments, track health..."
+                : "AI assistant is currently unavailable"
+            }
           />
-          <TouchableOpacity style={[styles.pasteButton, { backgroundColor: theme.button }]} onPress={handlePaste}>
-            <Icon name="content-paste" size={24} color={theme.iconText || "#fff"}/>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.sendButton, { backgroundColor: theme.button }]} onPress={handleSendMessage} disabled={isGenerating}>
+
+
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: theme.button,
+                opacity: agentAvailable && !isGenerating ? 1 : 0.5
+              }
+            ]}
+            onPress={handleSendMessage}
+            disabled={!agentAvailable || isGenerating}
+          >
             <Icon name="send" size={24} color={theme.iconText || "#fff"} />
           </TouchableOpacity>
+
+
+
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -680,9 +711,9 @@ const TypingIndicator = () => {
 
   return (
     <View style={styles.typingContainer}>
-      <Animated.View style={[styles.dot, { opacity: fadeAnim  }]} />
-      <Animated.View style={[styles.dot, { opacity: fadeAnim  }]} />
-      <Animated.View style={[styles.dot, { opacity: fadeAnim  }]} />
+      <Animated.View style={[styles.dot, { opacity: fadeAnim }]} />
+      <Animated.View style={[styles.dot, { opacity: fadeAnim }]} />
+      <Animated.View style={[styles.dot, { opacity: fadeAnim }]} />
     </View>
   );
 };
@@ -827,7 +858,7 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: 30,
     elevation: 5,
-    zIndex:1,
+    zIndex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -870,34 +901,34 @@ const styles = StyleSheet.create({
   },
 });
 
-const createMarkdownStyles =(theme)=>( {
-  body: { 
-    color: "#333", 
-    fontSize: 16 
+const createMarkdownStyles = (theme) => ({
+  body: {
+    color: "#333",
+    fontSize: 16
   },
-  strong: { 
-    fontWeight: "bold" 
+  strong: {
+    fontWeight: "bold"
   },
-  em: { 
-    fontStyle: "italic" 
+  em: {
+    fontStyle: "italic"
   },
-  blockquote: { 
-    backgroundColor:  theme.factcardsecondary ,
-    padding: 5, 
-    borderLeftWidth: 3, 
-    borderLeftColor: "#ccc" 
+  blockquote: {
+    backgroundColor: theme.factcardsecondary,
+    padding: 5,
+    borderLeftWidth: 3,
+    borderLeftColor: "#ccc"
   },
-  code_block: { 
-    backgroundColor: theme.factcardsecondary , 
-    padding: 10, 
-    borderRadius: 5, 
-    fontFamily: "monospace" 
+  code_block: {
+    backgroundColor: theme.factcardsecondary,
+    padding: 10,
+    borderRadius: 5,
+    fontFamily: "monospace"
   },
-  link: { 
-    color:  theme.primary,
-    textDecorationLine: "underline" 
+  link: {
+    color: theme.primary,
+    textDecorationLine: "underline"
   },
-  list_item: { 
-    marginVertical: 5 
+  list_item: {
+    marginVertical: 5
   },
 });
