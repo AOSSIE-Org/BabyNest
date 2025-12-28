@@ -41,8 +41,7 @@ const themes = {
     button: '#9e2a2b', 
     factcardprimary: '#e09f3e', 
     factcardsecondary: '#e09f3e', 
-    appointment: '#fff3b0',
-    iconText:'#FFFFFF' 
+    appointment: '#fff3b0'
   },
   pastel: {
     primary: '#AC87C5',

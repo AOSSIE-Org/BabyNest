@@ -18,7 +18,7 @@ import { conversationContext } from '../services/ConversationContext';
 export default function ChatScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
-  const { context, refreshContext, initializeContext, isInitialized } = useAgentContext();
+  const { context, refreshContext, initializeContext, isInitialized, agentAvailable, healthChecked, checkHealth } = useAgentContext();
 
   // Toggle command examples with animation
   const toggleCommandExamples = () => {
@@ -162,6 +162,10 @@ export default function ChatScreen() {
     }
   }, [conversation.length, showCommandExamples]);
 
+  // Check agent health on component mount
+  useEffect(() => {
+    checkHealth();
+  }, []);
 
   const handleSendMessage = async () => {
     if (!userInput.trim()) {
@@ -206,10 +210,10 @@ export default function ChatScreen() {
         // RAG Mode (Robot) - Process structured commands
         if (conversationContext.hasPendingFollowUp()) {
           console.log('🤖 Processing follow-up response with RAG...');
-          result = await conversationContext.processFollowUpResponse(userInput, ragService);
+          result = await conversationContext.processFollowUpResponse(userInput, ragService, agentAvailable);
         } else {
           console.log('🤖 Processing new query with RAG...');
-          result = await ragService.processQuery(userInput, context);
+          result = await ragService.processQuery(userInput, context, agentAvailable);
         }
       } else {
         // Model Mode (Phone) - Use backend model for general chat
@@ -520,6 +524,16 @@ export default function ChatScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Agent Availability Banner */}
+      {healthChecked && !agentAvailable && (
+        <View style={[styles.agentBanner, { backgroundColor: theme.warning || '#fff3cd' }]}>
+          <Icon name="info" size={20} color={theme.warningText || '#856404'} />
+          <Text style={[styles.agentBannerText, { color: theme.warningText || '#856404' }]}>
+            Backend agent is disabled (fast dev mode). Using local model only – some context-aware features may be unavailable.
+          </Text>
+        </View>
+      )}
+
       {/* Compact Command Examples - Always Visible */}
       <Animated.View
         style={{
@@ -708,6 +722,26 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40, // Same width as the back button to center the title
+  },
+  agentBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  agentBannerText: {
+    fontSize: 12,
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 16,
   },
   modeToggleButton: {
     padding: 8,

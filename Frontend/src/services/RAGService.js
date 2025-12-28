@@ -630,7 +630,7 @@ class RAGService {
   /**
    * Process user query with semantic understanding
    */
-  async processQuery(userQuery, userContext = {}) {
+  async processQuery(userQuery, userContext = {}, agentAvailable = true) {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -653,7 +653,7 @@ class RAGService {
       }
 
       // 4. Execute the action
-      return await this.executeAction(bestIntent, extractedData, userContext);
+      return await this.executeAction(bestIntent, extractedData, userContext, agentAvailable);
 
     } catch (error) {
       console.error('RAG processing error:', error);
@@ -1357,7 +1357,6 @@ class RAGService {
       'symptom': '• **What symptoms** are you experiencing? (e.g., "nausea", "headache")',
       'systolic': '• **What\'s your systolic pressure**? (e.g., "120")',
       'diastolic': '• **What\'s your diastolic pressure**? (e.g., "80")',
-      'name': '• **What medicine** did you take? (e.g., "paracetamol", "iron")',
       'dose': '• **What dose** did you take? (e.g., "500mg", "2 tablets")',
       'type': '• **What type of discharge**? (e.g., "normal", "spotting")',
       'color': '• **What color** is it? (e.g., "clear", "white", "pink")',
@@ -1447,7 +1446,7 @@ class RAGService {
   /**
    * Execute the determined action
    */
-  async executeAction(intent, data, userContext) {
+  async executeAction(intent, data, userContext, agentAvailable = true) {
     try {
       switch (intent.action) {
         case 'createAppointment':
@@ -1497,7 +1496,7 @@ class RAGService {
         case 'logout':
           return await this.logout(data, userContext);
         case 'generalChat':
-          return await this.handleGeneralChat(data, userContext);
+          return await this.handleGeneralChat(data, userContext, agentAvailable);
         
         // Medicine CRUD operations
         case 'updateMedicine':
@@ -2355,7 +2354,16 @@ class RAGService {
   /**
    * Handle general chat
    */
-  async handleGeneralChat(data, userContext) {
+  async handleGeneralChat(data, userContext, agentAvailable = true) {
+    // If agent is not available, skip backend call and return a generic response
+    if (!agentAvailable) {
+      return {
+        success: true,
+        message: 'I\'m here to help with your pregnancy journey! How can I assist you today?',
+        action: 'generalChat'
+      };
+    }
+
     try {
       const response = await fetch(`${BASE_URL}/agent`, {
         method: 'POST',

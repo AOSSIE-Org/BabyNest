@@ -94,6 +94,20 @@ The model is configured in `src/model/model.jsx`:
 - `POST /agent/refresh` - Refresh context cache
 - `GET /agent/cache/status` - Check cache status
 
+### Agent Availability
+
+The app gracefully handles scenarios where the backend agent is unavailable:
+
+- **Fast Development Mode**: When `SKIP_AGENT_INIT=1` is set in backend
+- **Backend Down**: When Flask server is not running
+- **Agent Initialization Failure**: When agent fails to load
+
+**Behavior when agent is unavailable:**
+- Shows a clear banner: "Backend agent is disabled (fast dev mode). Using local model only – some context-aware features may be unavailable."
+- Chat falls back to local GGUF model for general conversations
+- Structured commands (appointments, health tracking) still work via direct API calls
+- Context-aware features are disabled but app remains functional
+
 ## 📱 App Structure
 
 ### Core Components
