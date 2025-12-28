@@ -3,7 +3,7 @@ import os
 from flask import g
 
 DATABASE = "db/database.db"
-SCHEMA_FILE = "schema.sql"
+SCHEMA_FILE = os.path.join(os.path.dirname(__file__), "..", "schema.sql")
 
 def open_db():
     if "db" not in g:

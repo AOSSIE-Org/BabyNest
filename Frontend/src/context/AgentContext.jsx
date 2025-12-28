@@ -29,6 +29,8 @@ export const AgentProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [agentAvailable, setAgentAvailable] = useState(true); // Assume available by default
+  const [healthChecked, setHealthChecked] = useState(false);
 
   const fetchContext = async (user_id = "default", force = false) => {
     // Don't fetch if already initialized and not forced
@@ -62,6 +64,30 @@ export const AgentProvider = ({ children }) => {
       setIsInitialized(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkHealth = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/health`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAgentAvailable(data.agent_initialized);
+      } else {
+        // If health endpoint fails, assume agent is unavailable
+        setAgentAvailable(false);
+      }
+    } catch (err) {
+      console.warn('Health check failed, assuming agent unavailable:', err.message);
+      setAgentAvailable(false);
+    } finally {
+      setHealthChecked(true);
     }
   };
 
@@ -158,10 +184,13 @@ export const AgentProvider = ({ children }) => {
     error,
     lastUpdated,
     isInitialized,
+    agentAvailable,
+    healthChecked,
     fetchContext,
     refreshContext,
     initializeContext,
     isContextReady,
+    checkHealth,
     getTaskRecommendations,
     getCacheStatus,
   };

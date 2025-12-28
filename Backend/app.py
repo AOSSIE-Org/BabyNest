@@ -10,7 +10,6 @@ from routes.symptoms import symptoms_bp
 from routes.weight import weight_bp
 from routes.blood_pressure import bp_bp
 from routes.discharge import discharge_bp
-from agent.agent import get_agent
 
 app = Flask(__name__)
 CORS(app)
@@ -32,10 +31,21 @@ def teardown_db(exception):
 db_path = os.path.join(os.path.dirname(__file__), "db", "database.db")
 first_time_setup() # This needs to be called before initializing the agent
 
-agent = get_agent(db_path)
+# Check if agent initialization should be skipped
+skip_agent_init = os.getenv('SKIP_AGENT_INIT', '0').lower() in ('1', 'true', 'yes')
+if skip_agent_init:
+    agent = None
+    print("⚠️ Agent initialization skipped (SKIP_AGENT_INIT=1)")
+else:
+    from agent.agent import get_agent
+    agent = get_agent(db_path)
+    print("🤖 Agent initialized successfully")
 
 @app.route("/agent", methods=["POST"])
 def run_agent():
+    if agent is None:
+        return jsonify({"error": "Agent not initialized"}), 503
+    
     if not request.is_json:
         return jsonify({"error": "Invalid JSON format"}), 400
     
@@ -59,6 +69,9 @@ def run_agent():
 @app.route("/agent/cache/status", methods=["GET"])
 def get_cache_status():
     """Get cache status information."""
+    if agent is None:
+        return jsonify({"error": "Agent not initialized"}), 503
+    
     try:
         user_id = request.args.get("user_id", "default")
         user_context = agent.get_user_context(user_id)
@@ -83,6 +96,9 @@ def get_cache_status():
 @app.route("/agent/context", methods=["GET"])
 def get_agent_context():
     """Get the current agent context for frontend use."""
+    if agent is None:
+        return jsonify({"error": "Agent not initialized"}), 503
+    
     try:
         user_id = request.args.get("user_id", "default")
         context = agent.get_user_context(user_id)
@@ -109,6 +125,9 @@ def get_agent_context():
 @app.route("/agent/tasks/recommendations", methods=["GET"])
 def get_task_recommendations():
     """Get LLM-powered task recommendations based on current context."""
+    if agent is None:
+        return jsonify({"error": "Agent not initialized"}), 503
+    
     try:
         user_id = request.args.get("user_id", "default")
         week = request.args.get("week")
@@ -140,6 +159,9 @@ def get_task_recommendations():
 @app.route("/agent/cache/stats", methods=["GET"])
 def get_cache_statistics():
     """Get detailed cache statistics for monitoring."""
+    if agent is None:
+        return jsonify({"error": "Agent not initialized"}), 503
+    
     try:
         stats = agent.get_cache_stats()
         return jsonify({
@@ -163,6 +185,9 @@ def get_cache_statistics():
 @app.route("/agent/cache/cleanup", methods=["POST"])
 def cleanup_cache():
     """Manually trigger cache cleanup."""
+    if agent is None:
+        return jsonify({"error": "Agent not initialized"}), 503
+    
     try:
         agent.cleanup_cache()
         stats = agent.get_cache_stats()
@@ -182,7 +207,14 @@ def index():
     task_db = get_tasks()
     return appointment_db
 
+@app.route('/health')
+def health():
+    return jsonify({
+        'status': 'ok',
+        'agent_initialized': agent is not None
+    })
+
 if __name__ == '__main__':
-   app.run(host='0.0.0.0', port=5000, debug=True)
+   app.run(host='0.0.0.0', port=5000, debug=False)
 
    

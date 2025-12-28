@@ -104,7 +104,7 @@ class ConversationContext {
   /**
    * Process follow-up response
    */
-  async processFollowUpResponse(userQuery, ragService) {
+  async processFollowUpResponse(userQuery, ragService, agentAvailable = true) {
     if (!this.pendingFollowUp) {
       return null;
     }
@@ -183,7 +183,7 @@ class ConversationContext {
         // All information gathered, execute the action
         const intent = this.pendingFollowUp.intent;
         this.clearPendingFollowUp();
-        return await ragService.executeAction(intent, mergedData, this.userContext);
+        return await ragService.executeAction(intent, mergedData, this.userContext, agentAvailable);
       }
     } catch (error) {
       console.error('Follow-up processing error:', error);
