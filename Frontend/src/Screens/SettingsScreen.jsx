@@ -1,4 +1,3 @@
-// src/components/ProfileScreen.js
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -60,7 +59,6 @@ export default function SettingsScreen() {
 
   const fetchProfileData = async () => {
     try {
-      console.log('heelo');
       const response = await fetch(`${BASE_URL}/get_profile`);
       if (response.ok) {
         const data = await response.json();

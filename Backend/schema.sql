@@ -61,9 +61,7 @@ CREATE TABLE IF NOT EXISTS profile (
 );
 
 INSERT INTO profile (lmp, cycleLength, periodLength, age, weight, user_location) VALUES
-('2025-01-01', 28, 5, 30, 65, 'New York'),
-('2025-01-15', 30, 6, 28, 70, 'Los Angeles'),
-('2025-02-01', 26, 4, 32, 60, 'Chicago');
+('2025-01-01', 28, 5, 30, 65, 'New York');
 
 
 CREATE TABLE IF NOT EXISTS weekly_weight (
@@ -97,27 +95,27 @@ CREATE TABLE IF NOT EXISTS weekly_symptoms (
 
 
 ALTER TABLE appointments 
-ADD COLUMN profile_id INTEGER REFERENCES profile(id) ON DELETE CASCADE;
+ADD COLUMN profile_id INTEGER NOT NULL DEFAULT 1 REFERENCES profile(id) ON DELETE CASCADE;
 
 ALTER TABLE tasks 
-ADD COLUMN profile_id INTEGER REFERENCES profile(id) ON DELETE CASCADE;
+ADD COLUMN profile_id INTEGER NOT NULL DEFAULT 1 REFERENCES profile(id) ON DELETE CASCADE;
 
 ALTER TABLE blood_pressure_logs 
-ADD COLUMN profile_id INTEGER REFERENCES profile(id) ON DELETE CASCADE;
+ADD COLUMN profile_id INTEGER NOT NULL DEFAULT 1 REFERENCES profile(id) ON DELETE CASCADE;
 
 ALTER TABLE discharge_logs 
-ADD COLUMN profile_id INTEGER REFERENCES profile(id) ON DELETE CASCADE;
+ADD COLUMN profile_id INTEGER NOT NULL DEFAULT 1 REFERENCES profile(id) ON DELETE CASCADE;
 
 ALTER TABLE weekly_weight 
-ADD COLUMN profile_id INTEGER REFERENCES profile(id) ON DELETE CASCADE;
+ADD COLUMN profile_id INTEGER NOT NULL DEFAULT 1 REFERENCES profile(id) ON DELETE CASCADE;
 
 ALTER TABLE weekly_medicine 
-ADD COLUMN profile_id INTEGER REFERENCES profile(id) ON DELETE CASCADE;
+ADD COLUMN profile_id INTEGER NOT NULL DEFAULT 1 REFERENCES profile(id) ON DELETE CASCADE;
 
 ALTER TABLE weekly_symptoms 
-ADD COLUMN profile_id INTEGER REFERENCES profile(id) ON DELETE CASCADE;
+ADD COLUMN profile_id INTEGER NOT NULL DEFAULT 1 REFERENCES profile(id) ON DELETE CASCADE;
 
--- inset dummy data 
+-- insert dummy data 
 INSERT INTO weekly_weight (week_number, weight, note, profile_id) VALUES
 (8, 60.5, 'Slight nausea, but overall feeling okay', 1),
 (9, 60.9, 'Appetite increasing slightly', 1),
