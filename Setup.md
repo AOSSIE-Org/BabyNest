@@ -59,8 +59,13 @@ npx pod-install
 
 ### 5) Run the App on Android
 
+Terminal 1
 ```sh
 npx react-native start
+```
+
+Terminal 2
+```sh
 npx react-native run-android
 ```
 
@@ -110,11 +115,15 @@ npx pod-install
 
 ### 5) Run the App on iOS
 
+Terminal 1
 ```sh
 npx react-native start
-npx react-native run-ios
 ```
 
+Terminal 2
+```sh
+npx react-native run-ios
+```
 ---
 
 ## Backend Setup (Offline Flask API)
