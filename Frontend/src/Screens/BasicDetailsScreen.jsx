@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -11,16 +11,16 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { countries } from '../data/countries';
-import { BASE_URL } from '@env';
-import { Calendar } from 'react-native-calendars';
+import {useNavigation} from '@react-navigation/native';
+import {countries} from '../data/countries';
+import {BASE_URL} from '@env';
+import {Calendar} from 'react-native-calendars';
 export default function BasicDetailsScreen() {
   const navigation = useNavigation();
 
   const [country, setCountry] = useState('');
   const [lmpDate, setLmpDate] = useState('');
-  const [cycleLength, setCycleLength] = useState(28)
+  const [cycleLength, setCycleLength] = useState(28);
   const [periodLength, setPeriodLength] = useState(5);
   const [age, setAge] = useState(30);
   const [weight, setWeight] = useState(65);
@@ -32,16 +32,31 @@ export default function BasicDetailsScreen() {
 
     if (!country.trim()) newErrors.country = 'Country is required';
     if (!lmpDate) newErrors.lmpDate = 'Last menstrual period date is required';
-    if (!cycleLength || isNaN(cycleLength) || Number(cycleLength) < 20 || Number(cycleLength) > 40) {
+    if (
+      !cycleLength ||
+      isNaN(cycleLength) ||
+      Number(cycleLength) < 20 ||
+      Number(cycleLength) > 40
+    ) {
       newErrors.cycleLength = 'Enter a valid cycle length (20-40 days)';
     }
-    if (!periodLength || isNaN(periodLength) || Number(periodLength) < 1 || Number(periodLength) > 10) {
+    if (
+      !periodLength ||
+      isNaN(periodLength) ||
+      Number(periodLength) < 1 ||
+      Number(periodLength) > 10
+    ) {
       newErrors.periodLength = 'Enter a valid period length (1-10 days)';
     }
     if (!age || isNaN(age) || Number(age) < 12 || Number(age) > 60) {
       newErrors.age = 'Enter a valid age (12-60 years)';
     }
-    if (!weight || isNaN(weight) || Number(weight) < 30 || Number(weight) > 200) {
+    if (
+      !weight ||
+      isNaN(weight) ||
+      Number(weight) < 30 ||
+      Number(weight) > 200
+    ) {
       newErrors.weight = 'Enter a valid weight (30-200 kg)';
     }
 
@@ -50,7 +65,7 @@ export default function BasicDetailsScreen() {
 
     const res = await fetch(`${BASE_URL}/set_profile`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         location: country,
         lmp: lmpDate,
@@ -62,24 +77,26 @@ export default function BasicDetailsScreen() {
     });
 
     const data = await res.json();
-    console.log("data", data);
 
     if (data.error) {
-      setErrors({ form: data.error });
+      setErrors({form: data.error});
     } else {
       setErrors({});
-      navigation.replace('DueDate', { dueDate: data.dueDate });
+      navigation.replace('DueDate', {dueDate: data.dueDate});
     }
   };
 
   const handleSelectCountry = selectedCountry => {
     setCountry(selectedCountry);
     setShowCountryModal(false);
-    setErrors(prev => ({ ...prev, country: '' }));
+    setErrors(prev => ({...prev, country: ''}));
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+  return(
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      keyboardShouldPersistTaps="handled">
       <View style={styles.container}>
         <Text style={styles.title}>Enter Your Details</Text>
 
@@ -95,7 +112,9 @@ export default function BasicDetailsScreen() {
             <Text style={styles.dropdownArrow}>▼</Text>
           </View>
         </TouchableOpacity>
-        {errors.country ? <Text style={styles.errorText}>{errors.country}</Text> : null}
+        {errors.country ? (
+          <Text style={styles.errorText}>{errors.country}</Text>
+        ) : null}
 
         <Modal
           visible={showCountryModal}
@@ -107,7 +126,7 @@ export default function BasicDetailsScreen() {
               <FlatList
                 data={countries}
                 keyExtractor={item => item}
-                renderItem={({ item }) => (
+                renderItem={({item}) => (
                   <TouchableOpacity
                     style={styles.countryItem}
                     onPress={() => handleSelectCountry(item)}>
@@ -140,7 +159,9 @@ export default function BasicDetailsScreen() {
             }}
           />
         </View>
-        {errors.lmpDate ? <Text style={styles.errorText}>{errors.lmpDate}</Text> : null}
+        {errors.lmpDate ? (
+          <Text style={styles.errorText}>{errors.lmpDate}</Text>
+        ) : null}
 
         <Text style={styles.title1}>Cycle Length (days)</Text>
         <TextInput
@@ -150,7 +171,9 @@ export default function BasicDetailsScreen() {
           onChangeText={setCycleLength}
           style={[styles.input, errors.cycleLength ? styles.errorBorder : null]}
         />
-        {errors.cycleLength ? <Text style={styles.errorText}>{errors.cycleLength}</Text> : null}
+        {errors.cycleLength ? (
+          <Text style={styles.errorText}>{errors.cycleLength}</Text>
+        ) : null}
 
         <Text style={styles.title1}>Period Length (days)</Text>
         <TextInput
@@ -158,9 +181,14 @@ export default function BasicDetailsScreen() {
           keyboardType="numeric"
           value={periodLength}
           onChangeText={setPeriodLength}
-          style={[styles.input, errors.periodLength ? styles.errorBorder : null]}
+          style={[
+            styles.input,
+            errors.periodLength ? styles.errorBorder : null,
+          ]}
         />
-        {errors.periodLength ? <Text style={styles.errorText}>{errors.periodLength}</Text> : null}
+        {errors.periodLength ? (
+          <Text style={styles.errorText}>{errors.periodLength}</Text>
+        ) : null}
 
         <Text style={styles.title1}>Age</Text>
         <TextInput
@@ -180,9 +208,13 @@ export default function BasicDetailsScreen() {
           onChangeText={setWeight}
           style={[styles.input, errors.weight ? styles.errorBorder : null]}
         />
-        {errors.weight ? <Text style={styles.errorText}>{errors.weight}</Text> : null}
+        {errors.weight ? (
+          <Text style={styles.errorText}>{errors.weight}</Text>
+        ) : null}
 
-        {errors.form ? <Text style={styles.errorText}>{errors.form}</Text> : null}
+        {errors.form ? (
+          <Text style={styles.errorText}>{errors.form}</Text>
+        ) : null}
 
         <Text style={styles.disclaimer}>
           We are collecting this information solely to provide accurate
@@ -194,10 +226,15 @@ export default function BasicDetailsScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+  </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {  
+  flex: 1,
+  backgroundColor: '#fff',
+  },
   scrollContainer: {
     flexGrow: 1,
     backgroundColor: '#fff',
@@ -308,19 +345,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  calendarContainer: { 
+  calendarContainer: {
     borderRadius: 10,
-    overflow: "hidden",
-    backgroundColor: "#f5f5f5",
-    marginBottom: 20,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
     padding: 10,
-    marginBottom: 20
-   },
+    marginBottom: 20,
+  },
 });
-
-
-
-
-
-
-

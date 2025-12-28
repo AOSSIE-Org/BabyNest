@@ -2,26 +2,33 @@ from db.db import open_db
 import re
 from datetime import datetime, timedelta
 
+# Finds regex match
+def patterns_match(patterns, query_lower):
+    temp = None
+    for pattern in patterns:
+        match = re.search(pattern, query_lower)
+        if match:
+            temp = match.group(1).strip()
+            break
+    return temp
+
 def parse_appointment_command(query: str):
     """Parse appointment creation commands from natural language."""
-    query_lower = query.lower()
+    query_lower = query.lower().strip()
     
     # Extract appointment type/title
     title_patterns = [
-        r'(?:make|schedule|book|create)\s+(?:an?\s+)?(?:appointment\s+for\s+)?(.+?)(?:\s+on\s+|\s+at\s+|\s+in\s+|$)',
-        r'(?:appointment|meeting)\s+(?:for\s+)?(.+?)(?:\s+on\s+|\s+at\s+|\s+in\s+|$)',
+        r'(?:make|book|schedule|create|set|arrange|fix)\s+(?:\b(?:a|an|the)\b\s+)?(?:appointment\s+for\s+)?(.+?)\s+(?:\s+on\s+|\s+at\s+|\s+in\s+|$)',
+        r'(?:appointment|meeting|visit)\s+(?:for|to)?\s+(.+?)(?:\s+on\s+|\s+at\s+|\s+in\s+|$)',
+         r'(?:make|book|schedule|create|set|arrange|fix)\s+.*?(?:\b(?:a|an|the)\b\s+)?(appointment|meeting|visit|checkup|scan|ultrasound|doctor|gynecologist|sonography)'
     ]
     
-    title = None
-    for pattern in title_patterns:
-        match = re.search(pattern, query_lower)
-        if match:
-            title = match.group(1).strip()
-            break
+    #(?:(?:a|an|the)?\s+)
+    title = patterns_match(title_patterns, query_lower)
     
     if not title:
         # Try to extract from common appointment types
-        appointment_types = ['ultrasound', 'checkup', 'doctor', 'prenatal', 'blood test', 'scan']
+        appointment_types = ['ultrasound', 'checkup', 'doctor', 'prenatal', 'blood test', 'scan', 'sonography']
         for apt_type in appointment_types:
             if apt_type in query_lower:
                 title = f"{apt_type.title()} Appointment"
@@ -29,42 +36,42 @@ def parse_appointment_command(query: str):
     
     # Extract date
     date_patterns = [
-        r'(?:on\s+|for\s+)(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2})',
-        r'(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2})',
+        r'(?:on\s+|for\s+|at\s+)(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thurs|fri|sat|sun)',
+        r'(?:on\s+|for\s+|at\s+)(\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}|\d{4}/\d{2}/\d{2})',
+        r'(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun|\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}|\d{4}/\d{2}/\d{2})',
     ]
     
-    date_str = None
-    for pattern in date_patterns:
-        match = re.search(pattern, query_lower)
-        if match:
-            date_str = match.group(1).strip()
-            break
+    date_str = patterns_match(date_patterns, query_lower)
     
     # Extract time
     time_patterns = [
-        r'(?:at\s+|for\s+)(\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening|night)',
-        r'(\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening|night)',
+        r'(?:at\s+|for\s+)(\d{1,2}:\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening|night)',
+        r'(\d{1,2}:\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening|night)',
     ]
     
-    time_str = None
-    for pattern in time_patterns:
-        match = re.search(pattern, query_lower)
-        if match:
-            time_str = match.group(1).strip()
-            break
+    time_str = patterns_match(time_patterns, query_lower)
     
     # Extract location
     location_patterns = [
-        r'(?:in\s+|at\s+|location\s+)(.+?)(?:\s+on\s+|\s+at\s+|$)',
-        r'(?:hospital|clinic|office|center)\s+(.+?)(?:\s+on\s+|\s+at\s+|$)',
+        r'(?:in\s+|at\s+|location\s+)(.+?)(?:\s+on\s+|\s+at\s+|\s+today|\s+tomorrow|\s+for\s+|$)',
+        r'(?:hospital|clinic|\boffice\b|center|chamber|facility|ward)\s+(.+?)(?:\s+on\s+|\s+at\s+|$)',
     ]
     
     location = None
-    for pattern in location_patterns:
+    i=0 
+
+    while(i<len(location_patterns)):
+        pattern=location_patterns[i]
         match = re.search(pattern, query_lower)
         if match:
-            location = match.group(1).strip()
-            break
+            if any(keyword in match.group(1) for keyword in ['today', 'tomorrow', 'morning', 'afternoon', 'evening', 'night', 'next week', 'am', 'pm']):
+                query_lower = (query_lower[match.end(1):]).strip()
+                i=0
+                continue
+            else:
+                location = match.group(1).strip()
+                break
+        i+=1
     
     return {
         'title': title,
@@ -181,7 +188,7 @@ def handle(query: str, user_context=None):
     query_lower = query.lower()
     
     # Check if this is an appointment creation command
-    if any(word in query_lower for word in ['make', 'schedule', 'book', 'create', 'appointment']):
+    if any(word in query_lower for word in ['make', 'schedule', 'book', 'create', 'appointment', 'set', 'arrange', 'fix']):
         parsed = parse_appointment_command(query)
         
         if parsed['title']:

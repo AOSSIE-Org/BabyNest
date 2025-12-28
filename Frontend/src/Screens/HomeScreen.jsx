@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -12,21 +12,19 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { BASE_URL } from '@env';
-import { useDrawer } from '../context/DrawerContext';
+import {BASE_URL} from '@env';
+import {useDrawer} from '../context/DrawerContext';
+import {babySizes} from '../data/babySizes';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({navigation}) {
   const [dueDate, setDueDate] = useState('');
   const [currentWeek, setCurrentWeek] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
-
-  const [appointments, setAppointments] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [allAppointments, setAllAppointments] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
-
+  const [currentBabySize, setCurrentBabySize] = useState('');
   const weekScrollRef = useRef(null);
-  const { openDrawer } = useDrawer();
+  const {openDrawer} = useDrawer();
 
   useEffect(() => {
     fetchData();
@@ -37,13 +35,14 @@ export default function HomeScreen({ navigation }) {
       const profileRes = await fetch(`${BASE_URL}/get_profile`);
       const profileData = await profileRes.json();
       const fetchedDueDate = profileData?.due_date;
-      
+
       if (fetchedDueDate) {
         setDueDate(fetchedDueDate);
         console.log(' Due Date:', fetchedDueDate); // Debugging line
 
         const calculatedWeek = calculateCurrentWeek(fetchedDueDate);
         setCurrentWeek(calculatedWeek);
+        setCurrentBabySize(babySizes[calculatedWeek - 1]);
         scrollToWeek(calculatedWeek);
       }
 
@@ -54,13 +53,12 @@ export default function HomeScreen({ navigation }) {
       const taskRes = await fetch(`${BASE_URL}/get_tasks`);
       const taskData = await taskRes.json();
       setAllTasks(taskData || []);
-
     } catch (error) {
       console.error('Error fetching data:', error);
     }
   };
 
-  const calculateCurrentWeek = (dueDateString) => {
+  const calculateCurrentWeek = dueDateString => {
     const dueDateObj = new Date(dueDateString);
     const conceptionDate = new Date(dueDateObj);
     conceptionDate.setDate(conceptionDate.getDate() - 280);
@@ -71,10 +69,10 @@ export default function HomeScreen({ navigation }) {
     return Math.min(Math.max(week, 1), 40);
   };
 
-  const scrollToWeek = (week) => {
+  const scrollToWeek = week => {
     setTimeout(() => {
       const scrollX = (week - 1) * 50 - 160;
-      weekScrollRef.current?.scrollTo({ x: scrollX, animated: true });
+      weekScrollRef.current?.scrollTo({x: scrollX, animated: true});
     }, 300);
   };
 
@@ -84,21 +82,22 @@ export default function HomeScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const handleWeekSelect = (week) => {
+  const handleWeekSelect = week => {
     setCurrentWeek(week);
+    setCurrentBabySize(babySizes[week - 1]);
   };
 
-  // ✅ Corrected Filtering Logic for Appointments (using date)
+  // ? Corrected Filtering Logic for Appointments (using date)
   const filteredAppointments = allAppointments
-    .map((appt) => {
+    .map(appt => {
       const appointmentDate = new Date(appt.appointment_date);
       const conceptionDate = new Date(dueDate);
       conceptionDate.setDate(conceptionDate.getDate() - 280);
       const diffInMs = appointmentDate - conceptionDate;
       const weekNumber = Math.floor(diffInMs / (1000 * 60 * 60 * 24 * 7));
-      return { ...appt, week_number: weekNumber };
+      return {...appt, week_number: weekNumber};
     })
-    .filter((appt) => appt.week_number > currentWeek)
+    .filter(appt => appt.week_number > currentWeek)
     .sort((a, b) => a.week_number - b.week_number)
     .slice(0, 2);
 
@@ -115,31 +114,42 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
+        }>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={openDrawer}>
             <Icon name="menu" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.appName}>BabyNest</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-            <Image source={require('../assets/Avatar.jpeg')} style={styles.profileImage} />
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <Image
+              source={require('../assets/Avatar.jpeg')}
+              style={styles.profileImage}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Baby Info */}
         <View style={styles.babyInfoContainer}>
-          <Image source={require('../assets/Baby.jpeg')} style={styles.babyImage} />
+          <Image
+            source={require('../assets/Baby.jpeg')}
+            style={styles.babyImage}
+          />
           <View style={styles.babyInfo}>
             <Text style={styles.weekText}>Week {currentWeek}</Text>
-            <Text style={styles.babySize}>Size of an avocado</Text>
+            <Text style={styles.babySize}>
+              {currentWeek >= 4 && 'Size of '}
+              {currentBabySize}
+            </Text>
             <Text style={styles.dueDate}>
-              Due: {dueDate ? new Date(dueDate).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              }) : 'Not available'}
+              Due:{' '}
+              {dueDate
+                ? new Date(dueDate).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })
+                : 'Not available'}
             </Text>
           </View>
         </View>
@@ -151,21 +161,20 @@ export default function HomeScreen({ navigation }) {
             horizontal
             ref={weekScrollRef}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.timelineScroll}
-          >
-            {Array.from({ length: 40 }, (_, i) => i + 1).map(week => (
+            contentContainerStyle={styles.timelineScroll}>
+            {Array.from({length: 40}, (_, i) => i + 1).map(week => (
               <TouchableOpacity
                 key={week}
                 style={[
                   styles.weekBubble,
                   currentWeek === week && styles.activeWeekBubble,
                 ]}
-                onPress={() => handleWeekSelect(week)}
-              >
-                <Text style={[
-                  styles.weekNumber,
-                  currentWeek === week && styles.activeWeekNumber,
-                ]}>
+                onPress={() => handleWeekSelect(week)}>
+                <Text
+                  style={[
+                    styles.weekNumber,
+                    currentWeek === week && styles.activeWeekNumber,
+                  ]}>
                   {week}
                 </Text>
               </TouchableOpacity>
@@ -181,7 +190,9 @@ export default function HomeScreen({ navigation }) {
               <Icon name="calendar" size={20} color="rgb(218,79,122)" />
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{appt.title}</Text>
-                <Text>{appt.appointment_date} at {appt.appointment_time}</Text>
+                <Text>
+                  {appt.appointment_date} at {appt.appointment_time}
+                </Text>
                 <Text>{appt.appointment_location}</Text>
               </View>
             </View>
@@ -193,7 +204,11 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.sectionTitle}>This Week's Tasks</Text>
           {filteredTasks.map((task, idx) => (
             <View key={idx} style={styles.card}>
-              <Icon name="checkmark-circle-outline" size={20} color="rgb(218,79,122)" />
+              <Icon
+                name="checkmark-circle-outline"
+                size={20}
+                color="rgb(218,79,122)"
+              />
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{task.title}</Text>
                 <Text>
@@ -216,8 +231,8 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF5F8' },
-  scrollContent: { paddingBottom: 100 },
+  container: {flex: 1, backgroundColor: '#FFF5F8'},
+  scrollContent: {paddingBottom: 100},
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -229,7 +244,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'rgb(218,79,122)',
   },
-  profileImage: { width: 40, height: 40, borderRadius: 20 },
+  profileImage: {width: 40, height: 40, borderRadius: 20},
   babyInfoContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -238,13 +253,13 @@ const styles = StyleSheet.create({
     padding: 20,
     elevation: 3,
   },
-  babyImage: { width: 100, height: 100, borderRadius: 50 },
-  babyInfo: { marginLeft: 20, justifyContent: 'center' },
-  weekText: { fontSize: 22, fontWeight: 'bold' },
-  babySize: { fontSize: 16, color: '#555', marginTop: 4 },
-  dueDate: { fontSize: 14, color: 'rgb(218,79,122)', marginTop: 4 },
-  timelineContainer: { paddingHorizontal: 20, marginTop: 10 },
-  timelineScroll: { paddingVertical: 10 },
+  babyImage: {width: 100, height: 100, borderRadius: 50},
+  babyInfo: {marginLeft: 20, justifyContent: 'center', flex: 1},
+  weekText: {fontSize: 22, fontWeight: 'bold'},
+  babySize: {fontSize: 14, color: '#555', marginTop: 4},
+  dueDate: {fontSize: 14, color: 'rgb(218,79,122)', marginTop: 4},
+  timelineContainer: {paddingHorizontal: 20, marginTop: 10},
+  timelineScroll: {paddingVertical: 10},
   weekBubble: {
     width: 40,
     height: 40,
@@ -254,10 +269,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 10,
   },
-  activeWeekBubble: { backgroundColor: 'rgb(218,79,122)' },
-  weekNumber: { fontWeight: '600', color: 'rgb(218,79,122)' },
-  activeWeekNumber: { color: '#fff' },
-  section: { paddingHorizontal: 20, marginTop: 30 },
+  activeWeekBubble: {backgroundColor: 'rgb(218,79,122)'},
+  weekNumber: {fontWeight: '600', color: 'rgb(218,79,122)'},
+  activeWeekNumber: {color: '#fff'},
+  section: {paddingHorizontal: 20, marginTop: 30},
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -272,8 +287,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     elevation: 2,
   },
-  cardContent: { marginLeft: 12 },
-  cardTitle: { fontWeight: 'bold', fontSize: 16 },
+  cardContent: {marginLeft: 12},
+  cardTitle: {fontWeight: 'bold', fontSize: 16},
   floatingButton: {
     position: 'absolute',
     bottom: 30,

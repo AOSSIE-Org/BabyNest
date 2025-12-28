@@ -17,7 +17,7 @@ import DueDateScreen from '../Screens/DueDateScreen';
 import DischargeScreen from '../Screens/DischargeScreen';
 import BloodPressureScreen from '../Screens/BloodPressureScreen';
 import AllTasksScreen from '../Screens/AllTasksScreen';
-
+import ProfileScreen from  '../Screens/ProfileScreen';
 const Stack = createStackNavigator();
 
 export default function StackNavigation() {
@@ -36,6 +36,7 @@ export default function StackNavigation() {
         <Stack.Screen name="SOSAlert" component={SOSAlertScreen} />
         <Stack.Screen name="EmergencyCalling" component={EmergencyCallingScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
 
         {/* Drawer-accessible screens */}
         <Stack.Screen name="Home" component={HomeScreen} />

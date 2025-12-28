@@ -12,19 +12,18 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
+import {useDrawer} from '../context/DrawerContext'
 export default function CustomHeader() {
   const navigation = useNavigation();
   const { theme } = useTheme();
-  const openDrawer = () => {
-    navigation.openDrawer();
-  };
+  const {openDrawer} = useDrawer()
 
   return (
     <>
       <LinearGradient
         colors={[theme.cardBackgroundprimary, theme.cardBackgroundsecondary]}
         style={styles.container}>
-        <StatusBar backgroundColor={theme.background}barStyle={theme.text} />
+        <StatusBar backgroundColor={theme.cardBackgroundprimary}/>
         <View style={styles.header}>
           <TouchableOpacity onPress={openDrawer} style={styles.menuButton}>
             <Icon name="menu" size={24} color={theme.text} />
