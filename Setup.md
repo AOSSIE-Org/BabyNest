@@ -146,6 +146,12 @@ cd Backend
 python app.py
 ```
 
+### 8) Do adb reverse to connect frontend and backend
+
+```sh
+adb reverse tcp:5000 tcp:5000
+```
+
 This will start the API locally.
 
 ---
