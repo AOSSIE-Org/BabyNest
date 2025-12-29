@@ -9,7 +9,7 @@ import {
   Easing,
 } from 'react-native';
 import { DrawerContext } from '../context/DrawerContext';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation, CommonActions, useNavigationState } from '@react-navigation/native';
 import { BASE_URL } from '@env';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -17,6 +17,14 @@ const DRAWER_WIDTH = 260;
 
 export default function CustomDrawer({ children }) {
   const navigation = useNavigation();
+  const currentRouteName = useNavigationState(state => {
+    if (!state) return 'Home';
+    const route = state.routes[state.index];
+    if (route.name === 'MainTabs') {
+        return route.state ? route.state.routes[route.state.index].name : 'Home';
+    }
+    return route.name;
+  });
 
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -145,7 +153,7 @@ export default function CustomDrawer({ children }) {
           </View>
 
            <TouchableOpacity onPress={() => navigateTo('Home')} style={styles.link}>
-            <Text>Home</Text>
+            <Text style={{ color: currentRouteName === 'Home' ? '#ff4081' : 'black' }}>Home</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigateTo('AllTasks')} style={styles.link}>
             <Text>Tasks & AI Recommendations</Text>
