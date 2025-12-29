@@ -12,7 +12,7 @@ export default function HeaderWithBack({ title }) {
         <Icon name="arrow-back" size={24} color="rgb(218,79,122)" />
       </TouchableOpacity>
       <Text style={styles.title}>{title}</Text>
-      <View style={{ width: 40 }} /> {/* Spacer to balance layout */}
+      <View style={{ width: 40 }} />
     </View>
   );
 }

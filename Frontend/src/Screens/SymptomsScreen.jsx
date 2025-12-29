@@ -209,10 +209,7 @@ export default function SymptomsScreen() {
                     size={20}
                     color="rgb(218,79,122)"
                   />
-                  <Text style={styles.entryText}>
-                    {' '}
-                    Week {entry.week_number}
-                  </Text>
+                  <Text style={styles.entryText}> Week {entry.week_number}</Text>
                 </View>
                 <View style={styles.iconRow}>
                   <Icon
