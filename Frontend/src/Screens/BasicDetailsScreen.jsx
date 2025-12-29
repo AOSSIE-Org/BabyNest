@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,15 @@ import {
   FlatList,
   Modal,
   ScrollView,
+  PermissionsAndroid,
+  ActivityIndicator,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {countries} from '../data/countries';
 import {BASE_URL} from '@env';
 import {Calendar} from 'react-native-calendars';
+import Geolocation from 'react-native-geolocation-service';
+
 export default function BasicDetailsScreen() {
   const navigation = useNavigation();
 
@@ -26,6 +30,83 @@ export default function BasicDetailsScreen() {
   const [weight, setWeight] = useState(65);
   const [errors, setErrors] = useState({});
   const [showCountryModal, setShowCountryModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  const filteredCountries = countries.filter(c =>
+    c.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  useEffect(() => {
+    detectLocation();
+  }, []);
+
+  const requestLocationPermission = async () => {
+    if (Platform.OS === 'ios') {
+      const auth = await Geolocation.requestAuthorization('whenInUse');
+      if (auth === 'granted') return true;
+      return false;
+    }
+
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Location Permission',
+          message: 'We need access to your location to detect your country.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return false;
+  };
+
+  const detectLocation = async () => {
+    setLoadingLocation(true);
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+      setErrors(prev => ({...prev, country: 'Location permission denied'}));
+      setLoadingLocation(false);
+      return;
+    }
+
+    Geolocation.getCurrentPosition(
+      async position => {
+        const {latitude, longitude} = position.coords;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            {
+              headers: {
+                'User-Agent': 'BabyNest/1.0',
+              },
+            },
+          );
+          const data = await response.json();
+          if (data && data.address && data.address.country) {
+            setCountry(data.address.country);
+            setErrors(prev => ({...prev, country: ''}));
+          } else {
+            setErrors(prev => ({...prev, country: 'Could not detect country'}));
+          }
+        } catch (error) {
+          console.error(error);
+          setErrors(prev => ({...prev, country: 'Error fetching country'}));
+        } finally {
+          setLoadingLocation(false);
+        }
+      },
+      error => {
+        console.log(error.code, error.message);
+        setErrors(prev => ({...prev, country: 'Error getting location'}));
+        setLoadingLocation(false);
+      },
+      {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+    );
+  };
 
   const handleContinue = async () => {
     let newErrors = {};
@@ -109,9 +190,14 @@ export default function BasicDetailsScreen() {
             <Text style={country ? styles.inputText : styles.placeholderText}>
               {country || 'Select Your Country'}
             </Text>
-            <Text style={styles.dropdownArrow}>▼</Text>
+            {loadingLocation && !country ? (
+              <ActivityIndicator size="small" color="#ff4081" />
+            ) : (
+              <Text style={styles.dropdownArrow}>▼</Text>
+            )}
           </View>
         </TouchableOpacity>
+
         {errors.country ? (
           <Text style={styles.errorText}>{errors.country}</Text>
         ) : null}
@@ -123,8 +209,14 @@ export default function BasicDetailsScreen() {
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select a Country</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search country..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
               <FlatList
-                data={countries}
+                data={filteredCountries}
                 keyExtractor={item => item}
                 renderItem={({item}) => (
                   <TouchableOpacity
@@ -300,6 +392,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    fontSize: 16,
   },
   countryItem: {
     padding: 15,
