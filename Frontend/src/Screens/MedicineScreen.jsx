@@ -1,4 +1,5 @@
 import React, {useState, useEffect} from 'react';
+import { scheduleNotification } from '../services/notification-service';
 import {
   View,
   ScrollView,
@@ -61,6 +62,11 @@ export default function MedicineScreen() {
       setDose('');
       setTime('');
       setNote('');
+      scheduleNotification(
+  'Medicine Reminder',
+  `${name} - ${dose}`,
+  new Date(Date.now() + 10000) // test: 10 seconds later
+);
       fetchMedicineHistory();
     } catch (err) {
       console.error('Failed to save medicine:', err);
