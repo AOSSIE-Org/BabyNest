@@ -100,7 +100,8 @@ CREATE TABLE IF NOT EXISTS profile (
 
 INSERT INTO profile (lmp, cycleLength, periodLength, age, weight, user_location) VALUES
 ('2025-01-01', 28, 5, 30, 65, 'New York'),
-('2025-01-15', 30, 6, 28, 70, 'Los Angeles'),
+('2025-01-15', 30, 6, 
+28, 70, 'Los Angeles'),
 ('2025-02-01', 26, 4, 32, 60, 'Chicago');
 
 

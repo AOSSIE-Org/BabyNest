@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import { scheduleNotification } from '../services/notification-service';
 import {
   View,
   Text,
@@ -167,6 +168,12 @@ const ScheduleScreen = () => {
           appointment_location: '',
         });
         fetchAppointments();
+scheduleNotification(
+  'Appointment Reminder',
+  newAppointment.title,
+  `${newAppointment.appointment_date}T${newAppointment.appointment_time}:00`
+);
+
 
         Toast.show({
           type: 'success',
