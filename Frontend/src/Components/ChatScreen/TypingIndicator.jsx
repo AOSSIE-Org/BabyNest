@@ -3,7 +3,7 @@ import { View, Animated, StyleSheet, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function TypingIndicator() {
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -71,13 +71,13 @@ const styles = StyleSheet.create({
   },
   dotsContainer: {
     flexDirection: 'row',
-    marginTop: 4, // slight optical adjustment
+    marginTop: 4, 
   },
   dot: {
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: "rgb(218,79,122)", // Theme color
+    backgroundColor: "rgb(218,79,122)", 
     marginHorizontal: 2,
   },
 });
