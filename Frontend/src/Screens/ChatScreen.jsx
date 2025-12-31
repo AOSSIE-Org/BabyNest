@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import Clipboard from "@react-native-clipboard/clipboard";
 import { useNavigation, CommonActions } from "@react-navigation/native";
-import { fetchAvailableGGUFs, downloadModel, generateResponse } from "../model/model";
+import { downloadModel, generateResponse } from "../model/model";
 import { GGUF_FILE, BASE_URL } from "@env";
 import { useTheme } from '../theme/ThemeContext';
 import { useAgentContext } from '../context/AgentContext';
@@ -22,23 +22,44 @@ import QuickReplies from '../Components/ChatScreen/QuickReplies';
 import TypingIndicator from '../Components/ChatScreen/TypingIndicator';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
+// Reducer for model state
+const initialModelState = {
+  isDownloading: false,
+  progress: 0,
+  isModelReady: false,
+};
+
+function modelReducer(state, action) {
+  switch (action.type) {
+    case 'START_INIT':
+      return { ...state, isModelReady: false };
+    case 'SET_DOWNLOADING':
+      return { ...state, isDownloading: action.payload };
+    case 'SET_PROGRESS':
+      return { ...state, progress: action.payload };
+    case 'INIT_SUCCESS':
+      return { ...state, isDownloading: false, isModelReady: true };
+    case 'INIT_FAILURE':
+      return { ...state, isDownloading: false, isModelReady: false };
+    default:
+      return state;
+  }
+}
+
 export default function ChatScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { context, refreshContext, initializeContext, isInitialized } = useAgentContext();
 
+  const [modelState, dispatch] = React.useReducer(modelReducer, initialModelState);
+  const { isDownloading, progress, isModelReady } = modelState;
   const [conversation, setConversation] = useState([]);
-  const [availableGGUFs, setAvailableGGUFs] = useState([]);
-  const [progress, setProgress] = useState(0);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [useRAGMode, setUseRAGMode] = useState(true); 
   
   const flatListRef = useRef(null);
-
-  const [isModelReady, setIsModelReady] = useState(false);
   
 
 
@@ -95,30 +116,30 @@ export default function ChatScreen() {
   useEffect(() => {
     const initModel = async () => {
       try {
-        setIsModelReady(false);
+        dispatch({ type: 'START_INIT' });
         // Direct initialization - downloadModel handles local check internally
         console.log(`Initializing model ${GGUF_FILE}...`);
         
         // We set downloading true just in case it needs to download, 
         // but if it's local it will clear quickly.
-        // Ideally downloadModel could return 'loaded_from_cache' but boolean is fine.
-        setIsDownloading(true);
-        setProgress(0);
+        dispatch({ type: 'SET_DOWNLOADING', payload: true });
+        dispatch({ type: 'SET_PROGRESS', payload: 0 });
 
-        const success = await downloadModel(GGUF_FILE, setProgress);
-        setIsDownloading(false);
+        const success = await downloadModel(GGUF_FILE, (p) => dispatch({ type: 'SET_PROGRESS', payload: p }));
+        dispatch({ type: 'SET_DOWNLOADING', payload: false });
         
         if (success) {
-          setIsModelReady(true);
+          dispatch({ type: 'INIT_SUCCESS' });
           console.log("Model initialized successfully!");
         } else {
            console.warn("Model initialization failed.");
+           dispatch({ type: 'INIT_FAILURE' });
         }
 
       } catch (error) {
         Alert.alert("Error", "Failed to init model: " + error.message);
         console.error(error);
-        setIsDownloading(false);
+        dispatch({ type: 'INIT_FAILURE' });
       }
     };
     initModel();
@@ -192,21 +213,11 @@ export default function ChatScreen() {
         };
       }
 
-      // 🔍 DEBUGGING: Log result before processing
-      console.log('🔍 Result processing debug:', {
-        result: result,
-        resultType: typeof result,
-        resultKeys: result ? Object.keys(result) : 'N/A',
-        hasMessage: result && result.message !== undefined,
-        hasIntent: result && result.intent !== undefined,
-        hasPartialData: result && result.partialData !== undefined
-      });
+
       
       // Additional debugging for undefined errors
       if (!result) {
-        console.error('❌ RESULT IS NULL/UNDEFINED!');
-        console.error('User input:', userInput);
-        console.error('Context:', context);
+        // console.error('❌ RESULT IS NULL/UNDEFINED!');
       }
 
       if (result && typeof result === 'object') {
@@ -225,12 +236,7 @@ export default function ChatScreen() {
 
         // Handle navigation commands
         if (result.action === 'navigate' && result.screen) {
-          console.log('🧭 Navigation Debug:', {
-            action: result.action,
-            screen: result.screen,
-            screenType: typeof result.screen,
-            resultObject: result
-          });
+
           setTimeout(() => {
             navigation.navigate(result.screen);
           }, 1000);
