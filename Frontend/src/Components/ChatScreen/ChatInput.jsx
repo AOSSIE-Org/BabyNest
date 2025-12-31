@@ -18,7 +18,7 @@ export default function ChatInput({
     >
       <View style={styles.inputWrapper}>
         <View style={styles.inputCard}>
-          <TouchableOpacity style={styles.iconButton} onPress={handlePaste}>
+          <TouchableOpacity style={styles.iconButton} onPress={handlePaste} accessibilityLabel="Paste from clipboard">
             <Icon name="content-paste" size={20} color="rgba(0,0,0,0.4)"/>
           </TouchableOpacity>
           
@@ -38,9 +38,10 @@ export default function ChatInput({
 
            {userInput.length > 0 && (
             <TouchableOpacity 
-              style={[styles.sendButton, { marginLeft: 8 }, (!useRAGMode && !isModelReady) && { opacity: 0.5 }]} 
+              style={[styles.sendButton, (!useRAGMode && !isModelReady) && { opacity: 0.5 }]} 
               onPress={handleSendMessage}
               disabled={isGenerating || (!useRAGMode && !isModelReady)}
+              accessibilityLabel="Send message"
             >
               <Icon name="arrow-upward" size={20} color="#fff" />
             </TouchableOpacity>
@@ -88,6 +89,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgb(218,79,122)",
     padding: 8,
     borderRadius: 20,
-    marginLeft: 5,
+    marginLeft: 8,
   },
 });

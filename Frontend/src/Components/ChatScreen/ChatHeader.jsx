@@ -26,9 +26,9 @@ export default function ChatHeader({
         />
       </TouchableOpacity>
       <TouchableOpacity 
-        style={[styles.headerButton, { marginLeft: 8, opacity: conversationLength ? 1 : 0.5 }]}
+        style={[styles.headerButton, { marginLeft: 8, opacity: conversationLength > 0 ? 1 : 0.5 }]}
         onPress={clearConversation}
-        disabled={conversationLength === 0}
+        disabled={!conversationLength || conversationLength === 0}
       >
            <Icon 
             name="delete" 

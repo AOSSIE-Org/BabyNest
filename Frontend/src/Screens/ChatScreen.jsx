@@ -90,11 +90,17 @@ export default function ChatScreen() {
         const storedChats = await AsyncStorage.getItem('chat_history');
         if (storedChats) {
           const parsedChats = JSON.parse(storedChats);
+          if (!Array.isArray(parsedChats)) {
+            console.warn('Invalid chat history format, resetting...');
+            return;
+          }
           setConversation(parsedChats);
           
           // Hydrate conversation context for memory
           parsedChats.forEach(msg => {
-            conversationContext.addMessage(msg.role, msg.content);
+            if (msg?.role && msg?.content) {
+              conversationContext.addMessage(msg.role, msg.content);
+            }
           });
         }
       } catch (error) {
@@ -114,18 +120,24 @@ export default function ChatScreen() {
   };
   
   useEffect(() => {
+    let isMounted = true;
+    
     const initModel = async () => {
       try {
-        dispatch({ type: 'START_INIT' });
+        if (isMounted) dispatch({ type: 'START_INIT' });
         // Direct initialization - downloadModel handles local check internally
         console.log(`Initializing model ${GGUF_FILE}...`);
         
         // We set downloading true just in case it needs to download, 
         // but if it's local it will clear quickly.
-        dispatch({ type: 'SET_DOWNLOADING', payload: true });
-        dispatch({ type: 'SET_PROGRESS', payload: 0 });
+        if (isMounted) dispatch({ type: 'SET_DOWNLOADING', payload: true });
+        if (isMounted) dispatch({ type: 'SET_PROGRESS', payload: 0 });
 
-        const success = await downloadModel(GGUF_FILE, (p) => dispatch({ type: 'SET_PROGRESS', payload: p }));
+        const success = await downloadModel(GGUF_FILE, (p) => {
+          if (isMounted) dispatch({ type: 'SET_PROGRESS', payload: p });
+        });
+        
+        if (!isMounted) return;
         dispatch({ type: 'SET_DOWNLOADING', payload: false });
         
         if (success) {
@@ -137,12 +149,16 @@ export default function ChatScreen() {
         }
 
       } catch (error) {
-        Alert.alert("Error", "Failed to init model: " + error.message);
+        if (isMounted) Alert.alert("Error", "Failed to init model: " + error.message);
         console.error(error);
-        dispatch({ type: 'INIT_FAILURE' });
+        if (isMounted) dispatch({ type: 'INIT_FAILURE' });
       }
     };
     initModel();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
 
@@ -274,7 +290,7 @@ export default function ChatScreen() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              query: userInput,
+              query: textToSend,
               user_id: "default"
             }),
           });
@@ -338,7 +354,7 @@ export default function ChatScreen() {
     // Generate quick replies based on missing fields
     missingFields.forEach(field => {
       switch (field) {
-        case 'time': // Add generic time
+        case 'time': 
         case 'appointment_time':
           replies.push('Morning', 'Afternoon', 'Evening', '9:00 AM', '2:00 PM');
           break;
@@ -377,9 +393,7 @@ export default function ChatScreen() {
         case 'action_type':
           replies.push('Last', 'Weight', 'Appointment', 'Sleep');
           break;
-        case 'medicine_name':
-          replies.push('Paracetamol', 'Iron', 'Folic Acid', 'Calcium');
-          break;
+
         case 'frequency':
           replies.push('Twice daily', 'Once daily', 'As needed', 'Three times');
           break;
@@ -417,7 +431,7 @@ export default function ChatScreen() {
       }
     });
     
-    // Remove duplicates and limit to 4 replies
+
     return [...new Set(replies)].slice(0, 4);
   };
 
