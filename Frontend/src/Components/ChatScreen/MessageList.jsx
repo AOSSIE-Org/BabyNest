@@ -10,7 +10,7 @@ export default function MessageList({ conversation, flatListRef, theme, footer, 
     heading2: { color: "rgb(218,79,122)", fontWeight: "bold", marginVertical: 8 },
     strong: { fontWeight: "bold", color: "rgb(218,79,122)" },
     list_item: { marginVertical: 5 },
-  }), [theme]);
+  }), []);
 
   // Track if we should auto-scroll (e.g. only on new messages)
   const prevDataLength = React.useRef(conversation.length);
