@@ -72,7 +72,8 @@ export const downloadModel = async (fileName, onProgress) => {
   const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
 
   if (await RNFS.exists(destPath)) {
-    await loadModel(fileName);
+    const loaded = await loadModel(fileName);
+    if (!loaded) return null;
     return destPath;
   }
 
@@ -88,11 +89,13 @@ export const downloadModel = async (fileName, onProgress) => {
     }).promise;
 
     if (!(await RNFS.exists(destPath))) throw new Error("Download failed. File does not exist.");
-    await loadModel(fileName);
+    const loaded = await loadModel(fileName);
+    if (!loaded) return null;
     return destPath;
   } 
   catch (error) {
     Alert.alert("Error", error.message || "Failed to download model.");
+    return null;
   }
 };
 
@@ -109,14 +112,15 @@ export const loadModel = async (modelName) => {
       context = null;
     }
 
-    if (!(await checkMemoryBeforeLoading(destPath))) return;
+    if (!(await checkMemoryBeforeLoading(destPath))) return false;
 
     context = await initLlama({
         model: destPath, 
         n_ctx: 2048,
-        n_gpu_layers: 0 
+        n_gpu_layers: 0, // Disabled GPU layers to fix emulator lag/hang
+        n_threads: 2     // Reduced threads for emulator stability
     });
-
+    if (__DEV__) console.log("Model context initialized.");
     return true;
   } catch (error) {
     Alert.alert("Error Loading Model", error.message || "An unknown error occurred.");
@@ -124,13 +128,26 @@ export const loadModel = async (modelName) => {
   }
 };
 
+export const unloadModel = async () => {
+  try {
+    if (context) {
+      if (__DEV__) console.log("Releasing model context...");
+      await releaseAllLlama();
+      context = null;
+      if (__DEV__) console.log("Model context released.");
+    }
+  } catch (error) {
+    console.error("Failed to release model context:", error);
+  }
+};
+
 export const generateResponse = async (conversation) => {
-    if (!context) {
-      Alert.alert("Model Not Loaded", "Please load the model first.");
+    if (!Array.isArray(conversation)) {
+      console.warn("generateResponse: conversation is not an array", conversation);
       return null;
     }
 
-    const lastMessage = conversation.filter(msg => msg.role === "user").pop();
+    const lastMessage = conversation.filter(msg => msg?.role === "user").pop();
     const cacheKey = lastMessage?.content?.trim();
 
     if (cacheKey) {
@@ -172,13 +189,25 @@ export const generateResponse = async (conversation) => {
         messagesToSend = [defaultSystemMessage, ...conversation];
       }
   
+      if (__DEV__) console.log("Starting inference...");
+      const startTime = Date.now();
       const result = await context.completion({
         messages: messagesToSend,
-        n_predict: 500,
+        n_predict: 256, // Reduced from 500 for faster felt response
         stop: stopWords
       });
+      if (__DEV__) {
+        const endTime = Date.now();
+        console.log(`⚡ Inference Time: ${endTime - startTime}ms`);
+      }
   
       const response = result?.text?.trim();
+      
+      // Cache the successful response
+      if (response && cacheKey) {
+        setCache(cacheKey, response);
+      }
+
       return response;
 
     } catch (error) {

@@ -5,16 +5,16 @@ const ThemeContext = createContext();
 
 const themes = {
   default: {
-    primary:'#DC5881',
-    background: '#fff',
+    primary:'rgb(218,79,122)',
+    background: '#FFF5F8',
     text: 'rgb(0, 0, 0)',
-    cardBackgroundprimary: 'rgb(35,79,147)',
-    cardBackgroundsecondary: 'rgb(90,110,203)',
-    iconBackground: '#ff4081',
+    cardBackgroundprimary: '#ffffff', // White cards on pink background
+    cardBackgroundsecondary: '#ffffff',
+    iconBackground: 'rgb(218,79,122)',
     iconText: 'rgb(255, 255, 255)',
     button: 'rgb(218,79,122)',
-    factcardprimary: 'rgb(246,199,210)',
-    factcardsecondary: 'rgb(249, 234, 234)',
+    factcardprimary: '#ffffff',
+    factcardsecondary: '#f8f8f8',
     appointment: '#fce4ec'
   },
   light: {
@@ -33,7 +33,7 @@ const themes = {
   dark: {
     primary: '#9e2a2b', 
     background: '#fff', 
-    text: 'fff3b0', 
+    text: '#fff3b0', 
     cardBackgroundprimary: '#e09f3e', 
     cardBackgroundsecondary: '#e09f3e', 
     iconBackground: '#9e2a2b', 
@@ -60,7 +60,7 @@ const themes = {
 
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(themes.light);
+  const [theme, setTheme] = useState(themes.default);
 
   const updateTheme = (themeName) => {
     if (themes[themeName]) {
