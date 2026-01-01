@@ -20,8 +20,12 @@ export default function ChatInput({
     >
       <View style={styles.inputWrapper}>
         <View style={styles.inputCard}>
-          <TouchableOpacity style={styles.iconButton} onPress={handlePaste} accessibilityLabel="Paste from clipboard">
-            <Icon name="content-paste" size={20} color="rgba(0,0,0,0.4)"/>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={handlePaste} 
+            accessibilityLabel="Paste from clipboard"
+          >
+            <Icon name="content-paste" size={20} color="rgba(218,79,122,0.4)"/>
           </TouchableOpacity>
           
           {(!useRAGMode && !isModelReady && modelError) ? (
@@ -31,7 +35,10 @@ export default function ChatInput({
             </TouchableOpacity>
           ) : (
             <TextInput
-              style={[styles.input, { opacity: (!useRAGMode && !isModelReady) ? 0.5 : 1 }]}
+              style={[
+                styles.input, 
+                { opacity: (!useRAGMode && !isModelReady) ? 0.5 : 1 }
+              ]}
               value={userInput}
               onChangeText={setUserInput}
               editable={useRAGMode || isModelReady}
@@ -40,17 +47,18 @@ export default function ChatInput({
                   ? "Loading model..." 
                   : (useRAGMode ? "Ask Agent..." : "Ask Anything...")
               }
-              placeholderTextColor="#999"
+              placeholderTextColor="rgba(0,0,0,0.3)"
               multiline
             />
           )}
 
-
-
             {userInput?.length > 0 && (
             <TouchableOpacity 
-              style={[styles.sendButton, (!useRAGMode && !isModelReady) && { opacity: 0.5 }]} 
-              onPress={handleSendMessage}
+              style={[
+                styles.sendButton, 
+                (!useRAGMode && !isModelReady) && { opacity: 0.5 }
+              ]} 
+              onPress={() => handleSendMessage()}
               disabled={isGenerating || (!useRAGMode && !isModelReady)}
               accessibilityLabel="Send message"
             >
@@ -80,8 +88,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(218,79,122,0.1)',
   },
   input: {
     flex: 1,

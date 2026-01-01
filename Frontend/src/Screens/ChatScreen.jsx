@@ -75,7 +75,10 @@ export default function ChatScreen() {
       "Are you sure you want to delete all messages?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: baseClearConversation }
+        { text: "Delete", style: "destructive", onPress: () => {
+            baseClearConversation();
+            setShowScrollToBottom(false);
+        }}
       ]
     );
   };
@@ -286,6 +289,7 @@ export default function ChatScreen() {
           flatListRef={flatListRef}
           theme={theme}
           onScrollPositionChange={setShowScrollToBottom}
+          onCopyMessage={handleCopyMessage}
           footer={
             isGenerating ? (
               <View style={styles.typingContainer}>
@@ -298,7 +302,7 @@ export default function ChatScreen() {
 
 
 
-      {showScrollToBottom && (
+      {showScrollToBottom && conversation.length > 0 && (
         <TouchableOpacity style={styles.scrollToBottomButton} onPress={scrollToBottom}>
           <Icon name="keyboard-arrow-down" size={30} color="#333" />
         </TouchableOpacity>

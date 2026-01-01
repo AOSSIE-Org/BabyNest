@@ -1,16 +1,26 @@
 import React, { useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import Markdown from "react-native-markdown-display";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
-export default function MessageList({ conversation, flatListRef, theme, footer, onScrollPositionChange }) {
+export default function MessageList({ conversation, flatListRef, theme, footer, onScrollPositionChange, onCopyMessage }) {
   const markdownStyles = useMemo(() => ({
-    body: { color: "#000000", fontSize: 16, lineHeight: 24 },
+    body: { color: "#000000", fontSize: 16, lineHeight: 24, marginVertical: 0, paddingVertical: 0 },
     heading1: { color: "rgb(218,79,122)", fontWeight: "bold", marginVertical: 10 },
     heading2: { color: "rgb(218,79,122)", fontWeight: "bold", marginVertical: 8 },
     strong: { fontWeight: "bold", color: "rgb(218,79,122)" },
     list_item: { marginVertical: 5 },
   }), [theme]);
+
+  // Track if we should auto-scroll (e.g. only on new messages)
+  const prevDataLength = React.useRef(conversation.length);
+  
+  React.useEffect(() => {
+    if (conversation.length > prevDataLength.current) {
+        flatListRef.current?.scrollToEnd({ animated: true });
+    }
+    prevDataLength.current = conversation.length;
+  }, [conversation.length]);
 
   return (
     <FlatList
@@ -26,10 +36,14 @@ export default function MessageList({ conversation, flatListRef, theme, footer, 
                   <Icon name="smart-toy" size={20} color="rgb(218,79,122)" />
                </View>
             )}
-            <View style={[
-              isUser ? styles.userMessageContainer : styles.botMessageContainer,
-              !isUser && styles.messageContent
-            ]}>
+            <TouchableOpacity 
+                activeOpacity={0.8}
+                onLongPress={() => onCopyMessage?.(item.content)}
+                style={[
+                    isUser ? styles.userMessageContainer : styles.botMessageContainer,
+                    !isUser && styles.messageContent
+                ]}
+            >
               {isUser ? (
                 <Text style={styles.userMessageText}>{item.content}</Text>
               ) : (
@@ -37,23 +51,27 @@ export default function MessageList({ conversation, flatListRef, theme, footer, 
                   {item.content}
                 </Markdown>
               )}
-            </View>
+              {item.timestamp && (
+                  <Text style={[
+                      styles.timestampText, 
+                      { textAlign: isUser ? 'right' : 'left' }
+                  ]}>
+                      {item.timestamp}
+                  </Text>
+              )}
+            </TouchableOpacity>
           </View>
         );
       }}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.chatArea}
-      onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-      onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
       showsVerticalScrollIndicator={false}
       onScroll={({ nativeEvent }) => {
         const { contentOffset, layoutMeasurement, contentSize } = nativeEvent;
-        // Threshold can be adjusted, e.g., 20 or 50 pixels
-        const threshold = 20; 
+        const threshold = 50; 
         const isNearBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - threshold;
         
         if (onScrollPositionChange) {
-          // If NOT near bottom, show button (true). If near bottom, hide button (false).
           onScrollPositionChange(!isNearBottom);
         }
       }}
@@ -108,5 +126,10 @@ const styles = StyleSheet.create({
     color: '#000000',
     lineHeight: 24,
     textAlign: 'right',
+  },
+  timestampText: {
+    fontSize: 10,
+    color: 'rgba(0,0,0,0.3)',
+    marginTop: 4,
   },
 });

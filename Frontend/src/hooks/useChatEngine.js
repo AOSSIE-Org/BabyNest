@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generateResponse } from '../model/model';
@@ -9,6 +9,7 @@ import { BASE_URL } from "@env";
 export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [conversation, setConversation] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const cancellationRef = useRef(0);
 
   // Load chats on mount
   useEffect(() => {
@@ -35,19 +36,22 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   }, []);
 
   // Sync to storage
-  const saveChats = async (newConversation) => {
+  const saveChats = useCallback(async (newConversation) => {
     try {
       await AsyncStorage.setItem('chat_history', JSON.stringify(newConversation));
     } catch (error) {
       console.error("Failed to save chats", error);
     }
-  };
-
-  const clearConversation = useCallback(() => {
-    setConversation([]);
-    saveChats([]);
-    conversationContext.clearConversationHistory();
   }, []);
+
+  const generateID = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  const clearConversation = useCallback(async () => {
+    cancellationRef.current += 1; // Block pending responses
+    setConversation([]);
+    conversationContext.clearConversationHistory();
+    await saveChats([]);
+  }, [saveChats]);
 
   const sendMessage = useCallback(async (text, useRAGMode, initializeContext) => {
     if (!text || !text.trim()) return;
@@ -61,40 +65,57 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       }
     }
 
-    const userMessage = { id: Date.now().toString(), role: "user", content: text };
+    const formatTime = () => {
+      const now = new Date();
+      return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const userMessage = { 
+      id: generateID(), 
+      role: "user", 
+      content: text,
+      timestamp: formatTime()
+    };
+    const cancellationId = cancellationRef.current;
     
     // Add message to conversation context immediately
     conversationContext.addMessage('user', text);
     setIsGenerating(true);
 
-    let currentConversation;
+    // We use functional update to ensure we always have the latest state, 
+    // even if clearConversation was called just before this.
     setConversation(prev => {
-      currentConversation = [...prev, userMessage];
-      saveChats(currentConversation);
-      return currentConversation;
+      const newHistory = [...prev, userMessage];
+      saveChats(newHistory);
+      return newHistory;
     });
 
     try {
       let response = null;
       let result = null;
 
-      await ragService.initialize();
+      // Prepare the history for the model. 
+      // Important: We use the most recent history available in this render cycle plus the new message.
+      const updatedConversationForModel = [...conversation, userMessage];
+
       conversationContext.setUserContext(context);
 
       if (useRAGMode) {
         if (conversationContext.hasPendingFollowUp()) {
-          console.log('🤖 Processing follow-up response with RAG...');
+          if (__DEV__) console.log('🤖 Processing follow-up response with RAG...');
           result = await conversationContext.processFollowUpResponse(text, ragService);
         } else {
-          console.log('🤖 Processing new query with RAG...');
+          if (__DEV__) console.log('🤖 Processing new query with RAG...');
           result = await ragService.processQuery(text, context);
         }
       } else {
-        console.log('📞 Processing with local model...');
+        if (__DEV__) console.log('📞 Processing with local model...');
         const startTime = Date.now();
-        response = await generateResponse(currentConversation);
-        const endTime = Date.now();
-        console.log(`⏱️ Model Response Latency: ${endTime - startTime}ms`);
+        response = await generateResponse(updatedConversationForModel);
+        if (__DEV__) {
+            const endTime = Date.now();
+            console.log(`⏱️ Model Response Latency: ${endTime - startTime}ms`);
+        }
         
         result = { message: response, intent: 'general_chat', action: null };
       }
@@ -136,12 +157,23 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
         } catch (backendError) {
           clearTimeout(timeoutId);
           console.warn('Backend fallback failed or timed out, using local model:', backendError.message);
-          response = await generateResponse(currentConversation);
+          response = await generateResponse(updatedConversationForModel);
         }
       }
 
+      // 🛡️ Cancellation Guard: If the conversation was cleared while thinking, discard the response.
+      if (cancellationId !== cancellationRef.current) {
+        if (__DEV__) console.log('🚫 AI response blocked: Conversation was cleared.');
+        return;
+      }
+
       if (response) {
-        const botMessage = { id: (Date.now() + 1).toString(), role: "assistant", content: response };
+        const botMessage = { 
+          id: generateID(), 
+          role: "assistant", 
+          content: response,
+          timestamp: formatTime()
+        };
         setConversation(prev => {
           const newHistory = [...prev, botMessage];
           saveChats(newHistory);
@@ -158,7 +190,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [isInitialized, context, saveChats]);
+  }, [isInitialized, context, saveChats, conversation]); // conversation added as dependency to avoid stale closure
 
   return {
     conversation,
