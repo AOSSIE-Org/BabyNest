@@ -33,7 +33,7 @@ const themes = {
   dark: {
     primary: '#9e2a2b', 
     background: '#fff', 
-    text: 'fff3b0', 
+    text: '#fff3b0', 
     cardBackgroundprimary: '#e09f3e', 
     cardBackgroundsecondary: '#e09f3e', 
     iconBackground: '#9e2a2b', 
