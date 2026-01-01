@@ -47,7 +47,7 @@ export default function ChatInput({
 
 
 
-           {userInput.length > 0 && (
+            {userInput?.length > 0 && (
             <TouchableOpacity 
               style={[styles.sendButton, (!useRAGMode && !isModelReady) && { opacity: 0.5 }]} 
               onPress={handleSendMessage}

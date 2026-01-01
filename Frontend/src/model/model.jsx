@@ -112,7 +112,7 @@ export const loadModel = async (modelName) => {
       context = null;
     }
 
-    if (!(await checkMemoryBeforeLoading(destPath))) return;
+    if (!(await checkMemoryBeforeLoading(destPath))) return false;
 
     context = await initLlama({
         model: destPath, 

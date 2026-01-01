@@ -49,7 +49,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     conversationContext.clearConversationHistory();
   }, []);
 
-  const sendMessage = async (text, useRAGMode, initializeContext) => {
+  const sendMessage = useCallback(async (text, useRAGMode, initializeContext) => {
     if (!text || !text.trim()) return;
 
     // Ensure context is initialized
@@ -62,13 +62,17 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     }
 
     const userMessage = { id: Date.now().toString(), role: "user", content: text };
-    const updatedConversation = [...conversation, userMessage];
     
-    setConversation(updatedConversation);
-    saveChats(updatedConversation);
-    setIsGenerating(true);
-    
+    // Add message to conversation context immediately
     conversationContext.addMessage('user', text);
+    setIsGenerating(true);
+
+    let currentConversation;
+    setConversation(prev => {
+      currentConversation = [...prev, userMessage];
+      saveChats(currentConversation);
+      return currentConversation;
+    });
 
     try {
       let response = null;
@@ -88,7 +92,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       } else {
         console.log('📞 Processing with local model...');
         const startTime = Date.now();
-        response = await generateResponse(updatedConversation);
+        response = await generateResponse(currentConversation);
         const endTime = Date.now();
         console.log(`⏱️ Model Response Latency: ${endTime - startTime}ms`);
         
@@ -108,18 +112,21 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
         } else {
           conversationContext.clearPendingFollowUp();
         }
-
-        // Return result for UI-side effects (navigation, etc)
-        // Note: Actual navigation should be handled by the component
       } else {
         // Fallback to backend agent
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
         try {
           const agentResponse = await fetch(`${BASE_URL}/agent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query: text, user_id: "default" }),
+            signal: controller.signal
           });
           
+          clearTimeout(timeoutId);
+
           if (agentResponse.ok) {
             const agentData = await agentResponse.json();
             response = agentData.response;
@@ -127,20 +134,23 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
             throw new Error('Backend agent failed');
           }
         } catch (backendError) {
-          console.warn('Backend fallback failed, using local model:', backendError.message);
-          response = await generateResponse(updatedConversation);
+          clearTimeout(timeoutId);
+          console.warn('Backend fallback failed or timed out, using local model:', backendError.message);
+          response = await generateResponse(currentConversation);
         }
       }
 
       if (response) {
         const botMessage = { id: (Date.now() + 1).toString(), role: "assistant", content: response };
-        const newHistory = [...updatedConversation, botMessage];
-        setConversation(newHistory);
-        saveChats(newHistory);
+        setConversation(prev => {
+          const newHistory = [...prev, botMessage];
+          saveChats(newHistory);
+          return newHistory;
+        });
         conversationContext.addMessage('assistant', response);
       }
 
-      return result; // Return result for secondary effects in screen
+      return result;
 
     } catch (error) {
       Alert.alert("Error", "Failed to generate response: " + error.message);
@@ -148,7 +158,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [isInitialized, context, saveChats]);
 
   return {
     conversation,
