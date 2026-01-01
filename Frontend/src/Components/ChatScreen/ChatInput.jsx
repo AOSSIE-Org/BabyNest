@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function ChatInput({ 
@@ -9,7 +9,9 @@ export default function ChatInput({
   isGenerating, 
   isModelReady,
   useRAGMode,
-  handlePaste 
+  handlePaste,
+  modelError,
+  onRetryModel
 }) {
   return (
     <KeyboardAvoidingView 
@@ -22,19 +24,28 @@ export default function ChatInput({
             <Icon name="content-paste" size={20} color="rgba(0,0,0,0.4)"/>
           </TouchableOpacity>
           
-          <TextInput
-            style={[styles.input, { opacity: (!useRAGMode && !isModelReady) ? 0.5 : 1 }]}
-            value={userInput}
-            onChangeText={setUserInput}
-            editable={useRAGMode || isModelReady}
-            placeholder={
-              !useRAGMode && !isModelReady 
-                ? "Loading model..." 
-                : (useRAGMode ? "Ask Agent..." : "Ask Anything...")
-            }
-            placeholderTextColor="#999"
-            multiline
-          />
+          {(!useRAGMode && !isModelReady && modelError) ? (
+            <TouchableOpacity onPress={onRetryModel} style={styles.errorContainer}>
+               <Text style={styles.errorText}>Model Failed. Tap to Retry</Text>
+               <Icon name="refresh" size={20} color="#D32F2F" />
+            </TouchableOpacity>
+          ) : (
+            <TextInput
+              style={[styles.input, { opacity: (!useRAGMode && !isModelReady) ? 0.5 : 1 }]}
+              value={userInput}
+              onChangeText={setUserInput}
+              editable={useRAGMode || isModelReady}
+              placeholder={
+                !useRAGMode && !isModelReady 
+                  ? "Loading model..." 
+                  : (useRAGMode ? "Ask Agent..." : "Ask Anything...")
+              }
+              placeholderTextColor="#999"
+              multiline
+            />
+          )}
+
+
 
            {userInput.length > 0 && (
             <TouchableOpacity 
@@ -90,5 +101,17 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 20,
     marginLeft: 8,
+  },
+  errorContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  errorText: {
+    color: '#D32F2F',
+    marginRight: 8,
+    fontWeight: 'bold',
   },
 });

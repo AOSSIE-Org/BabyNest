@@ -5,13 +5,13 @@ import {
 } from "react-native";
 import Clipboard from "@react-native-clipboard/clipboard";
 import { useNavigation, CommonActions } from "@react-navigation/native";
-import { downloadModel, generateResponse } from "../model/model";
+import { downloadModel, generateResponse, unloadModel } from "../model/model";
 import { GGUF_FILE, BASE_URL } from "@env";
 import { useTheme } from '../theme/ThemeContext';
 import { useAgentContext } from '../context/AgentContext';
 import { ragService } from '../services/RAGService';
 import { conversationContext } from '../services/ConversationContext'; 
-
+import { useChatEngine } from '../hooks/useChatEngine';
 
 // Components
 import ChatHeader from '../Components/ChatScreen/ChatHeader';
@@ -27,20 +27,21 @@ const initialModelState = {
   isDownloading: false,
   progress: 0,
   isModelReady: false,
+  error: null,
 };
 
 function modelReducer(state, action) {
   switch (action.type) {
     case 'START_INIT':
-      return { ...state, isModelReady: false };
+      return { ...state, isModelReady: false, error: null };
     case 'SET_DOWNLOADING':
       return { ...state, isDownloading: action.payload };
     case 'SET_PROGRESS':
       return { ...state, progress: action.payload };
     case 'INIT_SUCCESS':
-      return { ...state, isDownloading: false, isModelReady: true };
+      return { ...state, isDownloading: false, isModelReady: true, error: null };
     case 'INIT_FAILURE':
-      return { ...state, isDownloading: false, isModelReady: false };
+      return { ...state, isDownloading: false, isModelReady: false, error: action.payload || "Initialization failed" };
     default:
       return state;
   }
@@ -52,279 +53,103 @@ export default function ChatScreen() {
   const { context, refreshContext, initializeContext, isInitialized } = useAgentContext();
 
   const [modelState, dispatch] = React.useReducer(modelReducer, initialModelState);
-  const { isDownloading, progress, isModelReady } = modelState;
-  const [conversation, setConversation] = useState([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const { isDownloading, progress, isModelReady, error: modelError } = modelState;
+  
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [useRAGMode, setUseRAGMode] = useState(true); 
   
   const flatListRef = useRef(null);
-  
 
+  const { 
+    conversation, 
+    isGenerating, 
+    sendMessage, 
+    clearConversation: baseClearConversation 
+  } = useChatEngine(isInitialized, context, refreshContext);
 
-  // Clear conversation
+  // Wrap clear for UI confirmation
   const clearConversation = () => {
     Alert.alert(
       "Clear Chat",
-      "Are you sure you want to delete all messages? This action cannot be undone.",
+      "Are you sure you want to delete all messages?",
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            setConversation([]);
-            saveChats([]); // Clear from storage
-            setUserInput("");
-            conversationContext.clearConversationHistory();
-          }
-        }
+        { text: "Delete", style: "destructive", onPress: baseClearConversation }
       ]
     );
   };
   
-  useEffect(() => {
-    const loadChats = async () => {
-      try {
-        const storedChats = await AsyncStorage.getItem('chat_history');
-        if (storedChats) {
-          const parsedChats = JSON.parse(storedChats);
-          if (!Array.isArray(parsedChats)) {
-            console.warn('Invalid chat history format, resetting...');
-            return;
-          }
-          setConversation(parsedChats);
-          
-          // Hydrate conversation context for memory
-          parsedChats.forEach(msg => {
-            if (msg?.role && msg?.content) {
-              conversationContext.addMessage(msg.role, msg.content);
-            }
-          });
-        }
-      } catch (error) {
-        console.error("Failed to load chats", error);
-      }
-    };
-    loadChats();
-  }, []);
-
-  // Helper to save chats
-  const saveChats = async (newConversation) => {
+  const initModel = React.useCallback(async () => {
     try {
-      await AsyncStorage.setItem('chat_history', JSON.stringify(newConversation));
-    } catch (error) {
-      console.error("Failed to save chats", error);
-    }
-  };
-  
-  useEffect(() => {
-    let isMounted = true;
-    
-    const initModel = async () => {
-      try {
-        if (isMounted) dispatch({ type: 'START_INIT' });
-        // Direct initialization - downloadModel handles local check internally
-        console.log(`Initializing model ${GGUF_FILE}...`);
-        
-        // We set downloading true just in case it needs to download, 
-        // but if it's local it will clear quickly.
-        if (isMounted) dispatch({ type: 'SET_DOWNLOADING', payload: true });
-        if (isMounted) dispatch({ type: 'SET_PROGRESS', payload: 0 });
+      if (isDownloading) return; // Prevention suggested in review
+      dispatch({ type: 'START_INIT' });
+      dispatch({ type: 'SET_DOWNLOADING', payload: true });
+      dispatch({ type: 'SET_PROGRESS', payload: 0 });
 
-        const success = await downloadModel(GGUF_FILE, (p) => {
-          if (isMounted) dispatch({ type: 'SET_PROGRESS', payload: p });
-        });
-        
-        if (!isMounted) return;
-        dispatch({ type: 'SET_DOWNLOADING', payload: false });
-        
-        if (success) {
-          dispatch({ type: 'INIT_SUCCESS' });
-          console.log("Model initialized successfully!");
-        } else {
-           console.warn("Model initialization failed.");
-           dispatch({ type: 'INIT_FAILURE' });
-        }
-
-      } catch (error) {
-        if (isMounted) Alert.alert("Error", "Failed to init model: " + error.message);
-        console.error(error);
-        if (isMounted) dispatch({ type: 'INIT_FAILURE' });
-      }
-    };
-    initModel();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-
-  // Modified to optionally accept content directly (for auto-send)
-  const handleSendMessage = async (content = null) => {
-    // Ensure content is a string (ignore event objects from UI presses)
-    const validContent = (typeof content === 'string') ? content : null;
-    const textToSend = validContent || userInput;
-    
-    if (!textToSend || !textToSend.trim()) {
-      Alert.alert("Input Error", "Please enter a message.");
-      return;
-    }
-
-    // Initialize context if not already done
-    if (!isInitialized) {
-      try {
-        await initializeContext();
-      } catch (error) {
-        console.warn('Failed to initialize context:', error);
-      }
-    }
-
-    const userMessage = { id: Date.now().toString(), role: "user", content: textToSend };
-    const updatedConversation = [...conversation, userMessage];
-
-    setConversation(updatedConversation);
-    saveChats(updatedConversation); // Save user message
-    
-    // Clear input
-    setUserInput("");  
-    
-    setIsGenerating(true);
-
-    // Add message to conversation context
-    conversationContext.addMessage('user', textToSend);
-
-    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-
-    try {
-      let response = null;
-      let result = null;
-
-      // Initialize RAG service
-      await ragService.initialize();
+      const success = await downloadModel(GGUF_FILE, (p) => {
+        dispatch({ type: 'SET_PROGRESS', payload: p });
+      });
       
-      // Set user context
-      conversationContext.setUserContext(context);
-
-      // Check toggle mode first
-      if (useRAGMode) {
-        // RAG Mode (Robot) - Process structured commands
-        if (conversationContext.hasPendingFollowUp()) {
-          console.log('🤖 Processing follow-up response with RAG...');
-          result = await conversationContext.processFollowUpResponse(textToSend, ragService);
-        } else {
-          console.log('🤖 Processing new query with RAG...');
-          result = await ragService.processQuery(textToSend, context);
-        }
+      dispatch({ type: 'SET_DOWNLOADING', payload: false });
+      
+      if (success) {
+        dispatch({ type: 'INIT_SUCCESS' });
       } else {
-        // Model Mode (Phone) - Use backend model for general chat
-        console.log('📞 Processing with backend model...');
-        response = await generateResponse(updatedConversation);
-        result = {
-          message: response,
-          intent: 'general_chat',
-          action: null
-        };
+         dispatch({ type: 'INIT_FAILURE', payload: "Failed to load model." });
       }
 
-
-      
-      // Additional debugging for undefined errors
-      if (!result) {
-        // console.error('❌ RESULT IS NULL/UNDEFINED!');
-      }
-
-      if (result && typeof result === 'object') {
-        response = result.message;
-
-        // Handle follow-up context with safety checks
-        if (result.requiresFollowUp && result.intent && result.partialData && result.missingFields) {
-          conversationContext.setPendingFollowUp(
-            result.intent,
-            result.partialData,
-            result.missingFields
-          );
-        } else {
-          conversationContext.clearPendingFollowUp();
-        }
-
-        // Handle navigation commands
-        if (result.action === 'navigate' && result.screen) {
-
-          setTimeout(() => {
-            navigation.navigate(result.screen);
-          }, 1000);
-        }
-
-        // Handle logout commands
-        if (result.action === 'logout') {
-          setTimeout(() => {
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [{ name: 'Onboarding' }],
-              })
-            );
-          }, 1500);
-        }
-
-        // Handle emergency commands
-        if (result.emergency) {
-          setTimeout(() => {
-            navigation.navigate('SOSAlert');
-          }, 500);
-        }
-          
-          // Refresh context after successful command execution
-        if (result.success) {
-            await refreshContext();
-          }
-        } else {
-        // Fallback to general chat if RAG doesn't understand
-        try {
-          const agentResponse = await fetch(`${BASE_URL}/agent`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              query: textToSend,
-              user_id: "default"
-            }),
-          });
-          
-          if (agentResponse.ok) {
-            const agentData = await agentResponse.json();
-            response = agentData.response;
-          } else {
-            throw new Error('Backend agent request failed');
-          }
-        } catch (backendError) {
-          console.warn('Backend agent failed, falling back to local model:', backendError.message);
-          // Fallback to local model if backend is unavailable
-          response = await generateResponse(updatedConversation);
-        }
-      }
-      
-      if (response) {
-        const botMessage = { id: (Date.now() + 1).toString(), role: "assistant", content: response };
-        const newHistory = [...updatedConversation, botMessage];
-        setConversation(newHistory);
-        saveChats(newHistory); // Save bot response
-        
-        // Add bot response to conversation context
-        conversationContext.addMessage('assistant', response);
-
-        
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-      }
     } catch (error) {
-      Alert.alert("Error", "Failed to generate response: " + error.message);
       console.error(error);
-    } finally {
-      setIsGenerating(false);
+      dispatch({ type: 'INIT_FAILURE', payload: error.message });
+    }
+  }, [isDownloading]);
+
+  useEffect(() => {
+    initModel();
+    // Cleanup on unmount
+    return () => {
+      unloadModel();
+    };
+  }, []); // Only run on mount, but returns cleanup
+
+
+  // handleSendMessage now focuses on UI-side effects after core logic runs in the hook
+  const handleSendMessage = async (content = null) => {
+    const textToSend = (typeof content === 'string') ? content : userInput;
+    if (!textToSend?.trim()) return;
+
+    setUserInput("");
+
+    // Message sending and core logic handled by hook
+    const result = await sendMessage(textToSend, useRAGMode, initializeContext);
+
+    // Secondary UI effects (navigation, SOS, etc) remain in the screen
+    if (result && typeof result === 'object') {
+      // Handle navigation commands
+      if (result.action === 'navigate' && result.screen) {
+        setTimeout(() => navigation.navigate(result.screen), 500);
+      }
+
+      // Handle logout
+      if (result.action === 'logout') {
+        setTimeout(() => {
+          navigation.dispatch(CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Onboarding' }],
+          }));
+        }, 1500);
+      }
+
+      // Handle emergency
+      if (result.emergency) {
+        setTimeout(() => navigation.navigate('SOSAlert'), 500);
+      }
+
+      // Refresh data context if needed
+      if (result.success) {
+        await refreshContext();
+      }
     }
   };
 
@@ -460,6 +285,7 @@ export default function ChatScreen() {
           conversation={conversation}
           flatListRef={flatListRef}
           theme={theme}
+          onScrollPositionChange={setShowScrollToBottom}
           footer={
             isGenerating ? (
               <View style={styles.typingContainer}>
@@ -493,6 +319,8 @@ export default function ChatScreen() {
         isModelReady={isModelReady}
         useRAGMode={useRAGMode}
         handlePaste={handlePaste}
+        modelError={modelError}
+        onRetryModel={initModel}
       />
     </SafeAreaView>
   );

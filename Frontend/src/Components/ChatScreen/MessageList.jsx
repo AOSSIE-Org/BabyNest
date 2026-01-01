@@ -1,16 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import Markdown from "react-native-markdown-display";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
-export default function MessageList({ conversation, flatListRef, theme, footer }) {
-  const createMarkdownStyles = (theme) => ({
+export default function MessageList({ conversation, flatListRef, theme, footer, onScrollPositionChange }) {
+  const markdownStyles = useMemo(() => ({
     body: { color: "#000000", fontSize: 16, lineHeight: 24 },
     heading1: { color: "rgb(218,79,122)", fontWeight: "bold", marginVertical: 10 },
     heading2: { color: "rgb(218,79,122)", fontWeight: "bold", marginVertical: 8 },
     strong: { fontWeight: "bold", color: "rgb(218,79,122)" },
     list_item: { marginVertical: 5 },
-  });
+  }), [theme]);
 
   return (
     <FlatList
@@ -33,7 +33,7 @@ export default function MessageList({ conversation, flatListRef, theme, footer }
               {isUser ? (
                 <Text style={styles.userMessageText}>{item.content}</Text>
               ) : (
-                <Markdown style={createMarkdownStyles(theme)}>
+                <Markdown style={markdownStyles}>
                   {item.content}
                 </Markdown>
               )}
@@ -46,6 +46,18 @@ export default function MessageList({ conversation, flatListRef, theme, footer }
       onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
       showsVerticalScrollIndicator={false}
+      onScroll={({ nativeEvent }) => {
+        const { contentOffset, layoutMeasurement, contentSize } = nativeEvent;
+        // Threshold can be adjusted, e.g., 20 or 50 pixels
+        const threshold = 20; 
+        const isNearBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - threshold;
+        
+        if (onScrollPositionChange) {
+          // If NOT near bottom, show button (true). If near bottom, hide button (false).
+          onScrollPositionChange(!isNearBottom);
+        }
+      }}
+      scrollEventThrottle={16}
     />
   );
 }

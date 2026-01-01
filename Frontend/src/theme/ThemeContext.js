@@ -60,7 +60,7 @@ const themes = {
 
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(themes.light);
+  const [theme, setTheme] = useState(themes.default);
 
   const updateTheme = (themeName) => {
     if (themes[themeName]) {
