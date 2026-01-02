@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -15,6 +15,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {BASE_URL} from '@env';
 import {useDrawer} from '../context/DrawerContext';
 import {babySizes} from '../data/babySizes';
+import {useFocusEffect} from '@react-navigation/native';
 
 export default function HomeScreen({navigation}) {
   const [dueDate, setDueDate] = useState('');
@@ -26,9 +27,11 @@ export default function HomeScreen({navigation}) {
   const weekScrollRef = useRef(null);
   const {openDrawer} = useDrawer();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const fetchData = async () => {
     try {
