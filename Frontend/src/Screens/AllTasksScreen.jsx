@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { BASE_URL } from '@env';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function AllTasksScreen({ navigation, route }) {
   const [tasks, setTasks] = useState([]);
@@ -18,9 +19,11 @@ export default function AllTasksScreen({ navigation, route }) {
   const [currentWeek, setCurrentWeek] = useState(route.params?.week || 1);
   const [filter, setFilter] = useState('all'); // all, pending, completed
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchTasks();
+    }, [])
+  );
 
   const fetchTasks = async () => {
     try {

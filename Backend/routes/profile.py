@@ -60,8 +60,13 @@ def get_profile():
             return jsonify({"error": "Profile not found"}), 404
         
         return jsonify({
-            "due_date": profile[7],
-            "location": profile[6]
+            "lmp": profile[1],
+            "cycle_length": profile[2],
+            "period_length": profile[3],
+            "age": profile[4],
+            "weight": profile[5],
+            "location": profile[6],
+            "due_date": profile[7]
         }), 200
     
     except sqlite3.OperationalError:
@@ -89,11 +94,15 @@ def update_profile():
     db = open_db()  
 
     try: 
-        db.execute('SELECT * FROM profile')
+        # Check if profile exists
+        profile = db.execute('SELECT * FROM profile').fetchone()
+        if profile is None:
+            return jsonify({"error": "Profile not found"}), 404
+            
         data = request.json
         lmp = data.get('lmp')
-        cycle_length = data.get('cycle_length')
-        period_length = data.get('period_length')
+        cycle_length = data.get('cycleLength')
+        period_length = data.get('periodLength')
         age = data.get('age')
         weight = data.get('weight')
         location = data.get('location') 
@@ -101,9 +110,12 @@ def update_profile():
         if not lmp or not location:
             return jsonify({"error": "Last menstrual period and location are required"}), 400
         
+        # Recalculate due date based on new LMP and cycle length
+        due_date = calculate_due_date(lmp, cycle_length)
+        
         db.execute(
-            'UPDATE profile SET due_date = ?, user_location = ?',
-            (lmp, cycle_length, period_length, age, weight, location)    
+            'UPDATE profile SET lmp = ?, cycleLength = ?, periodLength = ?, age = ?, weight = ?, user_location = ?, dueDate = ?',
+            (lmp, cycle_length, period_length, age, weight, location, due_date)    
         )
         db.commit()
         
@@ -112,6 +124,6 @@ def update_profile():
         agent = get_agent(db_path)
         agent.update_cache(data_type="profile", operation="update")
         
-        return jsonify({"status": "success", "message": "Profile updated successfully"}), 200
-    except sqlite3.OperationalError:    
-        return jsonify({"error": "Database Error"}), 500    
+        return jsonify({"status": "success", "message": "Profile updated successfully", "dueDate": due_date}), 200
+    except sqlite3.OperationalError as error:    
+        return jsonify({"error": str(error)}), 500    
