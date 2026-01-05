@@ -106,6 +106,7 @@ export default function BasicDetailsScreen() {
   const handleSelectCountry = selectedCountry => {
     setCountry(selectedCountry);
     setShowCountryModal(false);
+    setSearchQuery('');
     setErrors(prev => ({ ...prev, country: '' }));
   };
 
