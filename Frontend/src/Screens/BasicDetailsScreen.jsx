@@ -95,7 +95,6 @@ export default function BasicDetailsScreen() {
       navigation.replace('DueDate', { dueDate: data.dueDate });
     }
   } catch (error) {
-      console.log(error);
       console.error('Profile submission failed:', error);
       setErrors({ form: 'Failed to submit. Please check your connection and try again.' });
     } finally {
