@@ -20,7 +20,8 @@ export default function BasicDetailsScreen() {
   const navigation = useNavigation();
 
   const [country, setCountry] = useState('');
-  const [lmpDate, setLmpDate] = useState('');
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const [lmpDate, setLmpDate] = useState(today);
   const [cycleLength, setCycleLength] = useState('');
   const [periodLength, setPeriodLength] = useState('');
   const [age, setAge] = useState('');
@@ -178,12 +179,12 @@ export default function BasicDetailsScreen() {
           <Text style={styles.title1}>Last Menstrual Period</Text>
           <View style={styles.calendarContainer}>
             <Calendar
-              current={lmpDate}
-              maxDate={new Date().toISOString().split('T')[0]}
+              current={lmpDate || today}
+              maxDate={today}
               onDayPress={day => setLmpDate(day.dateString)}
-              markedDates={{
+              markedDates={lmpDate ? {
                 [lmpDate]: { selected: true, selectedColor: '#ff4081' },
-              }}
+              } : {}}
               theme={{
                 todayTextColor: '#ff4081',
                 arrowColor: '#ff4081',
