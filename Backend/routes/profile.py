@@ -114,4 +114,4 @@ def update_profile():
         
         return jsonify({"status": "success", "message": "Profile updated successfully"}), 200
     except sqlite3.OperationalError:    
-        return jsonify({"error": "Database Error"}), 500    
+        return jsonify({"error": "Database Error"}), 500

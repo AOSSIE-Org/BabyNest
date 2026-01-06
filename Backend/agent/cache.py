@@ -47,7 +47,7 @@ class ContextCache:
                 except (json.JSONDecodeError, FileNotFoundError):
                     continue
     
-    def _save_cache(self, user_id: str, context_data: Dict[str, Any]):
+    def _save_cache(self, user_id:str, context_data: Dict[str, Any]):
         """Save context data to disk cache."""
         file_path = self._get_cache_file_path(user_id)
         try:
@@ -55,6 +55,25 @@ class ContextCache:
                 json.dump(context_data, f, indent=2, default=str)
         except Exception as e:
             print(f"Error saving cache for user {user_id}: {e}")
+
+    def _cache_update_handler(self, datatype:str, current_cache:dict) -> bool:
+        """Handle specific datatype cache update."""
+        if not current_cache or not datatype:
+            return False
+        # Updating data based on datatype
+        valid_types = ['profile', 'weight', 'medicine', 'symptoms', 'blood_pressure', 'discharge']
+        if datatype not in valid_types:
+            return False
+        print(f"   🔄 Updating {datatype} data...")
+        data = self._get_specific_data(datatype)
+        if data:
+            if datatype == "profile":
+                current_cache.update(data)
+                print(f"   ✅ {datatype} data updated")
+            else:
+                current_cache["tracking_data"][datatype] = data
+                print(f"   ✅ {datatype} data updated: {len(data)} entries")
+            return True
     
     def _build_context(self) -> Dict[str, Any]:
         """Build context from database."""
@@ -62,7 +81,7 @@ class ContextCache:
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            
+
             # Get profile data
             cursor.execute("""
                 SELECT lmp, cycleLength, periodLength, age, weight, user_location, dueDate
@@ -275,6 +294,8 @@ class ContextCache:
             user_id: User ID to update cache for
             data_type: Type of data that changed ('profile', 'weight', 'medicine', 'symptoms', 'blood_pressure', 'discharge')
             operation: Type of operation ('create', 'update', 'delete')
+
+            Note: The operation parameter is purely informational. The cache update logic is the same regardless of operation. 
         """
         with self.cache_lock:
             # Get current cache from memory or disk (without building from DB)
@@ -296,72 +317,25 @@ class ContextCache:
             
             if not current_cache:
                 # If no cache exists, build full context
+                print("⚙️ No existing cache found, building full context...")
                 context_data = self._build_context()
+                print("✅ Full context built", context_data)
                 if context_data:
                     self.memory_cache[user_id] = context_data
                     self._save_cache(user_id, context_data)
-                return
-            
-            # Update specific parts based on data_type
-            if data_type == "profile" or data_type is None:
-                # Update profile data and recalculate current week
-                print(f"   🔄 Updating profile data...")
-                profile_data = self._get_specific_data("profile")
-                if profile_data:
-                    current_cache.update(profile_data)
-                    print(f"   ✅ Profile data updated")
-            
-            if data_type == "weight" or data_type is None:
-                # Update weight data
-                print(f"   🔄 Updating weight data...")
-                weight_data = self._get_specific_data("weight")
-                if weight_data is not None:
-                    current_cache["tracking_data"]["weight"] = weight_data
-                    print(f"   ✅ Weight data updated: {len(weight_data)} entries")
-            
-            if data_type == "medicine" or data_type is None:
-                # Update medicine data
-                print(f"   🔄 Updating medicine data...")
-                medicine_data = self._get_specific_data("medicine")
-                if medicine_data is not None:
-                    current_cache["tracking_data"]["medicine"] = medicine_data
-                    print(f"   ✅ Medicine data updated: {len(medicine_data)} entries")
-            
-            if data_type == "symptoms" or data_type is None:
-                # Update symptoms data
-                print(f"   🔄 Updating symptoms data...")
-                symptoms_data = self._get_specific_data("symptoms")
-                if symptoms_data is not None:
-                    current_cache["tracking_data"]["symptoms"] = symptoms_data
-                    print(f"   ✅ Symptoms data updated: {len(symptoms_data)} entries")
-            
-            if data_type == "blood_pressure" or data_type is None:
-                # Update blood pressure data
-                print(f"   🔄 Updating blood pressure data...")
-                bp_data = self._get_specific_data("blood_pressure")
-                if bp_data is not None:
-                    current_cache["tracking_data"]["blood_pressure"] = bp_data
-                    print(f"   ✅ Blood pressure data updated: {len(bp_data)} entries")
-            
-            if data_type == "discharge" or data_type is None:
-                # Update discharge data
-                print(f"   🔄 Updating discharge data...")
-                discharge_data = self._get_specific_data("discharge")
-                if discharge_data is not None:
-                    current_cache["tracking_data"]["discharge"] = discharge_data
-                    print(f"   ✅ Discharge data updated: {len(discharge_data)} entries")
-            
-            # Update timestamp
-            current_cache["last_updated"] = datetime.now().isoformat()
-            
-            # Save updated cache
-            self.memory_cache[user_id] = current_cache
-            self._save_cache(user_id, current_cache)
-            
-            print(f"✅ Cache updated for user {user_id} - {data_type or 'all'} data refreshed")
-            
-            # Check if cache needs cleanup after update
-            self._check_and_cleanup_cache(user_id)
+                    return
+
+            if operation in ["update", "create", "delete"] :
+                res = self._cache_update_handler(data_type, current_cache)
+                # Update last updated timestamp
+                if res:
+                    current_cache["last_updated"] = datetime.now().isoformat()
+                    # Save updated cache
+                    self.memory_cache[user_id] = current_cache
+                    self._save_cache(user_id, current_cache)
+                    print(f"✅ Cache updated for user {user_id} - {data_type} data refreshed")
+                    # Check if cache needs cleanup after update
+                    self._check_and_cleanup_cache(user_id)
 
     def _cleanup_old_cache_files(self):
         """Clean up old cache files based on age and size."""
@@ -553,4 +527,4 @@ def get_context_cache(db_path: str) -> ContextCache:
         _context_cache = ContextCache(db_path)
         # Cleanup old files after initialization
         _context_cache._cleanup_old_cache_files()
-    return _context_cache 
+    return _context_cache
