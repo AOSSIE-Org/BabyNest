@@ -74,6 +74,7 @@ class ContextCache:
                 current_cache["tracking_data"][datatype] = data
                 print(f"   ✅ {datatype} data updated: {len(data)} entries")
             return True
+        return False
     
     def _build_context(self) -> Dict[str, Any]:
         """Build context from database."""
