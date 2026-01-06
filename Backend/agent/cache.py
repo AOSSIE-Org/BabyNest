@@ -320,7 +320,6 @@ class ContextCache:
                 # If no cache exists, build full context
                 print("⚙️ No existing cache found, building full context...")
                 context_data = self._build_context()
-                print("✅ Full context built", context_data)
                 if context_data:
                     self.memory_cache[user_id] = context_data
                     self._save_cache(user_id, context_data)
