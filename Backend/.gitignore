@@ -4,3 +4,7 @@ __pycache__/
 env
 db/database.db
 
+# ChromaDB database files
+*.sqlite3
+db/chromadb/
+my_chroma_db/
