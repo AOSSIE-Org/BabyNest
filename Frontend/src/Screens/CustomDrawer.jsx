@@ -128,7 +128,7 @@ export default function CustomDrawer({ children }) {
           >
             <TouchableOpacity
               activeOpacity={1}
-              onPress={closeDrawer}
+              onPress={() => closeDrawer()}
               style={StyleSheet.absoluteFillObject}
             />
           </Animated.View>
