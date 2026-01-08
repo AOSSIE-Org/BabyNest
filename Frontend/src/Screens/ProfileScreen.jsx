@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import HeaderWithBack from '../Components/HeaderWithBack';
 import { BASE_URL } from '@env';
 
 const ProfileField = ({ label, value }) => (
@@ -77,17 +78,8 @@ export default function ProfileScreen() {
  
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()} 
-            style={styles.backButton}
-          >
-            <Icon name="arrow-back" size={24} color="rgb(218,79,122)" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <View style={{ width: 40 }} />
-        </View>
+    <SafeAreaView style={styles.container}>
+         <HeaderWithBack title="Profile" />
 
    {loading
     ?
@@ -104,7 +96,7 @@ export default function ProfileScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={["rgb(218,79,122)"]}
-            tintColor="rgb(218,79,122)"  // iOS
+            tintColor="rgb(218,79,122)" 
           />
         }
       >
@@ -158,28 +150,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFF5F8',
   },
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  headerContent: {
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    padding: 8,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: 'rgb(218,79,122)',
+    backgroundColor: '#FFF5F8',
   },
   content: {
     flex: 1,
