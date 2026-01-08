@@ -11,6 +11,7 @@ export default function HeaderWithBack({ title }) {
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
         <Icon name="arrow-back" size={24} color="rgb(218,79,122)" />
       </TouchableOpacity>
+  
       <Text style={styles.title}>{title}</Text>
       <View style={{ width: 40 }} />
     </View>
@@ -19,14 +20,15 @@ export default function HeaderWithBack({ title }) {
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: 40,
-    paddingBottom: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
     paddingHorizontal: 20,
+    marginBottom:20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
-    elevation: 4,
+    elevation: 2,
   },
   backButton: {
     padding: 5,
