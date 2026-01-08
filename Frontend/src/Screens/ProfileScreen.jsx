@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import HeaderWithBack from '../Components/HeaderWithBack';
 import { BASE_URL } from '@env';
 
@@ -30,13 +30,20 @@ export default function ProfileScreen() {
     name: 'Guest',
     due_date: 'Not set',
     location: 'Not set',
+    lmp: 'Not set',
+    age: 'Not set',
+    weight: 'Not set',
+    cycle_length: 'Not set',
+    period_length: 'Not set',
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchProfileData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfileData();
+    }, [])
+  );
 
   const fetchProfileData = async () => {
     try {
@@ -47,6 +54,11 @@ export default function ProfileScreen() {
           name: data.name || 'Guest',
           due_date: data.due_date || 'Not set',
           location: data.location || 'Not set',
+          lmp: data.lmp || 'Not set',
+          age: data.age ? String(data.age) : 'Not set',
+          weight: data.weight ? `${data.weight} kg` : 'Not set',
+          cycle_length: data.cycle_length ? `${data.cycle_length} days` : 'Not set',
+          period_length: data.period_length ? `${data.period_length} days` : 'Not set',
         });
       }
     } catch (error) {
@@ -105,13 +117,22 @@ export default function ProfileScreen() {
 
         <View style={styles.infoCard}>
           <Text style={styles.cardTitle}>Personal Details</Text>
-          <ProfileField label="Due Date" value={profileData.due_date} />
+          <ProfileField label="Age" value={profileData.age} />
+          <ProfileField label="Weight" value={profileData.weight} />
           <ProfileField label="Location" value={profileData.location} />
+        </View>
+
+        <View style={styles.infoCard}>
+          <Text style={styles.cardTitle}>Pregnancy Details</Text>
+          <ProfileField label="Due Date" value={profileData.due_date} />
+          <ProfileField label="Last Menstrual Period" value={profileData.lmp} />
+          <ProfileField label="Cycle Length" value={profileData.cycle_length} />
+          <ProfileField label="Period Length" value={profileData.period_length} />
         </View>
 
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={() => Alert.alert("Feature coming soon", "Profile editing will be available in the next update.")}
+          onPress={() => navigation.navigate('EditProfile')}
         >
           <Text style={styles.actionButtonText}>Edit Information</Text>
         </TouchableOpacity>
@@ -174,6 +195,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 18,
     padding: 20,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#eeeeee',
     ...Platform.select({

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   ScrollView,
@@ -11,6 +11,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {TextInput, Button, Card, Portal, Dialog} from 'react-native-paper';
 import HeaderWithBack from '../Components/HeaderWithBack';
 import {BASE_URL} from '@env';
+import {useFocusEffect} from '@react-navigation/native';
 
 export default function BloodPressureScreen() {
   const [week, setWeek] = useState('');
@@ -35,9 +36,11 @@ export default function BloodPressureScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchBPLogs();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchBPLogs();
+    }, [])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);

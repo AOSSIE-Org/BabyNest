@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   ScrollView,
@@ -11,6 +11,7 @@ import {TextInput, Button, Card, Portal, Dialog} from 'react-native-paper';
 import {BASE_URL} from '@env';
 import HeaderWithBack from '../Components/HeaderWithBack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useFocusEffect} from '@react-navigation/native';
 
 export default function SymptomsScreen() {
   const [week, setWeek] = useState('');
@@ -36,9 +37,11 @@ export default function SymptomsScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchSymptomsHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchSymptomsHistory();
+    }, [])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
