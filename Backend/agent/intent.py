@@ -1,4 +1,4 @@
-# agent/intent.py
+
 def classify_intent(query: str) -> str:
     if not query or not isinstance(query, str):
         return "general"
@@ -10,6 +10,10 @@ def classify_intent(query: str) -> str:
         return "weight"
     elif "symptom" in query:
         return "symptoms"
+    elif "medicine" in query or "took" in query or "tablet" in query or "pill" in query:
+        return "medicine"
+    elif "bp" in query or "blood pressure" in query or "/" in query:
+        return "blood_pressure"
     elif "vaccine" in query or "guideline" in query or "what tests" in query or "recommend" in query:
         return "guidelines"
     return "general"
