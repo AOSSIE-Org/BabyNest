@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   View, StyleSheet, Animated, Alert, SafeAreaView, TouchableOpacity, Text, LogBox
@@ -9,7 +9,6 @@ import { downloadModel, generateResponse, unloadModel } from "../model/model";
 import { GGUF_FILE, BASE_URL } from "@env";
 import { useTheme } from '../theme/ThemeContext';
 import { useAgentContext } from '../context/AgentContext';
-import { ragService } from '../services/RAGService';
 import { conversationContext } from '../services/ConversationContext'; 
 import { useChatEngine } from '../hooks/useChatEngine';
 
@@ -149,8 +148,9 @@ export default function ChatScreen() {
         setTimeout(() => navigation.navigate('SOSAlert'), 500);
       }
 
-      // Refresh data context if needed
-      if (result.success) {
+      // Refresh data context only if data was actually changed
+      // This prevents unnecessary backend calls for read-only operations
+      if (result.success && result.dataChanged) {
         await refreshContext();
       }
     }
