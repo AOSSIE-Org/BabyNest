@@ -28,6 +28,14 @@
 - **AI & NLP**: Python, LangChain
 - **Database**: SQLite
 
+## Quick Start
+
+1. Clone the repository and navigate to the project directory.
+2. For frontend: `cd Frontend && npm install && npx react-native run-android` (or `run-ios`).
+3. For backend: `cd Backend && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && python app.py`.
+
+For detailed setup instructions, see [Setup.md](Setup.md).
+
 ## Usage
 
 - Open the mobile app on an emulator or device.
