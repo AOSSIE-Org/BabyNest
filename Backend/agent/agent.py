@@ -8,6 +8,7 @@ from agent.intent import classify_intent
 from agent.llm import run_llm
 from agent.prompt import build_prompt
 from agent.cache import get_context_cache
+from agent.handlers import insights
 
 from agent.handlers.appointment import handle as handle_appointments
 from agent.handlers.weight import handle as handle_weight
@@ -25,6 +26,7 @@ dispatch_intent = {
     "guidelines": handle_guidelines,
     "medicine": handle_medicine,
     "blood_pressure": handle_bp,
+    "get_insights": insights.handle,
 }
 
 class BabyNestAgent:
