@@ -13,8 +13,7 @@ export default function HeaderWithBack({ title }) {
       </TouchableOpacity>
   
       <Text style={styles.title}>{title}</Text>
-  
-      <View style={{ width: 40 }} /> 
+      <View style={{ width: 40 }} />
     </View>
   );
 }
