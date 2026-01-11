@@ -1,5 +1,13 @@
-from db.db import open_db,close_db,first_time_setup
 import os
+import sys
+from typing import Optional
+
+# Ensure local imports work when running from repo root
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+from db.db import open_db, close_db, first_time_setup
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from routes.appointments import appointments_bp
@@ -22,20 +30,57 @@ app.register_blueprint(medicine_bp)
 app.register_blueprint(symptoms_bp)
 app.register_blueprint(weight_bp)
 app.register_blueprint(bp_bp)
+
+
+def _env_flag(name: str) -> bool:
+    """Return True when env var is set to a truthy value."""
+    return os.getenv(name, "").lower() in {"1", "true", "yes", "y"}
 app.register_blueprint(discharge_bp)
 
 @app.teardown_appcontext
 def teardown_db(exception):
     close_db(exception)
 
-# Initialize agent with database path
-db_path = os.path.join(os.path.dirname(__file__), "db", "database.db")
-first_time_setup() # This needs to be called before initializing the agent
+SKIP_AGENT_INIT = _env_flag("SKIP_AGENT_INIT")
+db_path = os.path.join(BASE_DIR, "db", "database.db")
 
-agent = get_agent(db_path)
+agent = None  # type: Optional[object]
+agent_init_error: Optional[str] = None
+
+# Perform light-weight DB setup before agent initialization
+first_time_setup()
+
+if not SKIP_AGENT_INIT:
+    try:
+        agent = get_agent(db_path)
+    except Exception as exc:  # keep startup running even if agent fails
+        agent_init_error = str(exc)
+
+
+def _ensure_agent():
+    if agent is None:
+        message = "Agent not initialized. Run without SKIP_AGENT_INIT to enable agent features."
+        if agent_init_error:
+            message = f"{message} Last error: {agent_init_error}"
+        return jsonify({"error": message}), 503
+    return None
+
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "agent_initialized": agent is not None,
+        "agent_error": agent_init_error,
+        "skip_agent_init": SKIP_AGENT_INIT,
+    })
 
 @app.route("/agent", methods=["POST"])
 def run_agent():
+    missing_agent = _ensure_agent()
+    if missing_agent:
+        return missing_agent
+
     if not request.is_json:
         return jsonify({"error": "Invalid JSON format"}), 400
     
@@ -59,6 +104,9 @@ def run_agent():
 @app.route("/agent/cache/status", methods=["GET"])
 def get_cache_status():
     """Get cache status information."""
+    missing_agent = _ensure_agent()
+    if missing_agent:
+        return missing_agent
     try:
         user_id = request.args.get("user_id", "default")
         user_context = agent.get_user_context(user_id)
@@ -83,6 +131,9 @@ def get_cache_status():
 @app.route("/agent/context", methods=["GET"])
 def get_agent_context():
     """Get the current agent context for frontend use."""
+    missing_agent = _ensure_agent()
+    if missing_agent:
+        return missing_agent
     try:
         user_id = request.args.get("user_id", "default")
         context = agent.get_user_context(user_id)
@@ -109,6 +160,9 @@ def get_agent_context():
 @app.route("/agent/tasks/recommendations", methods=["GET"])
 def get_task_recommendations():
     """Get LLM-powered task recommendations based on current context."""
+    missing_agent = _ensure_agent()
+    if missing_agent:
+        return missing_agent
     try:
         user_id = request.args.get("user_id", "default")
         week = request.args.get("week")
@@ -140,6 +194,9 @@ def get_task_recommendations():
 @app.route("/agent/cache/stats", methods=["GET"])
 def get_cache_statistics():
     """Get detailed cache statistics for monitoring."""
+    missing_agent = _ensure_agent()
+    if missing_agent:
+        return missing_agent
     try:
         stats = agent.get_cache_stats()
         return jsonify({
@@ -163,6 +220,9 @@ def get_cache_statistics():
 @app.route("/agent/cache/cleanup", methods=["POST"])
 def cleanup_cache():
     """Manually trigger cache cleanup."""
+    missing_agent = _ensure_agent()
+    if missing_agent:
+        return missing_agent
     try:
         agent.cleanup_cache()
         stats = agent.get_cache_stats()
@@ -183,6 +243,6 @@ def index():
     return appointment_db
 
 if __name__ == '__main__':
-   app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
    
