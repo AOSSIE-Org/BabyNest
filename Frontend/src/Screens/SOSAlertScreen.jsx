@@ -10,7 +10,7 @@ export default SOSAlertScreen = ({ navigation }) => {
   const handleTap = () => {
     if (tapCount >= 3) {
       navigation.navigate("EmergencyCalling");
-    } else {
+    } else { 
       setTapCount(tapCount + 1);
     }
   };
