@@ -81,12 +81,14 @@ def parse_appointment_command(query: str):
     }
 
 def parse_date(date_str):
+
     """Parse date string to ISO format."""
     if not date_str:
         return None
     
     today = datetime.now()
     date_str_lower = date_str.lower()
+    allowed_days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     
     if date_str_lower == 'today':
         return today.strftime('%Y-%m-%d')
@@ -94,6 +96,18 @@ def parse_date(date_str):
         return (today + timedelta(days=1)).strftime('%Y-%m-%d')
     elif date_str_lower == 'next week':
         return (today + timedelta(days=7)).strftime('%Y-%m-%d')
+    elif date_str_lower == 'next month':
+        month = today.month + 1 if today.month < 12 else 1
+        year = today.year if today.month < 12 else today.year + 1
+        return f"{year}-{month:02d}-{today.day:02d}"
+    elif date_str_lower in allowed_days:
+        # Handles next occurrence of the specified day
+        target_day = allowed_days.index(date_str_lower)
+        days_ahead = target_day - today.weekday()
+        if days_ahead <= 0:
+            days_ahead += 7
+        target_date = today + timedelta(days=days_ahead)
+        return target_date.strftime('%Y-%m-%d')
     
     # Try to parse as MM/DD or MM/DD/YYYY
     try:
