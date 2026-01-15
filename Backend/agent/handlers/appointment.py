@@ -88,7 +88,7 @@ def parse_date(date_str):
     
     today = datetime.now()
     date_str_lower = date_str.lower()
-    allowed_days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+    allowed_days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
                     'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'
                     ]
     
