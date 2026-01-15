@@ -88,7 +88,9 @@ def parse_date(date_str):
     
     today = datetime.now()
     date_str_lower = date_str.lower()
-    allowed_days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    allowed_days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+                    'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'
+                    ]
     
     if date_str_lower == 'today':
         return today.strftime('%Y-%m-%d')
@@ -99,7 +101,8 @@ def parse_date(date_str):
     elif date_str_lower == 'next month':
         month = today.month + 1 if today.month < 12 else 1
         year = today.year if today.month < 12 else today.year + 1
-        return f"{year}-{month:02d}-{today.day:02d}"
+        day = 1 # Normalize to first day of next month
+        return f"{year}-{month:02d}-{day:02d}"
     elif date_str_lower in allowed_days:
         # Handles next occurrence of the specified day
         target_day = allowed_days.index(date_str_lower)
