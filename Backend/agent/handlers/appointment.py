@@ -88,9 +88,15 @@ def parse_date(date_str):
     
     today = datetime.now()
     date_str_lower = date_str.lower()
-    allowed_days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-                    'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'
-                    ]
+    allowed_days =  {
+    "mon": 0, "monday": 0,
+    "tue": 1, "tuesday": 1,
+    "wed": 2, "wednesday": 2,
+    "thu": 3, "thursday": 3,
+    "fri": 4, "friday": 4,
+    "sat": 5, "saturday": 5,
+    "sun": 6, "sunday": 6,
+    }
     
     if date_str_lower == 'today':
         return today.strftime('%Y-%m-%d')
@@ -105,7 +111,7 @@ def parse_date(date_str):
         return f"{year}-{month:02d}-{day:02d}"
     elif date_str_lower in allowed_days:
         # Handles next occurrence of the specified day
-        target_day = allowed_days.index(date_str_lower)
+        target_day = allowed_days[date_str_lower]
         days_ahead = target_day - today.weekday()
         if days_ahead <= 0:
             days_ahead += 7
