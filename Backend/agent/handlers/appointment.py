@@ -36,7 +36,7 @@ def parse_appointment_command(query: str):
     
     # Extract date
     date_patterns = [
-        r'(?:on\s+|for\s+|at\s+)(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thurs|fri|sat|sun)',
+        r'(?:on\s+|for\s+|at\s+)(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)',
         r'(?:on\s+|for\s+|at\s+)(\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}|\d{4}/\d{2}/\d{2})',
         r'(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun|\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}|\d{4}/\d{2}/\d{2})',
     ]
@@ -81,12 +81,22 @@ def parse_appointment_command(query: str):
     }
 
 def parse_date(date_str):
+
     """Parse date string to ISO format."""
     if not date_str:
         return None
     
     today = datetime.now()
     date_str_lower = date_str.lower()
+    allowed_days =  {
+    "mon": 0, "monday": 0,
+    "tue": 1, "tuesday": 1,
+    "wed": 2, "wednesday": 2,
+    "thu": 3, "thursday": 3,
+    "fri": 4, "friday": 4,
+    "sat": 5, "saturday": 5,
+    "sun": 6, "sunday": 6,
+    }
     
     if date_str_lower == 'today':
         return today.strftime('%Y-%m-%d')
@@ -94,6 +104,19 @@ def parse_date(date_str):
         return (today + timedelta(days=1)).strftime('%Y-%m-%d')
     elif date_str_lower == 'next week':
         return (today + timedelta(days=7)).strftime('%Y-%m-%d')
+    elif date_str_lower == 'next month':
+        month = today.month + 1 if today.month < 12 else 1
+        year = today.year if today.month < 12 else today.year + 1
+        day = 1 # Normalize to first day of next month
+        return f"{year}-{month:02d}-{day:02d}"
+    elif date_str_lower in allowed_days:
+        # Handles next occurrence of the specified day
+        target_day = allowed_days[date_str_lower]
+        days_ahead = target_day - today.weekday()
+        if days_ahead <= 0:
+            days_ahead += 7
+        target_date = today + timedelta(days=days_ahead)
+        return target_date.strftime('%Y-%m-%d')
     
     # Try to parse as MM/DD or MM/DD/YYYY
     try:
