@@ -36,7 +36,7 @@ def parse_appointment_command(query: str):
     
     # Extract date
     date_patterns = [
-        r'(?:on\s+|for\s+|at\s+)(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thurs|fri|sat|sun)',
+        r'(?:on\s+|for\s+|at\s+)(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)',
         r'(?:on\s+|for\s+|at\s+)(\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}|\d{4}/\d{2}/\d{2})',
         r'(today|tomorrow|next\s+week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun|\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}|\d{4}/\d{2}/\d{2})',
     ]
