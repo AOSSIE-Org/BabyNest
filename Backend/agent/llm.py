@@ -1,3 +1,80 @@
+import re
+
+def _validate_weight_data(data: dict) -> bool:
+    """Validate extracted weight data."""
+    weight = data.get("weight")
+    week = data.get("week")
+    
+    # Validate weight range (reasonable pregnancy weight range)
+    if weight is not None and (weight <= 0 or weight > 300):
+        return False
+    
+    # Validate week range (typical pregnancy is 1-42 weeks)
+    if week is not None and (week < 1 or week > 42):
+        return False
+    
+    return True
+
+def extract_structured_data(query: str, intent: str) -> dict:
+    """
+    Extract structured data from query using simple pattern matching.
+    This simulates what a properly prompted small LLM should do.
+    """
+    result = {"success": False, "data": {}, "confidence": 0.0}
+    
+    query_lower = query.lower()
+    
+    if intent == "weight":
+        # Extract weight value - require explicit unit OR "weight" keyword near the number
+        weight_match = re.search(
+            r'(?:\bweight\b[^0-9]{0,10})?\b(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kilograms?)\b',
+            query_lower
+        )
+        week_match = re.search(r'(?:week|wk)\s*(\d+)', query_lower)
+        
+        if weight_match:
+            result["data"]["weight"] = float(weight_match.group(1))
+            result["data"]["week"] = int(week_match.group(1)) if week_match else None
+            result["data"]["note"] = None
+            
+            # Validate extracted data
+            if not _validate_weight_data(result["data"]):
+                result["success"] = False
+                result["data"] = {}
+                result["confidence"] = 0.0
+                return result
+            
+            result["success"] = True
+            result["confidence"] = 0.9 if week_match else 0.7
+    
+    elif intent == "appointments":
+        # Extract appointment components
+        # Date patterns
+        date_match = re.search(r'\b(today|tomorrow|next\s+week|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{2,4})\b', query_lower)
+        # Time patterns
+        time_match = re.search(r'\b(\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening)\b', query_lower)
+        # Action patterns
+        action_match = re.search(r'\b(schedule|book|make|create|cancel|reschedule)\b', query_lower)
+        
+        if action_match:
+            result["success"] = True
+            result["data"]["action"] = action_match.group(1)
+            result["data"]["date"] = date_match.group(1) if date_match else None
+            result["data"]["time"] = time_match.group(1) if time_match else None
+            result["confidence"] = 0.8 if (date_match or time_match) else 0.6
+    
+    elif intent == "symptoms":
+        # Extract symptom information
+        symptom_keywords = ['nausea', 'pain', 'tired', 'fatigue', 'headache', 'cramp', 'bleeding']
+        found_symptoms = [s for s in symptom_keywords if s in query_lower]
+        
+        if found_symptoms:
+            result["success"] = True
+            result["data"]["symptoms"] = found_symptoms
+            result["confidence"] = 0.8
+    
+    return result
+
 def run_llm(prompt: str) -> str:
     """
     Run LLM inference. 
