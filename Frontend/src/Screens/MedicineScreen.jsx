@@ -126,6 +126,20 @@ export default function MedicineScreen() {
     );
   };
 
+  const handleMarkAsTaken = async (id, currentStatus) => {
+    try {
+      await fetch(`${BASE_URL}/medicine/${id}/taken`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({taken: !currentStatus}),
+      });
+      fetchMedicineHistory();
+    } catch (err) {
+      console.error('Failed to mark medicine:', err);
+      Alert.alert('Error', 'Failed to update medicine status.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <HeaderWithBack title="Medicine Tracker" />
@@ -199,8 +213,15 @@ export default function MedicineScreen() {
             <Card.Content>
               <View style={styles.entryRowBetween}>
                 <View style={styles.entryRow}>
+                  <Icon
+                    name={entry.taken ? 'check-circle' : 'radio-button-unchecked'}
+                    size={24}
+                    color={entry.taken ? '#27ae60' : '#95a5a6'}
+                    onPress={() => handleMarkAsTaken(entry.id, entry.taken)}
+                    style={styles.checkIcon}
+                  />
                   <Icon name="medication" size={20} color="rgb(218,79,122)" />
-                  <Text style={styles.entryText}>
+                  <Text style={[styles.entryText, entry.taken && styles.takenText]}>
                     {' '}
                     Week {entry.week_number} - {entry.name}
                   </Text>
@@ -347,6 +368,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#444',
+  },
+  takenText: {
+    textDecorationLine: 'line-through',
+    color: '#95a5a6',
+  },
+  checkIcon: {
+    marginRight: 8,
   },
   entrySub: {
     fontSize: 15,
