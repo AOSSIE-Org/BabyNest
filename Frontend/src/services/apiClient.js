@@ -1,28 +1,35 @@
-import axios from 'axios';
+// src/services/apiClient.js
+import axios from "axios";
+import Config from "react-native-config";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Prefer environment variable from react-native-config, fall back to localhost
+const API_BASE_URL = Config.API_URL || "http://localhost:5000/api";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Add token to requests
+// Attach auth token if available
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  try {
+    const token = global.authToken || null; // adjust once you know how auth is stored
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (e) {
+    // fail silently
   }
   return config;
 });
 
-// Handle errors
+// Log and forward errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error);
+    console.error("API Error:", error?.response || error?.message || error);
     return Promise.reject(error);
   }
 );
