@@ -38,8 +38,6 @@ export default function HomeScreen({navigation}) {
 
       if (fetchedDueDate) {
         setDueDate(fetchedDueDate);
-        console.log(' Due Date:', fetchedDueDate); // Debugging line
-
         const calculatedWeek = calculateCurrentWeek(fetchedDueDate);
         setCurrentWeek(calculatedWeek);
         setCurrentBabySize(babySizes[calculatedWeek - 1]);
@@ -87,7 +85,6 @@ export default function HomeScreen({navigation}) {
     setCurrentBabySize(babySizes[week - 1]);
   };
 
-  // ? Corrected Filtering Logic for Appointments (using date)
   const filteredAppointments = allAppointments
     .map(appt => {
       const appointmentDate = new Date(appt.appointment_date);
@@ -180,6 +177,22 @@ export default function HomeScreen({navigation}) {
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
+
+        {/* Scan Report Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Medical Reports</Text>
+          <TouchableOpacity 
+            style={styles.scanCard} 
+            onPress={() => navigation.navigate('ScanReport')}
+          >
+            <Icon name="document-text" size={24} color="#fff" />
+            <View style={styles.cardContent}>
+              <Text style={styles.scanCardTitle}>Scan Medical Report</Text>
+              <Text style={styles.scanCardSub}>Extract data using AI OCR</Text>
+            </View>
+            <Icon name="chevron-forward" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         {/* Appointments */}
@@ -287,7 +300,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     elevation: 2,
   },
-  cardContent: {marginLeft: 12},
+  scanCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgb(218,79,122)',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 10,
+    elevation: 4,
+  },
+  scanCardTitle: {fontWeight: 'bold', fontSize: 18, color: '#fff'},
+  scanCardSub: {fontSize: 12, color: '#ffebee'},
+  cardContent: {marginLeft: 12, flex: 1},
   cardTitle: {fontWeight: 'bold', fontSize: 16},
   floatingButton: {
     position: 'absolute',

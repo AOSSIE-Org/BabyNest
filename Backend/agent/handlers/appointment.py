@@ -81,44 +81,28 @@ def parse_appointment_command(query: str):
     }
 
 def parse_date(date_str):
-    """Parse date string to ISO format."""
-    if not date_str:
-        return None
-    
+    if not date_str: return None
     today = datetime.now()
-    date_str_lower = date_str.lower()
+    date_str_lower = date_str.lower().strip()
     
-    if date_str_lower == 'today':
-        return today.strftime('%Y-%m-%d')
-    elif date_str_lower == 'tomorrow':
-        return (today + timedelta(days=1)).strftime('%Y-%m-%d')
-    elif date_str_lower == 'next week':
-        return (today + timedelta(days=7)).strftime('%Y-%m-%d')
     
-    # Try to parse as MM/DD or MM/DD/YYYY
-    try:
-        if '/' in date_str:
-            parts = date_str.split('/')
-            if len(parts) == 2:
-                month, day = int(parts[0]), int(parts[1])
-                year = today.year
-                if month < today.month or (month == today.month and day < today.day):
-                    year += 1
-                return f"{year}-{month:02d}-{day:02d}"
-            elif len(parts) == 3:
-                month, day, year = int(parts[0]), int(parts[1]), int(parts[2])
-                return f"{year}-{month:02d}-{day:02d}"
-    except:
-        pass
+    if date_str_lower == 'next month':
+        next_month = (today.month % 12) + 1
+        year = today.year + (1 if today.month == 12 else 0)
+        return f"{year}-{next_month:02d}-01"
     
-    # Try to parse as YYYY-MM-DD
-    try:
-        datetime.strptime(date_str, '%Y-%m-%d')
-        return date_str
-    except:
-        pass
+    day_mapping = {
+        'monday': 0, 'mon': 0, 'tuesday': 1, 'tue': 1,
+        'wednesday': 2, 'wed': 2, 'thursday': 3, 'thu': 3, 'thurs': 3,
+        'friday': 4, 'fri': 4, 'saturday': 5, 'sat': 5, 'sunday': 6, 'sun': 6,
+    }
     
-    return None
+    if date_str_lower in day_mapping:
+        days_ahead = day_mapping[date_str_lower] - today.weekday()
+        if days_ahead <= 0: days_ahead += 7
+        return (today + timedelta(days=days_ahead)).strftime('%Y-%m-%d')
+    
+    return date_str 
 
 def parse_time(time_str):
     """Parse time string to HH:MM format."""

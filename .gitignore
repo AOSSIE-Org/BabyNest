@@ -1,1 +1,34 @@
 .qodo
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Models (Extremely Important - Do not push 500MB+ files)
+**/models/*.gguf
+**/models/*.safetensors
+**/models/*.bin
+**/models/config.json
+**/models/adapter_config.json
+
+# Node / React Native
+node_modules/
+.expo/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Mac / OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Debugging
+ocr_debug.txt
+*.logBackend/db/chromadb/chroma.sqlite3

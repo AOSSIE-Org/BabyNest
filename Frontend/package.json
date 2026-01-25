@@ -31,6 +31,7 @@
     "react-native-dotenv": "^3.4.11",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.23.1",
+    "react-native-image-picker": "^8.2.1",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-markdown-display": "^7.0.2",
     "react-native-modal-datetime-picker": "^18.0.0",
@@ -42,7 +43,8 @@
     "react-native-toast-message": "^2.2.1",
     "react-native-vector-icons": "^10.2.0",
     "react-navigation": "^4.4.4",
-    "react-navigation-bottom-tabs": "^1.0.2"
+    "react-navigation-bottom-tabs": "^1.0.2",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
