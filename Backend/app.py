@@ -44,7 +44,7 @@ def get_llm():
         # Resolve absolute path to the models directory relative to this script
         base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
         m_path = os.path.join(base_dir, "qwen2-0_5b-instruct-q4_k_m.gguf")
-        a_path = os.path.join(base_dir, "aneesa_fixed.gguf")
+        a_path = os.path.join(base_dir, "medical_adapter.gguf")
 
         try:
             # Initialize LLM with LoRA adapter
@@ -96,7 +96,7 @@ def ocr_scan():
 
         # Construct prompt with few-shot examples for structured extraction
         prompt = (
-            f"<|im_start|>system\nYou are Aneesa, a medical assistant. Extract vitals from OCR text as JSON.\n"
+            f"<|im_start|>system\nYou are a Medical Assistant, a medical assistant. Extract vitals from OCR text as JSON.\n"
             "Examples:\n"
             "Input: 'Wt: 80kg BP: 120/80 Date: 25 Jan'\n"
             "Output: {{\"weight\": \"80\", \"blood_pressure\": \"120/80\", \"next_appointment_date\": \"25 Jan\"}}\n"
