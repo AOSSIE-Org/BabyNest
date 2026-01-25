@@ -4,3 +4,6 @@ __pycache__/
 env
 db/database.db
 
+db/chromadb/*.sqlite3
+db/chromadb/*.sqlite3-shm
+db/chromadb/*.sqlite3-wal
