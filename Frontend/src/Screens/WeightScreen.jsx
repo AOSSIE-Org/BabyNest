@@ -13,6 +13,13 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {weightApi} from '../services/weightApi';
 import dayjs from 'dayjs';
 
+/**
+ * WeightScreen Component
+ *
+ * Displays a form to add weekly weight entries and shows a history of entries.
+ * Supports create, update, and delete operations with optimistic UI updates.
+ * Includes input validation, loading indicators, and pull-to-refresh.
+ */
 export default function WeightScreen() {
   const [week, setWeek] = useState('');
   const [weight, setWeight] = useState('');
@@ -30,6 +37,9 @@ export default function WeightScreen() {
 
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Fetch weight history from the API and update state.
+   */
   const fetchWeightHistory = async () => {
     try {
       setLoading(true);
@@ -43,6 +53,11 @@ export default function WeightScreen() {
     }
   };
 
+  /**
+   * Format a UTC date string into local 'YYYY-MM-DD HH:mm:ss' format.
+   * @param {string} utcDateString - UTC date string from backend
+   * @returns {string} Formatted date string
+   */
   const formatLocalDate = utcDateString => {
     if (!utcDateString) return '';
     const date = dayjs(utcDateString); // automatically parses ISO strings
@@ -54,12 +69,18 @@ export default function WeightScreen() {
     fetchWeightHistory();
   }, []);
 
+  /**
+   * Refresh the weight history list.
+   */
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchWeightHistory();
     setRefreshing(false);
   };
 
+  /**
+   * Validate inputs and submit a new weight entry.
+   */
   const handleSubmit = async () => {
     const weekNum = Number(week);
     const weightNum = Number(weight);
@@ -105,6 +126,10 @@ export default function WeightScreen() {
     }
   };
 
+  /**
+   * Delete a weight entry by id after confirmation.
+   * @param {number} id - ID of the entry to delete
+   */
   const handleDelete = async id => {
     Alert.alert(
       'Confirm Delete',
@@ -135,6 +160,9 @@ export default function WeightScreen() {
     setEditVisible(true);
   };
 
+  /**
+   * Update an existing weight entry after validation.
+   */
   const handleUpdate = async () => {
     const weekNum = Number(editData.week_number);
     const weightNum = Number(editData.weight);
