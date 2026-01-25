@@ -8,9 +8,10 @@ import {
   Alert,
 } from 'react-native';
 import {TextInput, Button, Card, Dialog, Portal} from 'react-native-paper';
-import {BASE_URL} from '@env';
 import HeaderWithBack from '../Components/HeaderWithBack';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {weightApi} from '../services/weightApi';
+import dayjs from 'dayjs';
 
 export default function WeightScreen() {
   const [week, setWeek] = useState('');
@@ -20,38 +21,34 @@ export default function WeightScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [editVisible, setEditVisible] = useState(false);
-  const [editData, setEditData] = useState(null);
+  const [editData, setEditData] = useState({
+    id: null,
+    week_number: '',
+    weight: '',
+    note: '',
+  });
+
+  const [loading, setLoading] = useState(false);
 
   const fetchWeightHistory = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/weight`);
-      if (!res.ok) {
-        throw new Error('Network response was not ok');
-      }
-      const data = await res.json();
-      setHistory(data.reverse());
+      setLoading(true);
+      const data = await weightApi.getAll();
+      setHistory([...data].reverse());
     } catch (err) {
       console.error('Failed to fetch weights:', err);
+      Alert.alert('Error', `unable to laod weight history`);
+    } finally {
+      setLoading(false);
     }
   };
- 
 
-  const formatLocalDate = (utcDateString) => {
+  const formatLocalDate = utcDateString => {
     if (!utcDateString) return '';
-    const dateStringWithZ = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
-    const date = new Date(dateStringWithZ);
-    if (isNaN(date.getTime())) return 'Invalid date';
-   return date.toLocaleString(undefined, {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true, 
-    });
+    const date = dayjs(utcDateString); // automatically parses ISO strings
+    if (!date.isValid()) return 'Invalid date';
+    return date.format('YYYY-MM-DD HH:mm:ss');
   };
-
 
   useEffect(() => {
     fetchWeightHistory();
@@ -64,24 +61,47 @@ export default function WeightScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!week || !weight) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    const weekNum = Number(week);
+    const weightNum = Number(weight);
+
+    if (!Number.isInteger(weekNum) || weekNum < 1 || weekNum > 40) {
+      Alert.alert('Invalid week', 'Week must be between 1 and 40');
       return;
     }
 
+    if (weightNum <= 0) {
+      Alert.alert('Invalid weight', 'Weight must be greater than 0');
+      return;
+    }
+
+    const tempId = Date.now(); // temporary id for optimistic UI
+    const newEntry = {
+      id: tempId,
+      week_number: weekNum,
+      weight: weightNum,
+      note,
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistic update
+    setHistory(prev => [newEntry, ...prev]);
+
     try {
-      await fetch(`${BASE_URL}/weight`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({week_number: week, weight, note}),
+      const savedEntry = await weightApi.create({
+        week_number: weekNum,
+        weight: weightNum,
+        note,
       });
+      // Replace temp entry with real id from server
+      setHistory(prev => prev.map(e => (e.id === tempId ? savedEntry : e)));
+    } catch (err) {
+      setHistory(prev => prev.filter(e => e.id !== tempId));
+      console.error('Failed to save weight:', err);
+      Alert.alert('Error', 'Failed to save weight entry. Please try again.');
+    } finally {
       setWeek('');
       setWeight('');
       setNote('');
-      fetchWeightHistory();
-    } catch (err) {
-      console.error('Failed to save weight:', err);
-      Alert.alert('Error', 'Failed to save weight entry. Please try again.');
     }
   };
 
@@ -95,12 +115,12 @@ export default function WeightScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            const prevHistory = [...history];
+            setHistory(prev => prev.filter(e => e.id !== id));
             try {
-              await fetch(`${BASE_URL}/weight/${id}`, {
-                method: 'DELETE',
-              });
-              fetchWeightHistory();
+              await weightApi.remove(id);
             } catch (err) {
+              setHistory(prevHistory);
               console.error('Failed to delete weight:', err);
               Alert.alert('Error', 'Failed to delete entry. Please try again.');
             }
@@ -116,28 +136,56 @@ export default function WeightScreen() {
   };
 
   const handleUpdate = async () => {
+    const weekNum = Number(editData.week_number);
+    const weightNum = Number(editData.weight);
+
+    if (!Number.isInteger(weekNum) || weekNum < 1 || weekNum > 40) {
+      Alert.alert('Invalid week', 'Week must be between 1 and 40');
+      return;
+    }
+
+    if (weightNum <= 0) {
+      Alert.alert('Invalid weight', 'Weight must be greater than 0');
+      return;
+    }
+
+    const prevHistory = [...history];
+    setHistory(prev =>
+      prev.map(e =>
+        e.id === editData.id
+          ? {...e, week_number: weekNum, weight: weightNum, note: editData.note}
+          : e,
+      ),
+    );
     try {
-      await fetch(`${BASE_URL}/weight/${editData.id}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          week_number: editData.week_number,
-          weight: editData.weight,
-          note: editData.note,
-        }),
+      await weightApi.update(editData.id, {
+        week_number: weekNum,
+        weight: weightNum,
+        note: editData.note,
       });
-      setEditVisible(false);
-      setEditData(null);
-      fetchWeightHistory();
     } catch (err) {
+      setHistory(prevHistory);
       console.error('Failed to update weight:', err);
       Alert.alert('Error', 'Failed to update entry. Please try again.');
+    } finally {
+      setEditVisible(false);
+      setEditData({
+        id: null,
+        week_number: '',
+        weight: '',
+        note: '',
+      });
     }
   };
 
   return (
     <View style={styles.container}>
       <HeaderWithBack title="Weight Tracker" />
+      {loading && (
+        <View style={{paddingVertical: 30}}>
+          <Text style={{textAlign: 'center'}}>Loading weight history</Text>
+        </View>
+      )}
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -156,7 +204,7 @@ export default function WeightScreen() {
               mode="outlined"
               left={<TextInput.Icon icon="calendar" />}
               style={styles.input}
-             />
+            />
             <TextInput
               label="Weight (kg)"
               value={weight}
@@ -179,6 +227,7 @@ export default function WeightScreen() {
             <Button
               mode="contained"
               onPress={handleSubmit}
+              disabled={loading}
               style={styles.button}
               labelStyle={{fontWeight: 'bold', color: '#fff'}}>
               Save Entry
@@ -186,10 +235,15 @@ export default function WeightScreen() {
           </Card.Content>
         </Card>
 
+        {!loading && history.length === 0 && (
+          <Text style={{textAlign: 'center', marginTop: 20, color: '#777'}}>
+            No weight entries yet. Add your first entry above.
+          </Text>
+        )}
         {/* History */}
         <Text style={styles.historyTitle}>Your Weight History</Text>
-        {history.map((entry, index) => (
-          <Card key={index} style={styles.entryCard}>
+        {history.map(entry => (
+          <Card key={entry.id} style={styles.entryCard}>
             <Card.Content>
               <View style={styles.entryRowBetween}>
                 <View style={styles.entryRow}>
@@ -222,7 +276,7 @@ export default function WeightScreen() {
                 <Text style={styles.entryNote}>Note: {entry.note}</Text>
               ) : null}
               <Text style={styles.entryDate}>
-               {formatLocalDate(entry.created_at)}
+                {formatLocalDate(entry.created_at)}
               </Text>
             </Card.Content>
           </Card>
@@ -233,7 +287,7 @@ export default function WeightScreen() {
       <Portal>
         <Dialog visible={editVisible} onDismiss={() => setEditVisible(false)}>
           <Dialog.Title>Edit Entry</Dialog.Title>
-          <Dialog.Content >
+          <Dialog.Content>
             <TextInput
               label="Week Number"
               value={editData?.week_number?.toString() || ''}
@@ -292,7 +346,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginBottom: 15,
     borderRadius: 10,
-   
   },
   noteInput: {
     minHeight: 100,
