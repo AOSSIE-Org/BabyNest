@@ -357,7 +357,7 @@ class ConversationContext {
       const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5000';
       
       const response = await fetch(`${BASE_URL}/update_appointment/${selectedAppointment.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatePayload)
       });

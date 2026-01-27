@@ -2,38 +2,39 @@ from flask import Blueprint, request, jsonify
 from db.db import open_db
 import os
 import sys
+from error_handling.error_classes import MissingFieldError, NotFoundError
+from error_handling.handlers import handle_db_errors
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agent.agent import get_agent
+from utils import validate_week_number, validate_weight_value
 
 weight_bp = Blueprint('weight', __name__)
 
+
 # Create
 @weight_bp.route('/weight', methods=['POST'])
+@handle_db_errors
 def log_weight():
     db = open_db()
-    data = request.json
-    week = data.get('week_number')
-    weight = data.get('weight')
+    data = request.get_json()
+    required = ['week_number', 'weight']
+    missing = [field for field in required if field not in data]
+    if missing:
+        raise MissingFieldError(missing)
+    
+    week = data['week_number']
+    weight = data['weight']
     note = data.get('note')
 
-    if not all([week, weight]):
-        return jsonify({"error": "Missing week_number or weight"}), 400
+    week_result = validate_week_number(week)
+    weight_result = validate_weight_value(weight)
 
-    # Validate week number
-    try:
-       week = int(week)
-       if week < 1 or week > 52:
-           return jsonify({"error": "Week number must be between 1 and 52"}), 400
-    except (ValueError, TypeError):
-       return jsonify({"error": "Week number must be a valid integer"}), 400
-   
-    # Validate weight
-    try:
-       weight = float(weight)
-       if weight <= 0 or weight > 1000:  # reasonable range in kg
-           return jsonify({"error": "Weight must be a positive number up to 1000kg"}), 400
-    except (ValueError, TypeError):
-       return jsonify({"error": "Weight must be a valid number"}), 400
+    if not week_result["status"]:
+        return jsonify({"error": week_result["error"]}), 400
+    if not weight_result["status"]:
+        return jsonify({"error": weight_result["error"]}), 400
+
+
     db.execute('INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)', (week, weight, note))
 
     db.commit()
@@ -43,17 +44,19 @@ def log_weight():
     agent = get_agent(db_path)
     agent.update_cache(data_type="weight", operation="create")
     
-    return jsonify({"status": "success", "message": "Weight added"}), 200
+    return jsonify({"status": "success", "message": "Weight added"}), 201
 
 # Read all
 @weight_bp.route('/weight', methods=['GET'])
+@handle_db_errors
 def get_all_weights():
     db = open_db()
     weights = db.execute('SELECT * FROM weekly_weight').fetchall()
     return jsonify([dict(row) for row in weights]), 200
 
 # Read by week
-@weight_bp.route('/weight/<int:week>', methods=['GET'])
+@weight_bp.route('/weight/week/<int:week>', methods=['GET'])
+@handle_db_errors
 def get_week_weight(week):
     db = open_db()
     weights = db.execute('SELECT * FROM weekly_weight WHERE week_number = ?', (week,)).fetchall()
@@ -61,27 +64,38 @@ def get_week_weight(week):
 
 # Read by ID
 @weight_bp.route('/weight/<int:id>', methods=['GET'])
+@handle_db_errors
 def get_weight(id):
     db = open_db()
     weight = db.execute('SELECT * FROM weekly_weight WHERE id = ?', (id,)).fetchone()
     if not weight:
-        return jsonify({"error": "Weight entry not found"}), 404
+        raise NotFoundError(resource="Weight entry", resource_id=id)
     return jsonify(dict(weight)), 200   
 
 # Update by ID
-@weight_bp.route('/weight/<int:id>', methods=['PUT'])
+@weight_bp.route('/weight/<int:id>', methods=['PATCH'])
+@handle_db_errors
 def update_weight(id):
     db = open_db()
-    data = request.json
+    data = request.get_json()
     weight_entry = db.execute('SELECT * FROM weekly_weight WHERE id = ?', (id,)).fetchone()
     
     if not weight_entry:
-        return jsonify({"error": "Weight entry not found"}), 404
+        raise NotFoundError(resource="Weight entry", resource_id=id)
+    
+    week_number = data.get('week_number', weight_entry['week_number'])
+    weight = data.get('weight', weight_entry['weight'])
+
+    if not validate_week_number(week_number):
+        return jsonify({"error": "Week number must be an integer between 1 and 52"}), 400
+    if not validate_weight_value(weight):
+        return jsonify({"error": "Weight must be a positive number up to 1000kg"}), 400
+
 
     db.execute(
         'UPDATE weekly_weight SET week_number=?, weight=?, note=? WHERE id=?',
-        (data.get('week_number', weight_entry['week_number']),
-         data.get('weight', weight_entry['weight']),
+        (week_number,
+         weight,
          data.get('note', weight_entry['note']),
          id)
     )
@@ -96,14 +110,13 @@ def update_weight(id):
 
 # Delete by ID
 @weight_bp.route('/weight/<int:id>', methods=['DELETE'])
+@handle_db_errors
 def delete_weight(id):
     db = open_db()
-    weight_entry = db.execute('SELECT * FROM weekly_weight WHERE id = ?', (id,)).fetchone()
-    
-    if not weight_entry:
-        return jsonify({"error": "Weight entry not found"}), 404
 
-    db.execute('DELETE FROM weekly_weight WHERE id = ?', (id,))
+    weight = db.execute('DELETE FROM weekly_weight WHERE id = ?', (id,))
+    if weight.rowcount == 0:
+        raise NotFoundError(resource="Weight entry", resource_id=id)
     db.commit()
     
     # Update cache after database update

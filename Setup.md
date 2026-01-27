@@ -134,10 +134,23 @@ pip install -r requirements.txt
 
 ```sh
 cd Backend
-python app.py
 ```
 
-This will start the API locally.
+**For Development Mode:**
+
+```sh
+python app.py --env development
+```
+
+This will start the API locally in development mode. In development mode, error messages are more detailed and verbose, making it easier to debug issues during development.
+
+**For Production Mode:**
+
+```sh
+python app.py --env production
+```
+
+This will start the API in production mode. In production mode, error messages are more general and details are minimized for security purposes.
 
 ---
 
