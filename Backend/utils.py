@@ -29,7 +29,7 @@ def validate_medicine_data(data):
     if name and (not isinstance(data['name'], str) or len(data['name'].strip()) == 0):
             errors["name"] = "Medicine name must be a non-empty string."
 
-    if dose and (isinstance(data['dose'], str) or len(data['dose'].strip()) == 0):
+    if dose and (not isinstance(data['dose'], str) or len(data['dose'].strip()) == 0):
             errors["dose"] = "Dose must be a non-empty string."
     
     return errors
