@@ -92,6 +92,8 @@ def update_profile():
 
     profile = db.execute('SELECT * FROM profile').fetchone()
     data = request.get_json()
+    if profile is None:
+        raise NotFoundError(resource="Profile")
     lmp = data.get('lmp', profile['lmp'])
     cycleLength = data.get('cycleLength', profile['cycleLength'])
     periodLength = data.get('periodLength', profile['periodLength'])

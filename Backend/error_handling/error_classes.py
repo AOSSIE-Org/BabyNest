@@ -3,7 +3,7 @@ class MissingFieldError(Exception):
     status_code = 400
     def __init__(self, field_names: list):
         self.field_names = field_names
-        self.message = f"Missing required fields" 
+        self.message = "Missing required fields" 
         super().__init__(self.message)
         
     

@@ -233,5 +233,9 @@ def index():
     return appointment_db
 
 if __name__ == '__main__':
-   port = os.getenv("DEV_PORT", 5000) if app.config['ENV'] == 'development' else os.getenv("PROD_PORT", 8000)
-   app.run(host='0.0.0.0', port=port, debug=True)
+    parser = argparse.ArgumentParser(description="Run the Flask backend server.")
+    parser.add_argument("--env", type=str, default="development", choices=["development", "production"])
+    args = parser.parse_args()
+    app.config['ENV'] = args.env
+    port = os.getenv("DEV_PORT", 5000) if app.config['ENV'] == 'development' else os.getenv("PROD_PORT", 8000)
+    app.run(host='0.0.0.0', port=port, debug=(app.config['ENV'] == 'development'))

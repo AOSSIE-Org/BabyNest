@@ -25,7 +25,6 @@ def log_weight():
     week = data['week_number']
     weight = data['weight']
     note = data.get('note')
-
     week_result = validate_week_number(week)
     weight_result = validate_weight_value(weight)
 
@@ -86,10 +85,13 @@ def update_weight(id):
     week_number = data.get('week_number', weight_entry['week_number'])
     weight = data.get('weight', weight_entry['weight'])
 
-    if not validate_week_number(week_number):
-        return jsonify({"error": "Week number must be an integer between 1 and 52"}), 400
-    if not validate_weight_value(weight):
-        return jsonify({"error": "Weight must be a positive number up to 1000kg"}), 400
+    week_result = validate_week_number(week_number)
+    weight_result = validate_weight_value(weight)
+
+    if not week_result["status"]:
+        return jsonify({"error": week_result["error"]}), 400
+    if not weight_result["status"]:
+        return jsonify({"error": weight_result["error"]}), 400
 
 
     db.execute(

@@ -57,8 +57,8 @@ def update_task(task_id):
     db.execute(
         'UPDATE tasks SET title = ?, content = ?, starting_week = ?, ending_week = ?, task_status = ?, task_priority = ?, isOptional = ?, isAppointmentMade = ? WHERE id = ?',
         (data.get('title',task['title']), data.get('content',task['content']), data.get('starting_week',task['starting_week']),
-         data.get('ending_week',task['ending_week']), data.get('task_status', task['task_status']), data.get('task_priority', task['task_priority']), data.get('isOptional', False),
-         data.get('isAppointmentMade', False), task_id)
+         data.get('ending_week',task['ending_week']), data.get('task_status', task['task_status']), data.get('task_priority', task['task_priority']), data.get('isOptional', task['isOptional']),
+         data.get('isAppointmentMade', task['isAppointmentMade']), task_id)
     )
     db.commit()
     return jsonify({"status": "success", "message": "Task updated"}), 200
@@ -96,7 +96,6 @@ def move_to_appointment(task_id):
         'UPDATE tasks SET isAppointmentMade = ? WHERE id = ?',
         (1, task_id)
     )
-    db.commit()
     # add that task to appointments
     db.execute(
         'INSERT INTO appointments (title, content, appointment_date, appointment_time, appointment_location, appointment_status) VALUES (?, ?, ?, ?, ?, ?)',

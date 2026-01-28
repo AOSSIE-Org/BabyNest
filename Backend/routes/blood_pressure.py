@@ -57,7 +57,7 @@ def get_bp_logs():
     return jsonify([dict(row) for row in rows]), 200
 
 # Read by week
-@bp_bp.route('/blood_pressure/<int:week>', methods=['GET'])
+@bp_bp.route('/blood_pressure/week/<int:week>', methods=['GET'])
 @handle_db_errors
 def get_bp_logs_by_week(week):
     db = open_db()
