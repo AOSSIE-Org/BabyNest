@@ -23,6 +23,8 @@ profile_bp = Blueprint('profile', __name__)
 def set_profile():
     db = open_db()
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
     lmp = data.get('lmp')
     cycleLength = data.get('cycleLength')
     periodLength = data.get('periodLength')
@@ -76,7 +78,6 @@ def delete_profile():
     db = open_db()
     db.execute('DELETE FROM profile')
     db.commit()
-
     # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
@@ -92,6 +93,8 @@ def update_profile():
 
     profile = db.execute('SELECT * FROM profile').fetchone()
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
     if profile is None:
         raise NotFoundError(resource="Profile")
     lmp = data.get('lmp', profile['lmp'])
