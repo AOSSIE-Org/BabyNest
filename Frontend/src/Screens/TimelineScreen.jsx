@@ -99,7 +99,7 @@ const TimelineScreen = ({ navigation }) => {
     try {
       console.log(taskId);
       const response = await fetch(`${BASE_URL}/update_task/${taskId}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task_status: "completed" }),
       });

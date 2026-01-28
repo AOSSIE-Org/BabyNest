@@ -243,7 +243,7 @@ class ActionExecutor {
       }
 
       const response = await fetch(`${BASE_URL}/update_appointment/${payload.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
       });
@@ -782,8 +782,8 @@ class ActionExecutor {
   async rollbackUpdateAppointment(originalPayload, result) {
     try {
       if (result.appointmentId && result.previousData) {
-        const response = await fetch(`${BASE_URL}/appointments/${result.appointmentId}`, {
-          method: 'PUT',
+        const response = await fetch(`${BASE_URL}/update_appointment/${result.appointmentId}`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result.previousData)
         });

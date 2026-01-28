@@ -2,19 +2,25 @@ from flask import Blueprint, request, jsonify
 from db.db import open_db
 import os
 import sys
+from error_handling.error_classes import MissingFieldError, NotFoundError
+from error_handling.handlers import handle_db_errors
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agent.agent import get_agent
+
 
 discharge_bp = Blueprint('discharge', __name__)
 
 # Create
 @discharge_bp.route('/set_discharge_log', methods=['POST'])
+@handle_db_errors
 def add_discharge_log():
     data = request.get_json()
     required = ['week_number', 'type', 'color', 'bleeding']
 
-    if not all(field in data and data[field] for field in required):
-        return jsonify({"error": "Missing required fields"}), 400
+    missing = [field for field in required if field not in data]
+
+    if missing:
+        raise MissingFieldError(missing)
 
     db = open_db()
     db.execute(
@@ -33,6 +39,7 @@ def add_discharge_log():
 
 # Read all
 @discharge_bp.route('/get_discharge_logs', methods=['GET'])
+@handle_db_errors
 def get_discharge_logs():
     db = open_db()
     rows = db.execute('SELECT * FROM discharge_logs ORDER BY created_at DESC').fetchall()
@@ -40,6 +47,7 @@ def get_discharge_logs():
 
 # Read by week
 @discharge_bp.route('/get_discharge_logs/<int:week>', methods=['GET'])
+@handle_db_errors
 def get_discharge_logs_by_week(week):
     db = open_db()
     rows = db.execute('SELECT * FROM discharge_logs WHERE week_number = ? ORDER BY created_at DESC', (week,)).fetchall()
@@ -47,21 +55,23 @@ def get_discharge_logs_by_week(week):
 
 # Read by ID
 @discharge_bp.route('/discharge_log/<int:id>', methods=['GET'])
+@handle_db_errors
 def get_discharge_log(id):
     db = open_db()
     entry = db.execute('SELECT * FROM discharge_logs WHERE id = ?', (id,)).fetchone()
     if not entry:
-        return jsonify({"error": "Entry not found"}), 404
+        raise NotFoundError(resource="Discharge entry", resource_id=id)
     return jsonify(dict(entry)), 200
 
 # Update
-@discharge_bp.route('/discharge_log/<int:id>', methods=['PUT'])
+@discharge_bp.route('/discharge_log/<int:id>', methods=['PATCH'])
+@handle_db_errors
 def update_discharge_log(id):
     data = request.get_json()
     db = open_db()
     entry = db.execute('SELECT * FROM discharge_logs WHERE id = ?', (id,)).fetchone()
     if not entry:
-        return jsonify({"error": "Entry not found"}), 404
+        raise NotFoundError(resource="Discharge entry", resource_id=id)
 
     db.execute(
         '''UPDATE discharge_logs SET week_number=?, type=?, color=?, bleeding=?, note=? WHERE id=?''',
@@ -85,11 +95,12 @@ def update_discharge_log(id):
 
 # Delete
 @discharge_bp.route('/discharge_log/<int:id>', methods=['DELETE'])
+@handle_db_errors
 def delete_discharge_log(id):
     db = open_db()
     entry = db.execute('SELECT * FROM discharge_logs WHERE id = ?', (id,)).fetchone()
     if not entry:
-        return jsonify({"error": "Entry not found"}), 404
+        raise NotFoundError(resource="Discharge entry", resource_id=id)
 
     db.execute('DELETE FROM discharge_logs WHERE id = ?', (id,))
     db.commit()
