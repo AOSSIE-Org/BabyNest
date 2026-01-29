@@ -1,49 +1,30 @@
 from flask import Blueprint, request, jsonify
 from db.db import open_db
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from agent.agent import get_agent
+from services import db_service
 
 weight_bp = Blueprint('weight', __name__)
 
 # Create
 @weight_bp.route('/weight', methods=['POST'])
 def log_weight():
-    db = open_db()
     data = request.json
     week = data.get('week_number')
     weight = data.get('weight')
     note = data.get('note')
 
+    # STEP 1:Basic validation (Routine Check)
     if not all([week, weight]):
         return jsonify({"error": "Missing week_number or weight"}), 400
 
-    # Validate week number
     try:
-       week = int(week)
-       if week < 1 or week > 52:
-           return jsonify({"error": "Week number must be between 1 and 52"}), 400
-    except (ValueError, TypeError):
-       return jsonify({"error": "Week number must be a valid integer"}), 400
-   
-    # Validate weight
-    try:
-       weight = float(weight)
-       if weight <= 0 or weight > 1000:  # reasonable range in kg
-           return jsonify({"error": "Weight must be a positive number up to 1000kg"}), 400
-    except (ValueError, TypeError):
-       return jsonify({"error": "Weight must be a valid number"}), 400
-    db.execute('INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)', (week, weight, note))
-
-    db.commit()
-    
-    # Update cache after database update
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
-    agent = get_agent(db_path)
-    agent.update_cache(data_type="weight", operation="create")
-    
-    return jsonify({"status": "success", "message": "Weight added"}), 200
+        # STEP 2
+        db_service.save_weight(week, weight, note)
+        
+        return jsonify({"status": "success", "message": "Weight added"}), 201
+    except Exception as e:
+        # if some error occoured in service layer
+        return jsonify({"error": str(e)}), 500
 
 # Read all
 @weight_bp.route('/weight', methods=['GET'])
@@ -62,8 +43,7 @@ def get_week_weight(week):
 # Read by ID
 @weight_bp.route('/weight/<int:id>', methods=['GET'])
 def get_weight(id):
-    db = open_db()
-    weight = db.execute('SELECT * FROM weekly_weight WHERE id = ?', (id,)).fetchone()
+    weight=db_service.get_weight_by_id(id)
     if not weight:
         return jsonify({"error": "Weight entry not found"}), 404
     return jsonify(dict(weight)), 200   
@@ -71,44 +51,21 @@ def get_weight(id):
 # Update by ID
 @weight_bp.route('/weight/<int:id>', methods=['PUT'])
 def update_weight(id):
-    db = open_db()
-    data = request.json
-    weight_entry = db.execute('SELECT * FROM weekly_weight WHERE id = ?', (id,)).fetchone()
-    
+    weight_entry = db_service.get_weight_by_id(id)
     if not weight_entry:
         return jsonify({"error": "Weight entry not found"}), 404
 
-    db.execute(
-        'UPDATE weekly_weight SET week_number=?, weight=?, note=? WHERE id=?',
-        (data.get('week_number', weight_entry['week_number']),
-         data.get('weight', weight_entry['weight']),
-         data.get('note', weight_entry['note']),
-         id)
-    )
-    db.commit()
-    
-    # Update cache after database update
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
-    agent = get_agent(db_path)
-    agent.update_cache(data_type="weight", operation="update")
-    
+    db_service.update_weight_entry(id, request.json, weight_entry)
     return jsonify({"status": "success", "message": "Weight updated"}), 200
 
 # Delete by ID
 @weight_bp.route('/weight/<int:id>', methods=['DELETE'])
 def delete_weight(id):
-    db = open_db()
-    weight_entry = db.execute('SELECT * FROM weekly_weight WHERE id = ?', (id,)).fetchone()
-    
+    weight_entry = db_service.get_weight_by_id(id)
     if not weight_entry:
         return jsonify({"error": "Weight entry not found"}), 404
 
-    db.execute('DELETE FROM weekly_weight WHERE id = ?', (id,))
-    db.commit()
-    
-    # Update cache after database update
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
-    agent = get_agent(db_path)
-    agent.update_cache(data_type="weight", operation="delete")
-    
+    db_service.delete_weight_entry(id)
     return jsonify({"status": "success", "message": "Weight entry deleted"}), 200
+    
+   
