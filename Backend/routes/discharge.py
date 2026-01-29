@@ -1,13 +1,8 @@
 from flask import Blueprint, request, jsonify
-from db.db import open_db
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from agent.agent import get_agent
+from services import db_service
 
 discharge_bp = Blueprint('discharge', __name__)
 
-# Create
 @discharge_bp.route('/set_discharge_log', methods=['POST'])
 def add_discharge_log():
     data = request.get_json()
@@ -16,87 +11,47 @@ def add_discharge_log():
     if not all(field in data and data[field] for field in required):
         return jsonify({"error": "Missing required fields"}), 400
 
-    db = open_db()
-    db.execute(
-        '''INSERT INTO discharge_logs (week_number, type, color, bleeding, note)
-           VALUES (?, ?, ?, ?, ?)''',
-        (data['week_number'], data['type'], data['color'], data['bleeding'], data.get('note'))
-    )
-    db.commit()
-    
-    # Update cache after database update
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
-    agent = get_agent(db_path)
-    agent.update_cache(data_type="discharge", operation="create")
-    
-    return jsonify({"status": "success", "message": "Discharge entry added"}), 201
+    try:
+        db_service.save_discharge_entry(
+            data['week_number'], data['type'], data['color'], 
+            data['bleeding'], data.get('note')
+        )
+        return jsonify({"status": "success", "message": "Discharge entry added"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-# Read all
 @discharge_bp.route('/get_discharge_logs', methods=['GET'])
 def get_discharge_logs():
-    db = open_db()
-    rows = db.execute('SELECT * FROM discharge_logs ORDER BY created_at DESC').fetchall()
-    return jsonify([dict(row) for row in rows]), 200
+    logs = db_service.get_all_discharge_entries()
+    return jsonify(logs), 200
 
-# Read by week
 @discharge_bp.route('/get_discharge_logs/<int:week>', methods=['GET'])
 def get_discharge_logs_by_week(week):
-    db = open_db()
-    rows = db.execute('SELECT * FROM discharge_logs WHERE week_number = ? ORDER BY created_at DESC', (week,)).fetchall()
-    return jsonify([dict(row) for row in rows]), 200
+    logs = db_service.get_discharge_entries_by_week(week)
+    return jsonify(logs), 200
 
-# Read by ID
 @discharge_bp.route('/discharge_log/<int:id>', methods=['GET'])
 def get_discharge_log(id):
-    db = open_db()
-    entry = db.execute('SELECT * FROM discharge_logs WHERE id = ?', (id,)).fetchone()
+    entry = db_service.get_discharge_entry_by_id(id)
     if not entry:
         return jsonify({"error": "Entry not found"}), 404
     return jsonify(dict(entry)), 200
 
-# Update
 @discharge_bp.route('/discharge_log/<int:id>', methods=['PUT'])
 def update_discharge_log(id):
     data = request.get_json()
-    db = open_db()
-    entry = db.execute('SELECT * FROM discharge_logs WHERE id = ?', (id,)).fetchone()
+    entry = db_service.get_discharge_entry_by_id(id)
     if not entry:
         return jsonify({"error": "Entry not found"}), 404
 
-    db.execute(
-        '''UPDATE discharge_logs SET week_number=?, type=?, color=?, bleeding=?, note=? WHERE id=?''',
-        (
-            data.get('week_number', entry['week_number']),
-            data.get('type', entry['type']),
-            data.get('color', entry['color']),
-            data.get('bleeding', entry['bleeding']),
-            data.get('note', entry['note']),
-            id
-        )
-    )
-    db.commit()
-    
-    # Update cache after database update
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
-    agent = get_agent(db_path)
-    agent.update_cache(data_type="discharge", operation="update")
-    
+    db_service.update_discharge_entry(id, data, entry)
     return jsonify({"status": "success", "message": "Entry updated"}), 200
 
-# Delete
 @discharge_bp.route('/discharge_log/<int:id>', methods=['DELETE'])
 def delete_discharge_log(id):
-    db = open_db()
-    entry = db.execute('SELECT * FROM discharge_logs WHERE id = ?', (id,)).fetchone()
+    entry = db_service.get_discharge_entry_by_id(id)
     if not entry:
         return jsonify({"error": "Entry not found"}), 404
 
-    db.execute('DELETE FROM discharge_logs WHERE id = ?', (id,))
-    db.commit()
-    
-    # Update cache after database update
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
-    agent = get_agent(db_path)
-    agent.update_cache(data_type="discharge", operation="delete")
-    
+    db_service.delete_discharge_entry(id)
     return jsonify({"status": "success", "message": "Entry deleted"}), 200

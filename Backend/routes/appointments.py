@@ -1,119 +1,66 @@
-import sqlite3
-from flask import Blueprint, jsonify, request
-from db.db import open_db, close_db
+from flask import Blueprint, request, jsonify
+from services import db_service
 
 appointments_bp = Blueprint('appointments', __name__)
 
 @appointments_bp.route('/get_appointments', methods=['GET'])
 def get_appointments():
-    db = open_db()
-
     try:
-        appointments = db.execute('SELECT * FROM appointments').fetchall()
-        appointments_list = [dict(appt) for appt in appointments]
-        
+        appointments_list = db_service.get_all_appointments()
         return jsonify(appointments_list), 200
-
-    except sqlite3.OperationalError:
-        return jsonify({"error": "Database Error"}), 500
-    finally:
-        close_db(db)
-    
+    except Exception as e:
+        return jsonify({"error": "Database Error", "details": str(e)}), 500
 
 @appointments_bp.route('/get_appointment/<int:appointment_id>', methods=['GET'])
 def get_appointment(appointment_id):
-    db = open_db()
-
-    if not appointment_id:
-        return jsonify({"error": "Appointment ID is required"}), 400
-    
     try:
-        appointment = db.execute('SELECT * FROM appointments WHERE id = ?', (appointment_id,)).fetchone()
+        appointment = db_service.get_appointment_by_id(appointment_id)
         if not appointment:
             return jsonify({"error": "Appointment not found"}), 404
-        
         return jsonify(dict(appointment)), 200
-    
-    except sqlite3.OperationalError:
-        return jsonify({"error": "Database Error"}), 500
-    finally:
-        close_db(db)
+    except Exception as e:
+        return jsonify({"error": "Database Error", "details": str(e)}), 500
 
 @appointments_bp.route('/add_appointment', methods=['POST'])
 def add_appointment():
-    db = open_db()
+    data = request.json
+    required_fields = [
+        'title', 'content', 'appointment_date', 
+        'appointment_time', 'appointment_location'
+    ]
+
+    if not all(data.get(field) for field in required_fields):
+        return jsonify({"error": "Missing required fields"}), 400
+
     try:
-        data = request.json
-        title = data.get('title')
-        content = data.get('content')
-        appointment_date = data.get('appointment_date')
-        appointment_time = data.get('appointment_time')
-        appointment_location = data.get('appointment_location')
-
-        if not all([title, content, appointment_date, appointment_time, appointment_location]):
-            return jsonify({"error": "Missing required fields"}), 400
-
-        db.execute(
-            'INSERT INTO appointments (title, content, appointment_date, appointment_time, appointment_location, appointment_status) VALUES (?, ?, ?, ?, ?, ?)',
-            (title, content, appointment_date, appointment_time, appointment_location, 'pending')
+        db_service.save_appointment(
+            data['title'], data['content'], data['appointment_date'],
+            data['appointment_time'], data['appointment_location']
         )
-        db.commit()
-
-        return jsonify({"status": "success", "message": "Appointment added successfully"}), 200
-
-    except sqlite3.OperationalError:
-        return jsonify({"error": "Database Error"}), 500
-    finally:
-        close_db(db)
+        return jsonify({"status": "success", "message": "Appointment added successfully"}), 201
+    except Exception as e:
+        return jsonify({"error": "Database Error", "details": str(e)}), 500
 
 @appointments_bp.route('/update_appointment/<int:appointment_id>', methods=['PUT'])
 def update_appointment(appointment_id):
-    db = open_db()
-
-    existing_appointment = db.execute('SELECT * FROM appointments WHERE id = ?', (appointment_id,)).fetchone()
-    if not existing_appointment:
-        return jsonify({"error": "Appointment not found"}), 404
-
     try:
-        data = request.json
-        title = data.get('title')
-        content = data.get('content')
-        appointment_date = data.get('appointment_date')
-        appointment_time = data.get('appointment_time')
-        appointment_location = data.get('appointment_location')
-        appointment_status = data.get('appointment_status', 'pending')
+        existing_appointment = db_service.get_appointment_by_id(appointment_id)
+        if not existing_appointment:
+            return jsonify({"error": "Appointment not found"}), 404
 
-        if not all([title, content, appointment_date, appointment_time, appointment_location]):
-            return jsonify({"error": "Missing required fields"}), 400
-
-        db.execute(
-            'UPDATE appointments SET title = ?, content = ?, appointment_date = ?, appointment_time = ?, appointment_location = ?, appointment_status = ? WHERE id = ?',
-            (title, content, appointment_date, appointment_time, appointment_location, appointment_status, appointment_id)
-        )
-        db.commit()
-
+        db_service.update_appointment_entry(appointment_id, request.json, existing_appointment)
         return jsonify({"status": "success", "message": "Appointment updated successfully"}), 200
-
-    except sqlite3.OperationalError:
-        return jsonify({"error": "Database Error"}), 500
-    finally:
-        close_db(db)
+    except Exception as e:
+        return jsonify({"error": "Database Error", "details": str(e)}), 500
 
 @appointments_bp.route('/delete_appointment/<int:appointment_id>', methods=['DELETE'])
 def delete_appointment(appointment_id):
-    db = open_db()
-
-    existing_appointment = db.execute('SELECT * FROM appointments WHERE id = ?', (appointment_id,)).fetchone()
-    if not existing_appointment:
-        return jsonify({"error": "Appointment not found"}), 404
-
     try:
-        db.execute('DELETE FROM appointments WHERE id = ?', (appointment_id,))
-        db.commit()
+        existing_appointment = db_service.get_appointment_by_id(appointment_id)
+        if not existing_appointment:
+            return jsonify({"error": "Appointment not found"}), 404
 
+        db_service.delete_appointment_entry(appointment_id)
         return jsonify({"status": "success", "message": "Appointment deleted successfully"}), 200
-
-    except sqlite3.OperationalError:
-        return jsonify({"error": "Database Error"}), 500
-    finally:
-        close_db(db)
+    except Exception as e:
+        return jsonify({"error": "Database Error", "details": str(e)}), 500
