@@ -136,8 +136,15 @@ pip install -r requirements.txt
 cd Backend
 python app.py
 ```
-
 This will start the API locally.
+
+### 8) Do adb reverse to connect frontend and backend
+
+```sh
+adb reverse tcp:5000 tcp:5000
+```
+
+This will allow frontend to send requests to your localhost
 
 ---
 
@@ -231,6 +238,14 @@ This starts the local vector database.
   ```sh
   lsof -i :5000
   kill -9 <PID>
+  ```
+- If facing network issues, ensure you have done adb reverse and reset cache
+  ```sh
+  adb reverse tcp:5000 tcp:5000
+  ```
+  ```sh
+  cd Frontend
+  npx react-native start --reset-cache
   ```
 
 ### Database Issues
