@@ -425,7 +425,6 @@ const ScheduleScreen = () => {
 
       <Modal
         visible={isAddAppointmentModalVisible}
-        // transparent={true}
         animationType="fade"
         onRequestClose={hideAddAppointmentModal}>
         <View style={styles.overlay}>
