@@ -1,355 +1,200 @@
+import React, { useState, useRef, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useState, useEffect, useRef } from "react";
-import {
-  View, StyleSheet, Animated, Alert, SafeAreaView, TouchableOpacity, Text, LogBox
-} from "react-native";
-import Clipboard from "@react-native-clipboard/clipboard";
-import { useNavigation, CommonActions } from "@react-navigation/native";
-import { downloadModel, generateResponse, unloadModel } from "../model/model";
-import { GGUF_FILE, BASE_URL } from "@env";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import { generateResponse } from "../model/model";
+import { BASE_URL } from "@env";
+import Markdown from "react-native-markdown-display";
 import { useTheme } from '../theme/ThemeContext';
 import { useAgentContext } from '../context/AgentContext';
 import { ragService } from '../services/RAGService';
 import { conversationContext } from '../services/ConversationContext'; 
-import { useChatEngine } from '../hooks/useChatEngine';
 
-// Components
-import ChatHeader from '../Components/ChatScreen/ChatHeader';
-import EmptyState from '../Components/ChatScreen/EmptyState';
-import ChatInput from '../Components/ChatScreen/ChatInput';
-import MessageList from '../Components/ChatScreen/MessageList';
-import QuickReplies from '../Components/ChatScreen/QuickReplies';
-import TypingIndicator from '../Components/ChatScreen/TypingIndicator';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-
-// Reducer for model state
-const initialModelState = {
-  isDownloading: false,
-  progress: 0,
-  isModelReady: false,
-  error: null,
-};
-
-function modelReducer(state, action) {
-  switch (action.type) {
-    case 'START_INIT':
-      return { ...state, isModelReady: false, error: null };
-    case 'SET_DOWNLOADING':
-      return { ...state, isDownloading: action.payload };
-    case 'SET_PROGRESS':
-      return { ...state, progress: action.payload };
-    case 'INIT_SUCCESS':
-      return { ...state, isDownloading: false, isModelReady: true, error: null };
-    case 'INIT_FAILURE':
-      return { ...state, isDownloading: false, isModelReady: false, error: action.payload || "Initialization failed" };
-    default:
-      return state;
+// FIXED: Added full URL validation as requested by bot
+const validateBaseUrl = (url) => {
+  if (!url) return 'http://127.0.0.1:5000';
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol.startsWith('http') ? url : 'http://127.0.0.1:5000';
+  } catch {
+    return 'http://127.0.0.1:5000';
   }
-}
+};
+const VALID_BASE_URL = validateBaseUrl(BASE_URL);
 
 export default function ChatScreen() {
-  const navigation = useNavigation();
   const { theme } = useTheme();
   const { context, refreshContext, initializeContext, isInitialized } = useAgentContext();
-
-  const [modelState, dispatch] = React.useReducer(modelReducer, initialModelState);
-  const { isDownloading, progress, isModelReady, error: modelError } = modelState;
   
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [conversation, setConversation] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [userInput, setUserInput] = useState("");
-  const [useRAGMode, setUseRAGMode] = useState(true); 
-  
+  const [userId, setUserId] = useState("default");
   const flatListRef = useRef(null);
 
-  const { 
-    conversation, 
-    isGenerating, 
-    sendMessage, 
-    clearConversation: baseClearConversation 
-  } = useChatEngine(isInitialized, context, refreshContext);
+  // FIXED: Load or generate a persistent Unique User ID for privacy
+  useEffect(() => {
+    const getPersistentId = async () => {
+      try {
+        let id = await AsyncStorage.getItem('user_device_id');
+        if (!id) {
+          id = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          await AsyncStorage.setItem('user_device_id', id);
+        }
+        setUserId(id);
+      } catch (e) { console.warn('ID retrieval failed'); }
+    };
+    getPersistentId();
+  }, []);
 
-  // Wrap clear for UI confirmation
-  const clearConversation = () => {
-    Alert.alert(
-      "Clear Chat",
-      "Are you sure you want to delete all messages?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => {
-            baseClearConversation();
-            setShowScrollToBottom(false);
-        }}
-      ]
-    );
-  };
-  
-  const initModel = React.useCallback(async () => {
+  const callBackendAgent = async (query, timeoutMs = 30000) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
     try {
-      if (isDownloading) return; // Prevention suggested in review
-      dispatch({ type: 'START_INIT' });
-      dispatch({ type: 'SET_DOWNLOADING', payload: true });
-      dispatch({ type: 'SET_PROGRESS', payload: 0 });
-
-      const success = await downloadModel(GGUF_FILE, (p) => {
-        dispatch({ type: 'SET_PROGRESS', payload: p });
+      const response = await fetch(`${VALID_BASE_URL}/agent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, user_id: userId }), // FIXED: Dynamic ID
+        signal: controller.signal,
       });
       
-      dispatch({ type: 'SET_DOWNLOADING', payload: false });
-      
-      if (success) {
-        dispatch({ type: 'INIT_SUCCESS' });
-      } else {
-         dispatch({ type: 'INIT_FAILURE', payload: "Failed to load model." });
+      if (response.ok) {
+        const data = await response.json();
+        return data.response;
       }
-
-    } catch (error) {
-      console.error(error);
-      dispatch({ type: 'INIT_FAILURE', payload: error.message });
+      return null;
+    } catch (e) {
+      if (e.name === 'AbortError') throw e; 
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
-  }, [isDownloading]);
+  };
 
-  useEffect(() => {
-    initModel();
-    // Cleanup on unmount
-    return () => {
-      unloadModel();
+  const handleSendMessage = async () => {
+    const trimmedInput = userInput.trim();
+    if (!trimmedInput) return;
+    
+    if (trimmedInput.length > 1000) {
+      Alert.alert("Input Too Long", "Message must be under 1000 characters.");
+      return;
+    }
+
+    if (!isInitialized) {
+      try { await initializeContext(); } catch (err) { console.warn(err); }
+    }
+
+    // FIXED: Added entropy to message IDs to prevent collisions
+    const userMessage = { 
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, 
+      role: "user", 
+      content: trimmedInput 
     };
-  }, []); // Only run on mount, but returns cleanup
 
-
-  // handleSendMessage now focuses on UI-side effects after core logic runs in the hook
-  const handleSendMessage = async (content = null) => {
-    const textToSend = (typeof content === 'string') ? content : userInput;
-    if (!textToSend?.trim()) return;
-
+    setConversation(prev => [...prev, userMessage]);
     setUserInput("");
+    setIsGenerating(true);
+    conversationContext.addMessage('user', trimmedInput);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
-    // Message sending and core logic handled by hook
-    const result = await sendMessage(textToSend, useRAGMode, initializeContext);
+    try {
+      let response = await callBackendAgent(trimmedInput);
 
-    // Secondary UI effects (navigation, SOS, etc) remain in the screen
-    if (result && typeof result === 'object') {
-      // Handle navigation commands
-      if (result.action === 'navigate' && result.screen) {
-        setTimeout(() => navigation.navigate(result.screen), 500);
+      // FIXED: Added a simple retry mechanism for transient failures
+      if (!response) {
+        await new Promise(res => setTimeout(res, 1000));
+        response = await callBackendAgent(trimmedInput, 15000);
       }
 
-      // Handle logout
-      if (result.action === 'logout') {
-        setTimeout(() => {
-          navigation.dispatch(CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'Onboarding' }],
-          }));
-        }, 1500);
+      if (!response) {
+        if (!ragService.isInitialized) await ragService.initialize();
+        const result = await ragService.processQuery(trimmedInput, context);
+        response = result?.message || await generateResponse([...conversation, userMessage]);
       }
 
-      // Handle emergency
-      if (result.emergency) {
-        setTimeout(() => navigation.navigate('SOSAlert'), 500);
-      }
-
-      // Refresh data context if needed
-      if (result.success) {
-        await refreshContext();
-      }
-    }
-  };
-
-  const handleCopyMessage = (message) => {
-    Clipboard.setString(message);
-  };
-
-  const handlePaste = async () => {
-    const text = await Clipboard.getString();
-    handleInputChange(text);
-  };
-
-  const scrollToBottom = () => {
-    flatListRef.current?.scrollToEnd({ animated: true });
-    setShowScrollToBottom(false);
-  };
-
-  // Get quick replies based on pending follow-up context
-  const getQuickReplies = () => {
-    if (!conversationContext.hasPendingFollowUp()) return [];
-    
-    const pendingFollowUp = conversationContext.pendingFollowUp;
-    const missingFields = pendingFollowUp?.missingFields || [];
-    
-    let replies = [];
-    
-    // Generate quick replies based on missing fields
-    missingFields.forEach(field => {
-      switch (field) {
-        case 'time': 
-        case 'appointment_time':
-          replies.push('Morning', 'Afternoon', 'Evening', '9:00 AM', '2:00 PM');
-          break;
+      if (response) {
+        const botMessage = { id: `${Date.now()}-bot`, role: "assistant", content: response };
+        setConversation(prev => [...prev, botMessage]);
+        conversationContext.addMessage('assistant', response);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         
-        case 'name':
-        case 'medicine_name':
-          replies.push('Paracetamol', 'Iron', 'Folic Acid', 'Calcium');
-          break;
-        case 'mood':
-          replies.push('Happy', 'Anxious', 'Calm', 'Tired');
-          break;
-        case 'intensity':
-          replies.push('Low', 'Medium', 'High');
-          break;
-        case 'duration':
-          replies.push('8 hours', '7 hours', '6 hours', '9 hours');
-          break;
-        case 'quality':
-          replies.push('Excellent', 'Good', 'Fair', 'Poor');
-          break;
-        case 'weight':
-          replies.push('65kg', '70kg', '60kg', '75kg');
-          break;
-        case 'location':
-          replies.push('Delhi', 'City Hospital', 'Home', 'Clinic');
-          break;
-        case 'title':
-          replies.push('Checkup', 'Ultrasound', 'Blood Test', 'Consultation');
-          break;
-        case 'metric':
-          replies.push('Weight', 'Sleep', 'Mood', 'Symptoms');
-          break;
-        case 'timeframe':
-          replies.push('This week', 'This month', 'Today', 'All time');
-          break;
-        case 'action_type':
-          replies.push('Last', 'Weight', 'Appointment', 'Sleep');
-          break;
-
-        case 'frequency':
-          replies.push('Twice daily', 'Once daily', 'As needed', 'Three times');
-          break;
-        case 'dose':
-          replies.push('500mg', '1 tablet', '2 tablets', '1 spoon');
-          break;
-        case 'start_date':
-          replies.push('Today', 'Tomorrow', 'Last week', 'This month');
-          break;
-        case 'end_date':
-          replies.push('Next week', 'This month', 'When better', 'Continue');
-          break;
-        case 'systolic':
-          replies.push('120', '110', '130', '140');
-          break;
-        case 'diastolic':
-          replies.push('80', '70', '90', '85');
-          break;
-        case 'pressure_reading':
-          replies.push('120/80', '110/70', '130/85', '140/90');
-          break;
-        case 'discharge_type':
-          replies.push('Normal', 'Spotting', 'Bleeding', 'Heavy');
-          break;
-        case 'symptom':
-          replies.push('Nausea', 'Headache', 'Dizziness', 'Fatigue');
-          break;
-        case 'date':
-        case 'update_date':
-          replies.push('Today', 'Tomorrow', 'Day after tomorrow');
-          break;
-        case 'update_time':
-          replies.push('Morning', 'Afternoon', 'Evening', 'Night');
-          break;
+        try {
+          await refreshContext();
+        } catch (refreshErr) {
+          console.warn('Context refresh failed:', refreshErr.message);
+        }
+      } else {
+        Alert.alert("Response Error", "Unable to generate a response. Please try again.");
       }
-    });
-    
-
-    return [...new Set(replies)].slice(0, 4);
-  };
-
-  const handleQuickReply = (reply) => {
-    setUserInput(reply);
-  };
-
-  const handleInputChange = (text) => {
-    setUserInput(text);
+    } catch (error) { 
+      const message = error.name === 'AbortError' 
+        ? "Request timed out. Please try again."
+        : "Something went wrong. Please check your connection.";
+      Alert.alert("Chat Error", message); 
+    } finally { 
+      setIsGenerating(false); 
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ChatHeader 
-        navigation={navigation}
-        useRAGMode={useRAGMode}
-        setUseRAGMode={setUseRAGMode}
-        clearConversation={clearConversation}
-        conversationLength={conversation.length}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header,{ backgroundColor: theme.primary }]}>
+        <Text style={[styles.headerTitle,{ color: "#fff" }]}>Chat with BabyNest AI</Text>
+      </View>
+      
+      <FlatList 
+        ref={flatListRef} 
+        data={conversation} 
+        keyExtractor={(item) => item.id} 
+        renderItem={({ item }) => (
+          <View style={[styles.messageContainer, item.role === "user" ? [styles.userMessage , { backgroundColor: theme.primary }]: [styles.botMessage,{ backgroundColor: theme.factcardprimary }]]}>
+            {item.role === "assistant" ? (
+              <Markdown style={{ body: { color: theme.text } }}>{item.content}</Markdown>
+            ) : (
+              <Text style={{ color: "#fff" }}>{item.content}</Text>
+            )}
+          </View>
+        )} 
+        contentContainerStyle={styles.chatArea} 
       />
+      
+      {isGenerating && <View style={styles.typingIndicator}><Text style={{color: theme.text}}>BabyNest is typing...</Text></View>}
 
-      {conversation.length === 0 ? (
-        <EmptyState handleQuickReply={handleQuickReply} useRAGMode={useRAGMode} />
-      ) : (
-        <MessageList 
-          conversation={conversation}
-          flatListRef={flatListRef}
-          theme={theme}
-          onScrollPositionChange={setShowScrollToBottom}
-          onCopyMessage={handleCopyMessage}
-          footer={
-            isGenerating ? (
-              <View style={styles.typingContainer}>
-                <TypingIndicator />
-              </View>
-            ) : null
-          }
-        />
-      )}
-
-
-
-      {showScrollToBottom && conversation.length > 0 && (
-        <TouchableOpacity style={styles.scrollToBottomButton} onPress={scrollToBottom}>
-          <Icon name="keyboard-arrow-down" size={30} color="#333" />
-        </TouchableOpacity>
-      )}
-
-      {conversationContext.hasPendingFollowUp() && !isGenerating && (
-        <QuickReplies 
-          replies={getQuickReplies()}
-          handleQuickReply={handleQuickReply}
-        />
-      )}
-
-      <ChatInput 
-        userInput={userInput}
-        setUserInput={handleInputChange}
-        handleSendMessage={handleSendMessage}
-        isGenerating={isGenerating}
-        isModelReady={isModelReady}
-        useRAGMode={useRAGMode}
-        handlePaste={handlePaste}
-        modelError={modelError}
-        onRetryModel={initModel}
-      />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <View style={styles.inputContainer}>
+          <TextInput 
+            style={[styles.input, { backgroundColor: theme.factcardsecondary, color: theme.text }]} 
+            placeholder="Type..." 
+            value={userInput} 
+            onChangeText={setUserInput} 
+          />
+          <TouchableOpacity 
+            style={[styles.sendButton, { backgroundColor: theme.button }]} 
+            onPress={handleSendMessage} 
+            disabled={isGenerating}
+          >
+            <Icon name="send" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFF5F8", // Keep app theme background
-  },
-  typingContainer: {
-    paddingLeft: 10, // Match message padding roughly
-    marginBottom: 20,
-  },
-  scrollToBottomButton: {
-    position: "absolute",
-    bottom: 90,
-    right: 20,
-    backgroundColor: "white",
-    padding: 10,
-    borderRadius: 30,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
+  container: { flex: 1 },
+  header: { padding: 15, alignItems: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold' },
+  chatArea: { padding: 10 },
+  messageContainer: { maxWidth: "80%", padding: 12, marginVertical: 5, borderRadius: 15 },
+  userMessage: { alignSelf: "flex-end" },
+  botMessage: { alignSelf: "flex-start" },
+  inputContainer: { flexDirection: "row", padding: 10, alignItems: "center" },
+  input: { flex: 1, borderRadius: 20, paddingHorizontal: 15, height: 40 },
+  sendButton: { marginLeft: 10, padding: 8, borderRadius: 20 },
+  typingIndicator: { padding: 10, marginLeft: 10 }
 });
