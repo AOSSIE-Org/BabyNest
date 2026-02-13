@@ -425,7 +425,7 @@ const ScheduleScreen = () => {
 
       <Modal
         visible={isAddAppointmentModalVisible}
-        transparent={true}
+        // transparent={true}
         animationType="fade"
         onRequestClose={hideAddAppointmentModal}>
         <View style={styles.overlay}>
@@ -453,11 +453,13 @@ const ScheduleScreen = () => {
             {/* Form Inputs */}
             <ScrollView
               style={styles.formContainer}
-              showsVerticalScrollIndicator={false}>
+                contentContainerStyle={{ flexGrow: 1 }}
+                keyboardShouldPersistTaps="handled"
+               showsVerticalScrollIndicator={false}>
               {/* Title Input */}
               <View style={styles.inputWrapper}>
                 <TextInput
-                  placeholder="Appointment title"
+                  placeholder="Appointment Title"
                   placeholderTextColor="#999"
                   style={styles.input}
                   value={newAppointment.title}
@@ -523,7 +525,7 @@ const ScheduleScreen = () => {
                   }
                 />
               </View>
-            </ScrollView>
+           
 
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
@@ -538,7 +540,7 @@ const ScheduleScreen = () => {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
-
+ </ScrollView>
             {/* Decorative Element */}
             <View style={styles.decorativeBottom} />
           </View>
@@ -828,20 +830,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+ 
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 10},
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+modalContent: {
+  backgroundColor: '#fff',
+  borderRadius: 24,
+  paddingLeft: 24,
+  paddingRight:24,
+  width: '100%',
+  maxWidth: 400,
+  flex: 1,   // ⭐ IMPORTANT
+  shadowColor: '#000',
+  shadowOffset: {width: 0, height: 10},
+  shadowOpacity: 0.15,
+  shadowRadius: 20,
+  elevation: 10,
+}
+,
   closeButton: {
     position: 'absolute',
     top: 16,
@@ -898,7 +903,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   formContainer: {
-    marginBottom: 20,
+    marginBottom: 20,paddingBottom:20,
   },
   inputWrapper: {
     marginBottom: 16,
