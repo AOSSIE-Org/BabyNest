@@ -119,25 +119,36 @@ npx react-native run-ios
 
 ## Backend Setup (Offline Flask API)
 
-BabyNest includes an offline backend using Flask
+BabyNest includes an offline backend using Flask with ChromaDB for vector search.
 
-### 6) Install Python Dependencies
+### Prerequisites
+- Python 3.12+
+- Virtual environment (venv)
 
-```sh
-cd Backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+### Installation
+1. Navigate to the Backend directory:
+   ```
+   cd Backend
+   ```
+2. Create and activate a virtual environment:
+   ```
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+### Running the Backend
+Start the server with:
 ```
-
-### 7) Run the Backend Locally
-
-```sh
-cd Backend
 python app.py
 ```
 
 This will start the API locally.
+
+The server will run on http://127.0.0.1:5000. Check `/health` for status.
 
 ---
 
