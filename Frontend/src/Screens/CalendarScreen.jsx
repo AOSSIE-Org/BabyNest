@@ -1,4 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
+import { KeyboardAvoidingView, Platform } from 'react-native';
+
 import {
   View,
   Text,
@@ -450,9 +452,14 @@ const ScheduleScreen = () => {
             </Text>
 
             {/* Form Inputs */}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={{ flex: 1 }}
+            >
+
             <ScrollView
               style={styles.formContainer}
-                contentContainerStyle={{ flexGrow: 1 }}
+                contentContainerStyle={{ flexGrow: 1 , paddingBottom: 20}}
                 keyboardShouldPersistTaps="handled"
                showsVerticalScrollIndicator={false}>
               {/* Title Input */}
@@ -540,6 +547,7 @@ const ScheduleScreen = () => {
               </TouchableOpacity>
             </View>
  </ScrollView>
+            </KeyboardAvoidingView>
             {/* Decorative Element */}
             <View style={styles.decorativeBottom} />
           </View>
@@ -838,7 +846,7 @@ modalContent: {
   paddingRight:24,
   width: '100%',
   maxWidth: 400,
-  flex: 1,   // ⭐ IMPORTANT
+  maxHeight:'90%',
   shadowColor: '#000',
   shadowOffset: {width: 0, height: 10},
   shadowOpacity: 0.15,
@@ -902,7 +910,7 @@ modalContent: {
     lineHeight: 20,
   },
   formContainer: {
-    marginBottom: 20,paddingBottom:20,
+    marginBottom: 20,
   },
   inputWrapper: {
     marginBottom: 16,
