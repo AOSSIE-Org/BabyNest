@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   ScrollView,
@@ -11,6 +11,7 @@ import {TextInput, Button, Card, Dialog, Portal} from 'react-native-paper';
 import {BASE_URL} from '@env';
 import HeaderWithBack from '../Components/HeaderWithBack';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {useFocusEffect} from '@react-navigation/native';
 
 export default function WeightScreen() {
   const [week, setWeek] = useState('');
@@ -53,9 +54,11 @@ export default function WeightScreen() {
   };
 
 
-  useEffect(() => {
-    fetchWeightHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchWeightHistory();
+    }, [])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);

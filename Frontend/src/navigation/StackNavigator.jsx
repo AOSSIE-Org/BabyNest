@@ -18,6 +18,7 @@ import DischargeScreen from '../Screens/DischargeScreen';
 import BloodPressureScreen from '../Screens/BloodPressureScreen';
 import AllTasksScreen from '../Screens/AllTasksScreen';
 import ProfileScreen from  '../Screens/ProfileScreen';
+import EditProfileScreen from '../Screens/EditProfileScreen';
 const Stack = createStackNavigator();
 
 export default function StackNavigation() {
@@ -37,6 +38,7 @@ export default function StackNavigation() {
         <Stack.Screen name="EmergencyCalling" component={EmergencyCallingScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
 
         {/* Drawer-accessible screens */}
         <Stack.Screen name="Home" component={HomeScreen} />
