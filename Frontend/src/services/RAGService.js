@@ -1703,6 +1703,7 @@ class RAGService {
       if (response.ok) {
         return {
           success: true,
+          dataChanged: true,
           message: `📅 Appointment "${data.title || 'Appointment'}" scheduled for ${data.date || 'TBD'} at ${data.time || 'TBD'}${data.location ? ` at ${data.location}` : ''}`,
           action: 'navigate',
           screen: 'appointments'
@@ -1736,6 +1737,7 @@ class RAGService {
       if (response.ok) {
         return {
           success: true,
+          dataChanged: true,
           message: `⚖️ Weight ${data.weight}kg logged for week ${data.week_number || userContext.current_week || 12}${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
           screen: 'weight'
@@ -1769,6 +1771,7 @@ class RAGService {
       if (response.ok) {
         return {
           success: true,
+          dataChanged: true,
           message: `🩺 Symptom "${data.symptom}" logged for week ${data.week_number || userContext.current_week || 12}${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
           screen: 'symptoms'
@@ -1804,6 +1807,7 @@ class RAGService {
       if (response.ok) {
         return {
           success: true,
+          dataChanged: true,
           message: `🩸 Blood pressure ${data.systolic}/${data.diastolic} logged for week ${data.week_number || userContext.current_week || 12}${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
           screen: 'bloodpressure'
@@ -1839,6 +1843,7 @@ class RAGService {
       if (response.ok) {
         return {
           success: true,
+          dataChanged: true,
           message: `💊 Medicine "${data.name}"${data.dose ? ` (${data.dose})` : ''} logged for week ${data.week_number || userContext.current_week || 12}${data.time ? ` at ${data.time}` : ''}${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
           screen: 'medicine'
@@ -1874,6 +1879,7 @@ class RAGService {
       if (response.ok) {
         return {
           success: true,
+          dataChanged: true,
           message: `🩸 Discharge log recorded for week ${data.week_number || userContext.current_week || 12}: ${data.type}, ${data.color}${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
           screen: 'discharge'
@@ -1911,6 +1917,7 @@ class RAGService {
       if (response.ok) {
         return {
           success: true,
+          dataChanged: true,
           message: `✅ Task "${data.title}" created for week ${data.week || userContext.current_week || 12} with ${data.priority || 'medium'} priority`,
           action: 'navigate',
           screen: 'tasks'
