@@ -452,16 +452,17 @@ const ScheduleScreen = () => {
             </Text>
 
             {/* Form Inputs */}
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1 }}
-            >
-
+        
             <ScrollView
               style={styles.formContainer}
                 contentContainerStyle={{ flexGrow: 1 , paddingBottom: 20}}
                 keyboardShouldPersistTaps="handled"
                showsVerticalScrollIndicator={false}>
+                  <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+            >
+
               {/* Title Input */}
               <View style={styles.inputWrapper}>
                 <TextInput
@@ -546,8 +547,9 @@ const ScheduleScreen = () => {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
+                       </KeyboardAvoidingView>
  </ScrollView>
-            </KeyboardAvoidingView>
+         
             {/* Decorative Element */}
             <View style={styles.decorativeBottom} />
           </View>
