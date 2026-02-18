@@ -848,7 +848,7 @@ modalContent: {
   paddingRight:24,
   width: '100%',
   maxWidth: 400,
-  maxHeight:'90%',
+  maxHeight:'95%',
   shadowColor: '#000',
   shadowOffset: {width: 0, height: 10},
   shadowOpacity: 0.15,
