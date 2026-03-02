@@ -1,4 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
+import { KeyboardAvoidingView, Platform } from 'react-native';
+
 import {
   View,
   Text,
@@ -425,7 +427,6 @@ const ScheduleScreen = () => {
 
       <Modal
         visible={isAddAppointmentModalVisible}
-        transparent={true}
         animationType="fade"
         onRequestClose={hideAddAppointmentModal}>
         <View style={styles.overlay}>
@@ -451,13 +452,21 @@ const ScheduleScreen = () => {
             </Text>
 
             {/* Form Inputs */}
+        
             <ScrollView
               style={styles.formContainer}
-              showsVerticalScrollIndicator={false}>
+                contentContainerStyle={{ flexGrow: 1 , paddingBottom: 20}}
+                keyboardShouldPersistTaps="handled"
+               showsVerticalScrollIndicator={false}>
+                  <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+            >
+
               {/* Title Input */}
               <View style={styles.inputWrapper}>
                 <TextInput
-                  placeholder="Appointment title"
+                  placeholder="Appointment Title"
                   placeholderTextColor="#999"
                   style={styles.input}
                   value={newAppointment.title}
@@ -523,7 +532,7 @@ const ScheduleScreen = () => {
                   }
                 />
               </View>
-            </ScrollView>
+           
 
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
@@ -538,7 +547,9 @@ const ScheduleScreen = () => {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
-
+                       </KeyboardAvoidingView>
+ </ScrollView>
+         
             {/* Decorative Element */}
             <View style={styles.decorativeBottom} />
           </View>
@@ -828,20 +839,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+ 
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 10},
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+modalContent: {
+  backgroundColor: '#fff',
+  borderRadius: 24,
+  paddingLeft: 24,
+  paddingRight:24,
+  width: '100%',
+  maxWidth: 400,
+  maxHeight:'95%',
+  shadowColor: '#000',
+  shadowOffset: {width: 0, height: 10},
+  shadowOpacity: 0.15,
+  shadowRadius: 20,
+  elevation: 10,
+}
+,
   closeButton: {
     position: 'absolute',
     top: 16,
