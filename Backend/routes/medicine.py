@@ -1,10 +1,13 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, current_app
 from functools import wraps
 from db.db import open_db
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agent.agent import get_agent
+from error_handling.handlers import handle_db_errors
+from error_handling.error_classes import MissingFieldError, NotFoundError
+from utils import validate_medicine_data, validate_week_number
 
 medicine_bp = Blueprint('medicine', __name__)
 
@@ -18,31 +21,31 @@ def require_auth(f):
 
 # Create
 @medicine_bp.route('/set_medicine', methods=['POST'])
+@handle_db_errors
 def add_medicine():
     db = open_db()
-    data = request.json
-    week = data.get('week_number')
-    name = data.get('name')
-    dose = data.get('dose')
-    time = data.get('time')
+    required = ['week_number', 'name', 'dose', 'time']
+    data = request.get_json()
+    missing = [field for field in required if field not in data] 
+    if missing:
+        raise MissingFieldError(missing)
+    
+    week = data['week_number']
+    name = data['name']
+    dose = data['dose']
+    time = data['time']
     note = data.get('note')
-
-    if not all([week, name, dose, time]):
-        return jsonify({"error": "Missing fields"}), 400
+    fields = {}
 
     # Validate data types and ranges
-    try:
-       week = int(week)
-       if week < 1 or week > 52:
-           return jsonify({"error": "Week number must be between 1 and 52"}), 400
-    except (ValueError, TypeError):
-       return jsonify({"error": "Week number must be a valid integer"}), 400
-   
-    if not isinstance(name, str) or len(name.strip()) == 0:
-       return jsonify({"error": "Medicine name must be a non-empty string"}), 400
-   
-    if not isinstance(dose, str) or len(dose.strip()) == 0:
-       return jsonify({"error": "Dose must be a non-empty string"}), 400
+    mode = current_app.config.get("ENV", "development")
+    fields = validate_medicine_data(data)
+
+    if fields:
+        if mode == "production":
+            return jsonify({"error": "Invalid input values"}), 400
+        return jsonify({"error": "Invalid input values", "fields": fields}), 400
+
 
     db.execute(
         'INSERT INTO weekly_medicine (week_number, name, dose, time, note) VALUES (?, ?, ?, ?, ?)',
@@ -55,10 +58,11 @@ def add_medicine():
     agent = get_agent(db_path)
     agent.update_cache(data_type="medicine", operation="create")
 
-    return jsonify({"status": "success", "message": "Medicine added"}), 200
+    return jsonify({"status": "success", "message": "Medicine added"}), 201
 
 # Read all
 @medicine_bp.route('/get_medicine', methods=['GET'])
+@handle_db_errors
 def get_all_medicine():
     db = open_db()
     rows = db.execute('SELECT * FROM weekly_medicine').fetchall()
@@ -67,6 +71,7 @@ def get_all_medicine():
 # Read by week
 @medicine_bp.route('/medicine/week/<int:week>', methods=['GET'])
 @require_auth
+@handle_db_errors
 def get_week_medicine(week):
     db = open_db()
     rows = db.execute('SELECT * FROM weekly_medicine WHERE week_number = ?', (week,)).fetchall()
@@ -75,39 +80,34 @@ def get_week_medicine(week):
 # Read by ID
 @medicine_bp.route('/medicine/<int:id>', methods=['GET'])
 @require_auth
+@handle_db_errors
 def get_medicine(id):
     db = open_db()
     entry = db.execute('SELECT * FROM weekly_medicine WHERE id = ?', (id,)).fetchone()
     if not entry:
-        return jsonify({"error": "Entry not found"}), 404
+        raise NotFoundError(resource="Medicine entry", resource_id=id)
     return jsonify(dict(entry)), 200
 
 # Update by ID
-@medicine_bp.route('/medicine/<int:id>', methods=['PUT'])
+@medicine_bp.route('/medicine/<int:id>', methods=['PATCH'])
 @require_auth
+@handle_db_errors
 def update_medicine(id):
     db = open_db()
-    data = request.json
+    data = request.get_json()
     entry = db.execute('SELECT * FROM weekly_medicine WHERE id = ?', (id,)).fetchone()
     
     if not entry:
-        return jsonify({"error": "Entry not found"}), 404
-
-    # Validate week_number if provided
-    if 'week_number' in data:
-        try:
-            week = int(data['week_number'])
-            if week < 1 or week > 52:
-                return jsonify({"error": "Week number must be between 1 and 52"}), 400
-        except (ValueError, TypeError):
-            return jsonify({"error": "Week number must be a valid integer"}), 400
+        raise NotFoundError(resource="Medicine entry", resource_id=id)
     
     # Validate other fields if provided
-    if 'name' in data and (not isinstance(data['name'], str) or len(data['name'].strip()) == 0):
-        return jsonify({"error": "Medicine name must be a non-empty string"}), 400
-    
-    if 'dose' in data and (not isinstance(data['dose'], str) or len(data['dose'].strip()) == 0):
-        return jsonify({"error": "Dose must be a non-empty string"}), 400
+    if 'name' in data or 'dose' in data or 'week_number' in data:
+        fields = validate_medicine_data(data)
+        if fields:
+            mode = current_app.config.get("ENV", "development")
+            if mode == "production":
+                return jsonify({"error": "Invalid input values"}), 400
+            return jsonify({"error": "Invalid input values", "fields": fields}), 400
 
     db.execute(
         '''UPDATE weekly_medicine SET week_number=?, name=?, dose=?, time=?, note=? WHERE id=?''',
@@ -132,12 +132,13 @@ def update_medicine(id):
 # Delete by ID
 @medicine_bp.route('/medicine/<int:id>', methods=['DELETE'])
 @require_auth
+@handle_db_errors
 def delete_medicine(id):
     db = open_db()
     entry = db.execute('SELECT * FROM weekly_medicine WHERE id = ?', (id,)).fetchone()
     
     if not entry:
-        return jsonify({"error": "Entry not found"}), 404
+        raise NotFoundError(resource="Medicine entry", resource_id=id)
 
     db.execute('DELETE FROM weekly_medicine WHERE id = ?', (id,))
     db.commit()

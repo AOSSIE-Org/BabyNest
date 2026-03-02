@@ -240,7 +240,7 @@ const ScheduleScreen = () => {
       const response = await fetch(
         `${BASE_URL}/update_appointment/${editAppointment.id}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify(editAppointment),
         },

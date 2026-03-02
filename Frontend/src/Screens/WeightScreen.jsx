@@ -118,7 +118,7 @@ export default function WeightScreen() {
   const handleUpdate = async () => {
     try {
       await fetch(`${BASE_URL}/weight/${editData.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           week_number: editData.week_number,
