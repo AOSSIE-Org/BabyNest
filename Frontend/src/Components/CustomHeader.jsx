@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
-import LinearGradient from 'react-native-linear-gradient';
+import Linearlinear from 'react-native-linear-linear';
 import { useTheme } from '../theme/ThemeContext';
 import {useDrawer} from '../context/DrawerContext'
 export default function CustomHeader() {
@@ -20,7 +20,7 @@ export default function CustomHeader() {
 
   return (
     <>
-      <LinearGradient
+      <Linearlinear
         colors={[theme.cardBackgroundprimary, theme.cardBackgroundsecondary]}
         style={styles.container}>
         <StatusBar backgroundColor={theme.cardBackgroundprimary}/>
@@ -40,7 +40,7 @@ export default function CustomHeader() {
             />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </Linearlinear>
     </>
   );
 }
