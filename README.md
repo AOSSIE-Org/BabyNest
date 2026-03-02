@@ -23,6 +23,10 @@
 <a href="https://twitter.com/aossie_org">
 <img src="https://img.shields.io/twitter/follow/AOSSIE" alt="X (formerly Twitter) Badge"/></a>
 &nbsp;&nbsp;
+<!-- YouTube -->
+<a href="https://www.youtube.com/@AOSSIE-Org">
+<img src="https://img.shields.io/badge/YouTube-Channel-FF0000?style=flat&logo=youtube&logoColor=white" alt="YouTube Badge"/>
+&nbsp;&nbsp;
 <!-- Discord -->
 <a href="https://discord.gg/hjUhu33uAn">
 <img src="https://img.shields.io/discord/995968619034984528?style=flat&logo=discord&logoColor=white&logoSize=auto&label=Discord&labelColor=5865F2&color=57F287" alt="Discord Badge"/></a>
