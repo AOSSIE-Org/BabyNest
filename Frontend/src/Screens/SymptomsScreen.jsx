@@ -92,7 +92,7 @@ export default function SymptomsScreen() {
 
     try {
       const res = await fetch(`${BASE_URL}/symptoms/${editData.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           week_number: editData.week_number,

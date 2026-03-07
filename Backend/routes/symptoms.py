@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from db.db import open_db
 import os
 import sys
+from error_handling.error_classes import MissingFieldError, NotFoundError
+from error_handling.handlers import handle_db_errors
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agent.agent import get_agent
 
@@ -9,15 +11,16 @@ symptoms_bp = Blueprint('symptoms', __name__)
 
 # Create
 @symptoms_bp.route('/symptoms', methods=['POST'])
+@handle_db_errors
 def add_symptom():
     db = open_db()
-    data = request.json
+    data = request.get_json()
     week = data.get('week_number')
     symptom = data.get('symptom')
     note = data.get('note')
 
     if not (week and symptom):
-        return jsonify({"error": "Missing week_number or symptom"}), 400
+        raise MissingFieldError(['week_number', 'symptom'])
 
     db.execute('INSERT INTO weekly_symptoms (week_number, symptom, note) VALUES (?, ?, ?)', (week, symptom, note))
     db.commit()
@@ -31,13 +34,15 @@ def add_symptom():
 
 # Read all
 @symptoms_bp.route('/symptoms', methods=['GET'])
+@handle_db_errors
 def get_all_symptoms():
     db = open_db()
     rows = db.execute('SELECT * FROM weekly_symptoms ORDER BY created_at DESC').fetchall()
     return jsonify([dict(row) for row in rows]), 200
 
 # Read by week
-@symptoms_bp.route('/symptoms/<int:week>', methods=['GET'])
+@symptoms_bp.route('/symptoms/week/<int:week>', methods=['GET'])
+@handle_db_errors
 def get_week_symptoms(week):
     db = open_db()
     rows = db.execute('SELECT * FROM weekly_symptoms WHERE week_number = ? ORDER BY created_at DESC', (week,)).fetchall()
@@ -45,22 +50,24 @@ def get_week_symptoms(week):
 
 # Read by ID
 @symptoms_bp.route('/symptoms/<int:id>', methods=['GET'])
+@handle_db_errors
 def get_symptom(id):
     db = open_db()
     symptom = db.execute('SELECT * FROM weekly_symptoms WHERE id = ?', (id,)).fetchone()
     if not symptom:
-        return jsonify({"error": "Symptom entry not found"}), 404
+        raise NotFoundError(resource="Symptom entry", resource_id=id)
     return jsonify(dict(symptom)), 200
 
 # Update by ID
-@symptoms_bp.route('/symptoms/<int:id>', methods=['PUT'])
+@symptoms_bp.route('/symptoms/<int:id>', methods=['PATCH'])
+@handle_db_errors
 def update_symptom(id):
     db = open_db()
-    data = request.json
+    data = request.get_json()
     symptom_entry = db.execute('SELECT * FROM weekly_symptoms WHERE id = ?', (id,)).fetchone()
     
     if not symptom_entry:
-        return jsonify({"error": "Symptom entry not found"}), 404
+        raise NotFoundError(resource="Symptom entry", resource_id=id)
 
     db.execute(
         'UPDATE weekly_symptoms SET week_number=?, symptom=?, note=? WHERE id=?',
@@ -80,12 +87,13 @@ def update_symptom(id):
 
 # Delete by ID
 @symptoms_bp.route('/symptoms/<int:id>', methods=['DELETE'])
+@handle_db_errors
 def delete_symptom(id):
     db = open_db()
     symptom_entry = db.execute('SELECT * FROM weekly_symptoms WHERE id = ?', (id,)).fetchone()
     
     if not symptom_entry:
-        return jsonify({"error": "Symptom entry not found"}), 404
+        raise NotFoundError(resource="Symptom entry", resource_id=id)
 
     db.execute('DELETE FROM weekly_symptoms WHERE id = ?', (id,))
     db.commit()

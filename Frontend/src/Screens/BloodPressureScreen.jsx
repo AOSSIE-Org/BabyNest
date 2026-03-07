@@ -86,7 +86,7 @@ export default function BloodPressureScreen() {
   const handleUpdate = async () => {
     try {
       await fetch(`${BASE_URL}/blood_pressure/${editData.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           week_number: editData.week_number,

@@ -130,7 +130,7 @@ export default function DischargeScreen() {
     }
     try {
       const res = await fetch(`${BASE_URL}/discharge_log/${editData.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           week_number: editData.week_number,
