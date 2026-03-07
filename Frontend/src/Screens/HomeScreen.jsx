@@ -87,18 +87,17 @@ export default function HomeScreen({navigation}) {
     setCurrentBabySize(babySizes[week - 1]);
   };
 
-  // ? Corrected Filtering Logic for Appointments (using date)
+  // ? Corrected Filtering Logic for Appointments (using real-time date)
   const filteredAppointments = allAppointments
     .map(appt => {
-      const appointmentDate = new Date(appt.appointment_date);
-      const conceptionDate = new Date(dueDate);
-      conceptionDate.setDate(conceptionDate.getDate() - 280);
-      const diffInMs = appointmentDate - conceptionDate;
-      const weekNumber = Math.floor(diffInMs / (1000 * 60 * 60 * 24 * 7));
-      return {...appt, week_number: weekNumber};
+      if (!appt.appointment_date || !appt.appointment_time) return null;
+      const [year, month, day] = appt.appointment_date.split('-').map(Number);
+      const [hours, minutes] = appt.appointment_time.split(':').map(Number);
+      const apptDate = new Date(year, month - 1, day, hours, minutes);
+      return {...appt, apptDate};
     })
-    .filter(appt => appt.week_number > currentWeek)
-    .sort((a, b) => a.week_number - b.week_number)
+    .filter(appt => appt && appt.apptDate >= new Date()) // Future only
+    .sort((a, b) => a.apptDate - b.apptDate) // Soonest first
     .slice(0, 2);
 
   const filteredTasks = allTasks
@@ -186,14 +185,25 @@ export default function HomeScreen({navigation}) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
           {filteredAppointments.map((appt, idx) => (
-            <View key={idx} style={styles.card}>
-              <Icon name="calendar" size={20} color="rgb(218,79,122)" />
+            <View key={idx} style={[styles.card, styles.appointmentCard]}>
+              <View style={styles.dateBox}>
+                 <Text style={styles.dateDay}>{new Date(appt.apptDate).getDate()}</Text>
+                 <Text style={styles.dateMonth}>{new Date(appt.apptDate).toLocaleString('default', { month: 'short' })}</Text>
+              </View>
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{appt.title}</Text>
-                <Text>
-                  {appt.appointment_date} at {appt.appointment_time}
-                </Text>
-                <Text>{appt.appointment_location}</Text>
+                <View style={styles.row}>
+                    <Icon name="time-outline" size={14} color="#666" style={{marginRight: 4}} />
+                    <Text style={styles.subText}>
+                    {appt.appointment_time}
+                    </Text>
+                </View>
+                {appt.appointment_location ? (
+                    <View style={styles.row}>
+                        <Icon name="location-outline" size={14} color="#666" style={{marginRight: 4}} />
+                        <Text style={styles.subText}>{appt.appointment_location}</Text>
+                    </View>
+                ) : null}
               </View>
             </View>
           ))}
@@ -203,20 +213,20 @@ export default function HomeScreen({navigation}) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>This Week's Tasks</Text>
           {filteredTasks.map((task, idx) => (
-            <View key={idx} style={styles.card}>
-              <Icon
-                name="checkmark-circle-outline"
-                size={20}
-                color="rgb(218,79,122)"
-              />
+            <View key={idx} style={[styles.card, styles.taskCard]}>
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{task.title}</Text>
-                <Text>
+                <Text style={styles.subText}>
                   {task.starting_week === task.ending_week
                     ? `Week ${task.starting_week}`
                     : `Weeks ${task.starting_week}-${task.ending_week}`}
                 </Text>
               </View>
+              <Icon
+                name="ellipse-outline"
+                size={24}
+                color="rgb(218,79,122)"
+              />
             </View>
           ))}
         </View>
@@ -286,9 +296,40 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     elevation: 2,
+    alignItems: 'center',
   },
-  cardContent: {marginLeft: 12},
-  cardTitle: {fontWeight: 'bold', fontSize: 16},
+  appointmentCard: {
+    justifyContent: 'flex-start', // Keep items together
+  },
+  taskCard: {
+    justifyContent: 'space-between', // Push items apart
+  },
+  cardContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  dateBox: {
+      backgroundColor: '#FFF5F8',
+      padding: 10,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 15,
+      minWidth: 50,
+  },
+  dateDay: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: 'rgb(218,79,122)',
+  },
+  dateMonth: {
+      fontSize: 12,
+      color: 'rgb(218,79,122)',
+      textTransform: 'uppercase',
+  },
+  cardTitle: {fontWeight: 'bold', fontSize: 16, color: '#333', marginBottom: 4},
+  subText: {color: '#666', fontSize: 14},
+  row: {flexDirection: 'row', alignItems: 'center', marginTop: 2},
   floatingButton: {
     position: 'absolute',
     bottom: 30,

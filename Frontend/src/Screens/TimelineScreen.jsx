@@ -16,10 +16,11 @@ import {
   SafeAreaView
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { Modal } from "react-native-paper";
+
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import Toast from 'react-native-toast-message';
 import { BASE_URL } from '@env';
+import AppointmentFormModal from '../Components/Calendar/AppointmentFormModal';
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -261,60 +262,16 @@ const TimelineScreen = ({ navigation }) => {
       )}
 
       {/* MODAL */}
-      <Modal visible={modalVisible} onDismiss={hideAddAppointmentModal} contentContainerStyle={styles.modal}>
-        <Text style={styles.modalTitle}>{"Make an appointment"}</Text>
-        <TextInput
-          placeholder={selectedTask.title}
-          placeholderTextColor="black"
-          style={styles.modalApp}
-          value={newAppointment.title}
-          onChangeText={(text) => setNewAppointment({ ...newAppointment, title: text })}
-        />
-        <TextInput
-          placeholder={selectedTask.content}
-          placeholderTextColor="black"
-          style={[styles.modalApp]}
-          value={newAppointment.content}
-          onChangeText={(text) => setNewAppointment({ ...newAppointment, content: text })}
-        />
-        <TouchableOpacity onPress={() => setIsCalendarVisible(true)}>
-          <TextInput
-            placeholder="Select Date"
-            placeholderTextColor="black"
-            style={styles.modalApp}
-            editable={false}
-            value={newAppointment.appointment_date}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => setIsCalendarVisible(true)}>
-          <TextInput
-            placeholder="Select Time"
-            placeholderTextColor="black"
-            editable={false}
-            style={styles.modalApp}
-            value={newAppointment.appointment_time}
-
-          />
-        </TouchableOpacity>
-
-        <TextInput
-          placeholder="Location"
-          placeholderTextColor="black"
-          style={styles.modalApp}
-          value={newAppointment.appointment_location}
-          onChangeText={(text) => setNewAppointment({ ...newAppointment, appointment_location: text })}
-        />
-
-        <View style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end", marginTop: 10 }}>
-          <TouchableOpacity onPress={makeappointment}>
-            <Text style={styles.modalSaveButton}>Save</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={hideAddAppointmentModal}>
-            <Text style={styles.modalCancelButton}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
+      <AppointmentFormModal
+        visible={modalVisible}
+        onClose={hideAddAppointmentModal}
+        appointment={newAppointment}
+        setAppointment={setNewAppointment}
+        onSave={makeappointment}
+        onDatePress={() => setIsCalendarVisible(true)}
+        title="Make an appointment"
+        saveLabel="Save"
+      />
 
       <DateTimePickerModal
         isVisible={isCalendarVisible}
