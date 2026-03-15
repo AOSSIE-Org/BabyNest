@@ -3,6 +3,8 @@
  * Manages conversation state and follow-up context for RAG system
  */
 
+import {BASE_URL} from '@env';
+
 class ConversationContext {
   constructor() {
     this.pendingFollowUp = null;
@@ -311,8 +313,7 @@ class ConversationContext {
     const results = [];
     let successCount = 0;
     
-    // Import BASE_URL from environment
-    const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5000';
+
     
     for (const appointment of selectedAppointments) {
       try {
@@ -352,9 +353,6 @@ class ConversationContext {
         appointment_location: updateData.location || selectedAppointment.appointment_location,
         content: updateData.note || selectedAppointment.content
       };
-      
-      // Import BASE_URL from environment
-      const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5000';
       
       const response = await fetch(`${BASE_URL}/update_appointment/${selectedAppointment.id}`, {
         method: 'PATCH',

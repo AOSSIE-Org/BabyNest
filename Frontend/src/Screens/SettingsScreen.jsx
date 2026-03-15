@@ -11,6 +11,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
+import { useNavigation } from '@react-navigation/native';
 import { Modal, Portal, Button, Provider } from 'react-native-paper'; // Import from paper
 import CustomHeader from '../Components/CustomHeader';
 import { BASE_URL } from '@env';
@@ -41,6 +42,7 @@ const ProfileField = ({ label, value }) => {
 
 export default function SettingsScreen() {
   const { theme, updateTheme } = useTheme();
+  const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
   const [profileData, setProfileData] = useState({
     name: 'Guest',
@@ -84,14 +86,7 @@ export default function SettingsScreen() {
   };
 
   const handleEditProfile = () => {
-    Alert.alert(
-      'Edit Profile',
-      'This will open the profile editing screen. For now, you can refresh to see updated data.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Refresh', onPress: onRefresh }
-      ]
-    );
+    navigation.navigate('BasicDetails');
   };
 
   return (
@@ -121,7 +116,11 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.iconsRow}>
-          <IconButton icon="🔔" label="Notification" />
+          <IconButton 
+            icon="🔔" 
+            label="Notification" 
+            onPress={() => Alert.alert('Notifications', 'Notification settings coming soon!')}
+          />
         </View>
 
         <TouchableOpacity style={[styles.openButton,{backgroundColor:theme.button}]} onPress={() => setModalVisible(true)}>

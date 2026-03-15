@@ -116,11 +116,11 @@ class AnalyticsService {
    */
   getEndpointForMetric(metric) {
     const endpoints = {
-      weight: '/get_weight_entries',
+      weight: '/weight',
       mood: '/get_mood_entries',
       sleep: '/get_sleep_entries',
-      symptoms: '/get_symptoms',
-      blood_pressure: '/get_blood_pressure',
+      symptoms: '/symptoms',
+      blood_pressure: '/blood_pressure',
       medicine: '/get_medicine',
       appointments: '/get_appointments',
       tasks: '/get_tasks'

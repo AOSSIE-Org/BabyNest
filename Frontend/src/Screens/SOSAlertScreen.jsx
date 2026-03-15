@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -8,10 +8,11 @@ export default SOSAlertScreen = ({ navigation }) => {
   const [tapCount, setTapCount] = useState(0);
 
   const handleTap = () => {
-    if (tapCount >= 3) {
+    const newCount = tapCount + 1;
+    setTapCount(newCount);
+    if (newCount >= 4) {
       navigation.navigate("EmergencyCalling");
-    } else {
-      setTapCount(tapCount + 1);
+      setTapCount(0);
     }
   };
 

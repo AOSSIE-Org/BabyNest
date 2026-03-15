@@ -36,12 +36,12 @@ def add_appointment():
     if missing:
         raise MissingFieldError(missing)
     
-    db.execute(
+    cursor = db.execute(
         'INSERT INTO appointments (title, content, appointment_date, appointment_time, appointment_location, appointment_status) VALUES (?, ?, ?, ?, ?, ?)',
         (data["title"], data["content"], data["appointment_date"], data["appointment_time"], data["appointment_location"], 'pending')
     )
     db.commit()
-    return jsonify({"status": "success", "message": "Appointment added successfully"}), 201
+    return jsonify({"status": "success", "message": "Appointment added successfully", "id": cursor.lastrowid}), 201
 
 
 @appointments_bp.route('/update_appointment/<int:appointment_id>', methods=['PATCH'])

@@ -34,16 +34,17 @@ def log_weight():
         return jsonify({"error": weight_result["error"]}), 400
 
 
-    db.execute('INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)', (week, weight, note))
+    cursor = db.execute('INSERT INTO weekly_weight (week_number, weight, note) VALUES (?, ?, ?)', (week, weight, note))
 
     db.commit()
+    weight_id = cursor.lastrowid
     
     # Update cache after database update
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "database.db")
     agent = get_agent(db_path)
     agent.update_cache(data_type="weight", operation="create")
     
-    return jsonify({"status": "success", "message": "Weight added"}), 201
+    return jsonify({"status": "success", "message": "Weight added", "id": weight_id}), 201
 
 # Read all
 @weight_bp.route('/weight', methods=['GET'])

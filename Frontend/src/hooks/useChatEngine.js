@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { generateResponse } from '../model/model';
+import { generateResponse } from '../model/model.jsx';
 import { ragService } from '../services/RAGService';
 import { conversationContext } from '../services/ConversationContext';
 import { BASE_URL } from "@env";
@@ -10,6 +10,12 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [conversation, setConversation] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const cancellationRef = useRef(0);
+  const conversationRef = useRef(conversation);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
 
   // Load chats on mount
   useEffect(() => {
@@ -95,8 +101,8 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       let result = null;
 
       // Prepare the history for the model. 
-      // Important: We use the most recent history available in this render cycle plus the new message.
-      const updatedConversationForModel = [...conversation, userMessage];
+      // Important: Use ref to get the latest conversation state
+      const updatedConversationForModel = [...conversationRef.current, userMessage];
 
       conversationContext.setUserContext(context);
 

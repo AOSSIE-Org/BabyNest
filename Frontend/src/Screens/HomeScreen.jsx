@@ -88,7 +88,7 @@ export default function HomeScreen({navigation}) {
   };
 
   // ? Corrected Filtering Logic for Appointments (using date)
-  const filteredAppointments = allAppointments
+  const filteredAppointments = dueDate ? allAppointments
     .map(appt => {
       const appointmentDate = new Date(appt.appointment_date);
       const conceptionDate = new Date(dueDate);
@@ -99,7 +99,7 @@ export default function HomeScreen({navigation}) {
     })
     .filter(appt => appt.week_number > currentWeek)
     .sort((a, b) => a.week_number - b.week_number)
-    .slice(0, 2);
+    .slice(0, 2) : [];
 
   const filteredTasks = allTasks
     .filter(task => parseInt(task.starting_week) >= currentWeek)
@@ -222,7 +222,10 @@ export default function HomeScreen({navigation}) {
         </View>
 
         {/* Floating Button */}
-        <TouchableOpacity style={styles.floatingButton}>
+        <TouchableOpacity 
+          style={styles.floatingButton}
+          onPress={() => navigation.navigate('Chat')}
+        >
           <MaterialIcons name="smart-toy" size={24} color="#fff" />
         </TouchableOpacity>
       </ScrollView>

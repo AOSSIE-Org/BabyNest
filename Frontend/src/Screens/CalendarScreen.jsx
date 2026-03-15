@@ -330,6 +330,7 @@ const ScheduleScreen = () => {
   });
 
   const timeSlotHeight = 80;
+  const SCHEDULE_OFFSET_MINUTES = 370; // Offset to position appointments in time grid
 
   return (
     <SafeAreaView style={styles.container}>
@@ -412,7 +413,7 @@ const ScheduleScreen = () => {
             style={{
               ...styles.appointment,
               backgroundColor: colors[index % colors.length],
-              top: to_min(appt.appointment_time) - 370,
+              top: to_min(appt.appointment_time) - SCHEDULE_OFFSET_MINUTES,
               zIndex: 1,
             }}>
             <TouchableOpacity onPress={() => handleAppointment(appt)}>
@@ -920,13 +921,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlignVertical: 'top',
   },
-  backgroundColor: '#fff',
-  padding: 10,
-  borderRadius: 5,
-  borderWidth: 1,
-  // borderColor: '#F8BBD0',
-  textAlign: 'center',
-  marginTop: 10,
   buttonContainer: {
     // backgroundColor: '#E91E63',
     gap: 12,

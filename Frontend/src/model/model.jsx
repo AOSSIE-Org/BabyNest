@@ -35,9 +35,12 @@ const getCache = (key) => {
 
 export const fetchAvailableGGUFs = async () => {
   try {
+    if (!HF_TO_GGUF) 
+        throw new Error("HF_TO_GGUF not configured in environment variables");
+    if (!MODEL_NAME) 
+        throw new Error("MODEL_NAME not configured in environment variables");
+    
     const repoPath = HF_TO_GGUF;
-    if (!repoPath) 
-        throw new Error(`No repository mapping found for ${MODEL_NAME}`);
 
     const response = await axios.get(`https://huggingface.co/api/models/${repoPath}`);
     if (!response.data?.siblings) 
@@ -68,6 +71,11 @@ export const checkMemoryBeforeLoading = async (modelPath) => {
 };
 
 export const downloadModel = async (fileName, onProgress) => {
+  if (!HF_TO_GGUF) {
+    Alert.alert("Configuration Error", "HF_TO_GGUF not configured");
+    return null;
+  }
+  
   const downloadUrl = `https://huggingface.co/${HF_TO_GGUF}/resolve/main/${fileName}`;
   const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
 
