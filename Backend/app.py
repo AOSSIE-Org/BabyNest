@@ -11,6 +11,9 @@ from routes.symptoms import symptoms_bp
 from routes.weight import weight_bp
 from routes.blood_pressure import bp_bp
 from routes.discharge import discharge_bp
+from routes.mood import mood_bp
+from routes.sleep import sleep_bp
+from routes.analytics import analytics_bp
 from error_handling.handlers import handle_missing_field_error, handle_not_found_error
 from error_handling.error_classes import MissingFieldError, NotFoundError
 from agent.agent import get_agent
@@ -20,13 +23,12 @@ import argparse
 # To enable context-aware error handling
 parser = argparse.ArgumentParser(description="Run the Flask backend server.")
 parser.add_argument("--env", type=str, default="development", choices=["development", "production"])
-args = parser.parse_args()
 
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['ENV'] = args.env # Set environment based on argument
+app.config['ENV'] = os.getenv('FLASK_ENV', 'development')
 
 app.register_blueprint(appointments_bp)
 app.register_blueprint(tasks_bp)
@@ -36,6 +38,9 @@ app.register_blueprint(symptoms_bp)
 app.register_blueprint(weight_bp)
 app.register_blueprint(bp_bp)
 app.register_blueprint(discharge_bp)
+app.register_blueprint(mood_bp)
+app.register_blueprint(sleep_bp)
+app.register_blueprint(analytics_bp)
 
 # Register error handlers
 
@@ -226,11 +231,7 @@ def cleanup_cache():
 
 @app.route('/')
 def index():
-    from routes.appointments import get_appointments
-    from routes.tasks import get_tasks
-    appointment_db =  get_appointments()
-    task_db = get_tasks()
-    return appointment_db
+    return jsonify({"status": "ok", "message": "BabyNest API is running"})
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the Flask backend server.")

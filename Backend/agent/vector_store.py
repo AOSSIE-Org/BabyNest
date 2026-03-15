@@ -4,8 +4,10 @@ import json
 import os
 import hashlib
 
-os.makedirs("db/chromadb", exist_ok=True)
-client = chromadb.PersistentClient(path="db/chromadb")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CHROMADB_PATH = os.path.join(BASE_DIR, "db", "chromadb")
+os.makedirs(CHROMADB_PATH, exist_ok=True)
+client = chromadb.PersistentClient(path=CHROMADB_PATH)
 
 # Use default embedding function instead of sentence transformers
 
@@ -40,12 +42,10 @@ def get_file_hash(path):
 def update_guidelines_in_vector_store():
     """Update the vector store with pregnancy guidelines."""
     try:
-        # Load guidelines from JSON file
         guidelines_file = os.path.join(os.path.dirname(__file__), "guidelines.json")
-        os.makedirs("db/chromadb", exist_ok=True)
+        os.makedirs(CHROMADB_PATH, exist_ok=True)
 
-        # Compare file hash to avoid unnecessary updates
-        hash_file = os.path.join("db/chromadb", "guidelines.hash")
+        hash_file = os.path.join(CHROMADB_PATH, "guidelines.hash")
         current_hash = get_file_hash(guidelines_file)
         previous_hash = None
 
@@ -54,23 +54,21 @@ def update_guidelines_in_vector_store():
                 previous_hash = f.read().strip()
 
         if current_hash == previous_hash:
-            print("🔄 No change in guidelines.json, skipping vector update.")
+            print("No change in guidelines.json, skipping vector update.")
             return False
         
-        # Save new hash
         with open(hash_file, "w") as f:
             f.write(current_hash)
 
         with open(guidelines_file, 'r', encoding='utf-8') as f:
             guidelines = json.load(f)
         
-        # Clear existing data (only if collection has data)
         try:
             count = guidelines_collection.count()
             if count > 0:
                 guidelines_collection.delete(where={"source": {"$ne": "none"}})
-        except Exception:
-            print(f"Warning: Failed to clear guidelines collection: {e}")
+        except Exception as inner_e:
+            print(f"Warning: Failed to clear guidelines collection: {inner_e}")
         
         documents, ids, metadatas = [], [], []
 

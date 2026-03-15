@@ -920,13 +920,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlignVertical: 'top',
   },
-  backgroundColor: '#fff',
-  padding: 10,
-  borderRadius: 5,
-  borderWidth: 1,
-  // borderColor: '#F8BBD0',
-  textAlign: 'center',
-  marginTop: 10,
   buttonContainer: {
     // backgroundColor: '#E91E63',
     gap: 12,

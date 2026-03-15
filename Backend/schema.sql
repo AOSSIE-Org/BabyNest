@@ -98,12 +98,6 @@ CREATE TABLE IF NOT EXISTS profile (
     dueDate TEXT
 );
 
-INSERT INTO profile (lmp, cycleLength, periodLength, age, weight, user_location) VALUES
-('2025-01-01', 28, 5, 30, 65, 'New York'),
-('2025-01-15', 30, 6, 28, 70, 'Los Angeles'),
-('2025-02-01', 26, 4, 32, 60, 'Chicago');
-
-
 CREATE TABLE IF NOT EXISTS weekly_weight (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     week_number INTEGER NOT NULL,
@@ -146,4 +140,21 @@ INSERT INTO weekly_symptoms (week_number, symptom, note) VALUES
 (8, 'Morning Sickness', 'Worse after waking up'),
 (9, 'Breast Tenderness', 'More sensitive than last week'),
 (10, 'Frequent Urination', 'Especially during the night');
+
+CREATE TABLE IF NOT EXISTS mood_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    week_number INTEGER NOT NULL,
+    mood TEXT NOT NULL,
+    note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sleep_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    week_number INTEGER NOT NULL,
+    hours REAL NOT NULL,
+    quality TEXT,
+    note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 

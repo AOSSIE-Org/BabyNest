@@ -84,6 +84,11 @@ def delete_profile():
     agent.update_cache(data_type="profile", operation="delete")
     
     return jsonify({"status": "success", "message": "Profile deleted successfully"}), 200
+
+
+@profile_bp.route('/logout', methods=['POST'])
+def logout():
+    return jsonify({"status": "success", "message": "Logged out successfully. Local session cleared."}), 200
     
     
 @profile_bp.route('/update_profile', methods=['PATCH'])
@@ -116,8 +121,8 @@ def update_profile():
 
 
     db.execute(
-        'UPDATE profile SET dueDate = ?, user_location = ?, lmp = ?, cycleLength = ?, periodLength = ?, age = ?, weight = ?',
-        (due_date, location, lmp, cycleLength, periodLength, age, weight)  
+        'UPDATE profile SET dueDate = ?, user_location = ?, lmp = ?, cycleLength = ?, periodLength = ?, age = ?, weight = ? WHERE id = ?',
+        (due_date, location, lmp, cycleLength, periodLength, age, weight, profile['id'])  
     )
     db.commit()
     

@@ -250,7 +250,7 @@ export default function SymptomsScreen() {
           <Dialog.Content>
             <TextInput
               label="Week Number"
-              value={editData?.week_number.toString() || ''}
+              value={editData?.week_number?.toString() ?? ''}
               onChangeText={text =>
                 setEditData({...editData, week_number: text})
               }

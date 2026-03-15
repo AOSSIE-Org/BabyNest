@@ -2351,13 +2351,13 @@ class RAGService {
           endpoint = '/get_appointments';
           break;
         case 'weight':
-          endpoint = '/get_weight';
+          endpoint = '/weight';
           break;
         case 'symptoms':
           endpoint = '/get_symptoms';
           break;
         case 'medicine':
-          endpoint = '/get_all_medicine';
+          endpoint = '/get_medicine';
           break;
         case 'blood_pressure':
           endpoint = '/get_blood_pressure';
@@ -2768,26 +2768,22 @@ class RAGService {
   }
 
   /**
-   * Logout
+   * Logout - clears local session without deleting user data
    */
   async logout(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/delete_profile`, {
-        method: 'DELETE',
+      await fetch(`${BASE_URL}/logout`, {
+        method: 'POST',
       });
-
-      return {
-        success: true,
-        message: `👋 Logging out... Goodbye!`,
-        action: 'logout',
-      };
     } catch (error) {
-      return {
-        success: true,
-        message: `👋 Logging out... Goodbye!`,
-        action: 'logout',
-      };
+      // Ignore errors - logout should work even if backend unavailable
     }
+
+    return {
+      success: true,
+      message: `👋 Logging out... Your data is safe! Goodbye!`,
+      action: 'logout',
+    };
   }
 
   /**

@@ -2,8 +2,9 @@ import sqlite3
 import os
 from flask import g
 
-DATABASE = "db/database.db"
-SCHEMA_FILE = "schema.sql"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATABASE = os.path.join(BASE_DIR, "db", "database.db")
+SCHEMA_FILE = os.path.join(BASE_DIR, "schema.sql")
 
 def open_db():
     if "db" not in g:

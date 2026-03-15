@@ -70,7 +70,6 @@ def get_all_medicine():
 
 # Read by week
 @medicine_bp.route('/medicine/week/<int:week>', methods=['GET'])
-@require_auth
 @handle_db_errors
 def get_week_medicine(week):
     db = open_db()
@@ -79,7 +78,6 @@ def get_week_medicine(week):
 
 # Read by ID
 @medicine_bp.route('/medicine/<int:id>', methods=['GET'])
-@require_auth
 @handle_db_errors
 def get_medicine(id):
     db = open_db()
@@ -90,7 +88,6 @@ def get_medicine(id):
 
 # Update by ID
 @medicine_bp.route('/medicine/<int:id>', methods=['PATCH'])
-@require_auth
 @handle_db_errors
 def update_medicine(id):
     db = open_db()
@@ -131,7 +128,6 @@ def update_medicine(id):
 
 # Delete by ID
 @medicine_bp.route('/medicine/<int:id>', methods=['DELETE'])
-@require_auth
 @handle_db_errors
 def delete_medicine(id):
     db = open_db()
