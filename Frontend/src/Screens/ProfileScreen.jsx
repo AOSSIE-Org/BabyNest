@@ -111,7 +111,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={() => Alert.alert("Feature coming soon", "Profile editing will be available in the next update.")}
+          onPress={() => navigation.navigate('EditProfile')}
         >
           <Text style={styles.actionButtonText}>Edit Information</Text>
         </TouchableOpacity>
