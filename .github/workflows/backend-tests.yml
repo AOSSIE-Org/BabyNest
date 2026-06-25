@@ -35,10 +35,23 @@ jobs:
         run: |
           python -u app.py &
           echo $! > /tmp/backend.pid
+          READY=0
           # Wait up to 15 seconds for Flask to respond
           for i in {1..15}; do
-            curl -sSf http://localhost:5000/agent/cache/status >/dev/null && break || sleep 1
+            if ! kill -0 "$(cat /tmp/backend.pid)" 2>/dev/null; then
+              echo "❌ Backend server failed to start or terminated early."
+              exit 1
+            fi
+            if curl -sSf http://localhost:5000/agent/cache/status >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 1
           done
+          if [ "$READY" -eq 0 ]; then
+            echo "❌ Backend server did not become ready within 15 seconds."
+            exit 1
+          fi
 
       - name: Run Backend Tests
         run: |
