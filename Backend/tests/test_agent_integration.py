@@ -6,6 +6,7 @@ This script tests the agent context system and API endpoints.
 import requests
 import json
 import time
+import sys
 
 BASE_URL = "http://localhost:5000"
 
@@ -17,18 +18,15 @@ def test_agent_context():
         response = requests.get(f"{BASE_URL}/agent/context?user_id=default")
         print(f"Status: {response.status_code}")
         
-        if response.status_code == 200:
-            data = response.json()
-            print("✅ Context endpoint working")
-            print(f"Current week: {data.get('current_week', 'N/A')}")
-            print(f"Has profile: {bool(data.get('profile'))}")
-            return True
-        else:
-            print(f"❌ Context endpoint failed: {response.text}")
-            return False
+        assert response.status_code == 200, f"Context endpoint failed: {response.text}"
+        data = response.json()
+        print("✅ Context endpoint working")
+        print(f"Current week: {data.get('current_week', 'N/A')}")
+        print(f"Has profile: {bool(data.get('profile'))}")
+        return True
     except Exception as e:
         print(f"❌ Context endpoint error: {e}")
-        return False
+        raise AssertionError(f"Context endpoint failed: {e}")
 
 def test_task_recommendations():
     """Test the task recommendations endpoint."""
@@ -38,18 +36,15 @@ def test_task_recommendations():
         response = requests.get(f"{BASE_URL}/agent/tasks/recommendations?user_id=default&week=10")
         print(f"Status: {response.status_code}")
         
-        if response.status_code == 200:
-            data = response.json()
-            print("✅ Recommendations endpoint working")
-            print(f"Current week: {data.get('current_week', 'N/A')}")
-            print(f"Has recommendations: {bool(data.get('recommendations'))}")
-            return True
-        else:
-            print(f"❌ Recommendations endpoint failed: {response.text}")
-            return False
+        assert response.status_code == 200, f"Recommendations endpoint failed: {response.text}"
+        data = response.json()
+        print("✅ Recommendations endpoint working")
+        print(f"Current week: {data.get('current_week', 'N/A')}")
+        print(f"Has recommendations: {bool(data.get('recommendations'))}")
+        return True
     except Exception as e:
         print(f"❌ Recommendations endpoint error: {e}")
-        return False
+        raise AssertionError(f"Recommendations endpoint failed: {e}")
 
 def test_cache_status():
     """Test the cache status endpoint."""
@@ -59,18 +54,15 @@ def test_cache_status():
         response = requests.get(f"{BASE_URL}/agent/cache/status")
         print(f"Status: {response.status_code}")
         
-        if response.status_code == 200:
-            data = response.json()
-            print("✅ Cache status endpoint working")
-            print(f"Cache status: {data.get('cache_status', 'N/A')}")
-            print(f"Has context: {data.get('has_context', False)}")
-            return True
-        else:
-            print(f"❌ Cache status endpoint failed: {response.text}")
-            return False
+        assert response.status_code == 200, f"Cache status endpoint failed: {response.text}"
+        data = response.json()
+        print("✅ Cache status endpoint working")
+        print(f"Cache status: {data.get('cache_status', 'N/A')}")
+        print(f"Has context: {data.get('has_context', False)}")
+        return True
     except Exception as e:
         print(f"❌ Cache status endpoint error: {e}")
-        return False
+        raise AssertionError(f"Cache status endpoint failed: {e}")
 
 def main():
     """Run all tests."""
@@ -87,8 +79,11 @@ def main():
     total = len(tests)
     
     for test in tests:
-        if test():
-            passed += 1
+        try:
+            if test():
+                passed += 1
+        except AssertionError as e:
+            print(f"Assertion failed: {e}")
         time.sleep(1)  # Small delay between tests
     
     print("\n" + "=" * 50)
@@ -96,8 +91,10 @@ def main():
     
     if passed == total:
         print("🎉 All tests passed! The agent integration is working correctly.")
+        sys.exit(0)
     else:
         print("⚠️  Some tests failed. Please check the backend setup.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 

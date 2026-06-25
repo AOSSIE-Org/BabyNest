@@ -1,0 +1,67 @@
+name: Backend API Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    name: Run Backend API Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: Backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start Backend Server
+        run: |
+          python -u app.py &
+          echo $! > /tmp/backend.pid
+          READY=0
+          # Wait up to 15 seconds for Flask to respond
+          for i in {1..15}; do
+            if ! kill -0 "$(cat /tmp/backend.pid)" 2>/dev/null; then
+              echo "❌ Backend server failed to start or terminated early."
+              exit 1
+            fi
+            if curl -sSf http://localhost:5000/agent/cache/status >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$READY" -eq 0 ]; then
+            echo "❌ Backend server did not become ready within 15 seconds."
+            exit 1
+          fi
+
+      - name: Run Backend Tests
+        run: |
+          pytest -v tests
+
+      - name: Stop Backend Server
+        if: always()
+        run: |
+          if [ -f /tmp/backend.pid ]; then
+            kill $(cat /tmp/backend.pid) || true
+          fi
