@@ -1,2 +1,4 @@
 .qodo
 .env
+.DS_Store
+.vscode/

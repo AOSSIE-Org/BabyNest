@@ -1,6 +1,10 @@
+.venv/
 venv/
-pycache/
+env/
 __pycache__/
-env
-db/database.db
+*.py[cod]
 
+/db/database.db
+/db/chromadb/
+
+cache/
