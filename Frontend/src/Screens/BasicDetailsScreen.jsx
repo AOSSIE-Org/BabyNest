@@ -93,6 +93,9 @@ export default function BasicDetailsScreen() {
       setErrors({ form: data.error });
     } else {
       setErrors({});
+      // Store user_id in AsyncStorage
+      await AsyncStorage.setItem('user_id', String(data.user_id));
+      // Navigate to DueDate screen with the due date
       navigation.replace('DueDate', { dueDate: data.dueDate });
     }
   } catch (error) {

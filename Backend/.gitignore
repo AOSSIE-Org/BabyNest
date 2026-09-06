@@ -3,4 +3,5 @@ pycache/
 __pycache__/
 env
 db/database.db
-
+.venv
+cache/

@@ -5,7 +5,7 @@ import threading
 import time
 from datetime import datetime, date
 from typing import Dict, Optional, Any
-import hashlib
+
 
 class ContextCache:
     def __init__(self, db_path: str, cache_dir: str = "cache"):
@@ -13,41 +13,41 @@ class ContextCache:
         self.cache_dir = cache_dir
         self.memory_cache: Dict[str, Dict[str, Any]] = {}
         self.cache_lock = threading.Lock()
-        
+
         # Cache management settings
         self.max_cache_size_mb = 10  # Maximum cache file size in MB
         self.max_tracking_entries = 10  # Maximum entries per tracking type
         self.max_cache_age_days = 30  # Maximum cache age before cleanup
         self.max_memory_cache_size = 50  # Maximum number of users in memory cache
-        
+
         # Ensure cache directory exists
         os.makedirs(cache_dir, exist_ok=True)
-        
+
         # Initialize cache
         self._load_cache()
-    
+
     def _get_cache_file_path(self, user_id: str) -> str:
         """Get the cache file path for a specific user."""
         return os.path.join(self.cache_dir, f"context_{user_id}.json")
-    
+
     def _load_cache(self):
         """Load cache from disk files."""
         if not os.path.exists(self.cache_dir):
             return
-        
+
         for filename in os.listdir(self.cache_dir):
             if filename.startswith("context_") and filename.endswith(".json"):
                 user_id = filename[8:-5]  # Remove "context_" prefix and ".json" suffix
                 file_path = os.path.join(self.cache_dir, filename)
-                
+
                 try:
                     with open(file_path, 'r') as f:
                         cache_data = json.load(f)
                         self.memory_cache[user_id] = cache_data
                 except (json.JSONDecodeError, FileNotFoundError):
                     continue
-    
-    def _save_cache(self, user_id:str, context_data: Dict[str, Any]):
+
+    def _save_cache(self, user_id: str, context_data: Dict[str, Any]):
         """Save context data to disk cache."""
         file_path = self._get_cache_file_path(user_id)
         try:
@@ -56,7 +56,7 @@ class ContextCache:
         except Exception as e:
             print(f"Error saving cache for user {user_id}: {e}")
 
-    def _cache_update_handler(self, datatype:str, current_cache:dict) -> bool:
+    def _cache_update_handler(self, user_id, datatype: str, current_cache: dict) -> bool:
         """Handle specific datatype cache update."""
         if not current_cache or not datatype:
             return False
@@ -65,18 +65,22 @@ class ContextCache:
         if datatype not in valid_types:
             return False
         print(f"   🔄 Updating {datatype} data...")
-        data = self._get_specific_data(datatype)
-        if data:
-            if datatype == "profile":
+        data = self._get_specific_data(user_id, datatype)
+        if datatype == "profile":
+            if data:
                 current_cache.update(data)
                 print(f"   ✅ {datatype} data updated")
+                return True
             else:
-                current_cache["tracking_data"][datatype] = data
-                print(f"   ✅ {datatype} data updated: {len(data)} entries")
+                print(f"   ⚠️ No {datatype} data found to update")
+                os.remove(self._get_cache_file_path(user_id))
+                return False
+        else:
+            current_cache["tracking_data"][datatype] = data
+            print(f"   ✅ {datatype} data updated: {len(data)} entries")
             return True
-        return False
-    
-    def _build_context(self) -> Dict[str, Any]:
+
+    def _build_context(self, user_id: str) -> Dict[str, Any] | None:
         """Build context from database."""
         conn = None
         try:
@@ -85,17 +89,20 @@ class ContextCache:
 
             # Get profile data
             cursor.execute("""
-                SELECT lmp, cycleLength, periodLength, age, weight, user_location, dueDate
-                FROM profile ORDER BY id DESC LIMIT 1
-            """)
+                SELECT lmp, cycleLength, periodLength, age, weight,
+                user_location, dueDate
+                FROM profile
+                WHERE id = ?
+                ORDER BY id DESC
+                LIMIT 1""", (user_id,))
             profile = cursor.fetchone()
-            
+
             if not profile:
                 conn.close()
                 return None
-            
+
             lmp, cycle_length, period_length, age, weight, location, due_date = profile
-            
+
             # Calculate current week
             if due_date:
                 due_date_obj = datetime.strptime(due_date, "%Y-%m-%d").date()
@@ -106,38 +113,53 @@ class ContextCache:
                 current_week = max(1, min(current_week, 40))
             else:
                 current_week = 1
-            
+
             # Get recent tracking data with dates
             cursor.execute("""
-                SELECT week_number, weight, note, created_at FROM weekly_weight 
-                ORDER BY week_number DESC LIMIT 4
-            """)
+                SELECT week_number, weight, note, created_at
+                FROM weekly_weight
+                WHERE user_id = ? OR user_id = 0
+                ORDER BY week_number DESC
+                LIMIT 4
+            """, (user_id,))
             weight_data = cursor.fetchall()
-            
+
             cursor.execute("""
-                SELECT week_number, name, dose, time, taken, note, created_at FROM weekly_medicine 
-                ORDER BY week_number DESC LIMIT 4
-            """)
+                SELECT week_number, name, dose, time, taken, note, created_at
+                FROM weekly_medicine
+                WHERE user_id = ? OR user_id = 0
+                ORDER BY week_number DESC
+                LIMIT 4
+            """, (user_id,))
             medicine_data = cursor.fetchall()
-            
+
             cursor.execute("""
-                SELECT week_number, symptom, note, created_at FROM weekly_symptoms 
-                ORDER BY week_number DESC LIMIT 4
-            """)
+                SELECT week_number, symptom, note, created_at
+                FROM weekly_symptoms
+                WHERE user_id = ? OR user_id = 0
+                ORDER BY week_number DESC
+                LIMIT 4
+            """, (user_id,))
             symptoms_data = cursor.fetchall()
-            
+
             cursor.execute("""
-                SELECT week_number, systolic, diastolic, time, note, created_at FROM blood_pressure_logs 
-                ORDER BY created_at DESC LIMIT 7
-            """)
+                SELECT week_number, systolic, diastolic, time, note, created_at
+                FROM blood_pressure_logs
+                WHERE user_id = ? OR user_id = 0
+                ORDER BY created_at DESC
+                LIMIT 7
+            """, (user_id,))
             bp_data = cursor.fetchall()
-            
+
             cursor.execute("""
-                SELECT week_number, type, color, bleeding, note, created_at FROM discharge_logs 
-                ORDER BY created_at DESC LIMIT 7
-            """)
+                SELECT week_number, type, color, bleeding, note, created_at
+                FROM discharge_logs
+                WHERE user_id = ? OR user_id = 0
+                ORDER BY created_at DESC
+                LIMIT 7
+            """, (user_id,))
             discharge_data = cursor.fetchall()
-        
+
             # Build context
             context = {
                 "current_week": current_week,
@@ -149,31 +171,29 @@ class ContextCache:
                 "cycle_length": cycle_length,
                 "period_length": period_length,
                 "tracking_data": {
-                    "weight": [{"week": w, "weight": wt, "note": n, "date": d} for w, wt, n, d in weight_data],
-                    "medicine": [{"week": w, "name": n, "dose": d, "time": t, "taken": tk, "note": nt, "date": dt} 
-                            for w, n, d, t, tk, nt, dt in medicine_data],
+                    "weight": [{"week": w, "weight": wt, "note": n, "date": d}
+                               for w, wt, n, d in weight_data],
+                    "medicine": [{"week": w, "name": n, "dose": d, "time": t, "taken": tk, "note": nt, "date": dt} for w, n, d, t, tk, nt, dt in medicine_data],
                     "symptoms": [{"week": w, "symptom": s, "note": n, "date": d} for w, s, n, d in symptoms_data],
-                    "blood_pressure": [{"week": w, "systolic": s, "diastolic": d, "time": t, "note": n, "date": dt} 
-                                    for w, s, d, t, n, dt in bp_data],
-                    "discharge": [{"week": w, "type": ty, "color": c, "bleeding": b, "note": n, "date": d} 
-                                for w, ty, c, b, n, d in discharge_data]
+                    "blood_pressure": [{"week": w, "systolic": s, "diastolic": d, "time": t, "note": n, "date": dt} for w, s, d, t, n, dt in bp_data],
+                    "discharge": [{"week": w, "type": ty, "color": c, "bleeding": b, "note": n, "date": d} for w, ty, c, b, n, d in discharge_data]
                 },
                 "last_updated": datetime.now().isoformat()
             }
-            
+
             return context
-        
+
         finally:
             if conn:
                 conn.close()
-    
+
     def get_context(self, user_id: str = "default") -> Optional[Dict[str, Any]]:
         """Get user context from cache only. If not found, return None."""
         with self.cache_lock:
             # Check memory cache first
             if user_id in self.memory_cache:
                 return self.memory_cache[user_id]
-            
+
             # Check disk cache
             cache_file = self._get_cache_file_path(user_id)
             if os.path.exists(cache_file):
@@ -184,9 +204,9 @@ class ContextCache:
                         return cache_data
                 except (json.JSONDecodeError, FileNotFoundError):
                     pass
-            
+
             # Build context from database
-            context_data = self._build_context()
+            context_data = self._build_context(user_id)
             if context_data:
                 # Save to both memory and disk cache
                 self.memory_cache[user_id] = context_data
@@ -194,19 +214,19 @@ class ContextCache:
                 return context_data
 
         return None
-    
-    def _get_specific_data(self, data_type: str, limit: int = None) -> list:
+
+    def _get_specific_data(self, user_id: str, data_type: str, limit: int = None) -> dict[str, int | Any] | None | list[dict[str, int | Any]]:
         """Get specific data from database based on type."""
         conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            
+
             if data_type == "profile":
                 cursor.execute("""
                     SELECT lmp, cycleLength, periodLength, age, weight, user_location, dueDate
-                    FROM profile ORDER BY id DESC LIMIT 1
-                """)
+                    FROM profile WHERE id = ?
+                """, (user_id,))
                 result = cursor.fetchone()
                 if result:
                     lmp, cycle_length, period_length, age, weight, location, due_date = result
@@ -220,7 +240,7 @@ class ContextCache:
                         current_week = max(1, min(current_week, 40))
                     else:
                         current_week = 1
-                    
+
                     return {
                         "current_week": current_week,
                         "location": location,
@@ -232,57 +252,62 @@ class ContextCache:
                         "period_length": period_length
                     }
                 return None
-                
+
             elif data_type == "weight":
                 limit = limit or self.max_tracking_entries
                 cursor.execute("""
                     SELECT week_number, weight, note, created_at FROM weekly_weight 
-                    ORDER BY week_number DESC LIMIT ?
-                """, (limit,))
+                    WHERE user_id = ? OR user_id = 0
+                    ORDER BY created_at DESC LIMIT ?
+                """, (user_id, limit))
                 data = [{"week": w, "weight": wt, "note": n, "date": d} for w, wt, n, d in cursor.fetchall()]
                 return self._limit_tracking_data(data, "weight")
-                
+
             elif data_type == "medicine":
                 limit = limit or self.max_tracking_entries
                 cursor.execute("""
-                    SELECT week_number, name, dose, time, taken, note, created_at FROM weekly_medicine 
-                    ORDER BY week_number DESC LIMIT ?
-                """, (limit,))
+                    SELECT week_number, name, dose, time, taken, note, created_at FROM weekly_medicine
+                    WHERE user_id = ? OR user_id = 0
+                    ORDER BY created_at DESC LIMIT ?
+                """, (user_id, limit))
                 data = [{"week": w, "name": n, "dose": d, "time": t, "taken": tk, "note": nt, "date": dt} 
                         for w, n, d, t, tk, nt, dt in cursor.fetchall()]
                 return self._limit_tracking_data(data, "medicine")
-                
+
             elif data_type == "symptoms":
                 limit = limit or self.max_tracking_entries
                 cursor.execute("""
-                    SELECT week_number, symptom, note, created_at FROM weekly_symptoms 
-                    ORDER BY week_number DESC LIMIT ?
-                """, (limit,))
+                    SELECT week_number, symptom, note, created_at FROM weekly_symptoms
+                    WHERE user_id = ? OR user_id = 0
+                    ORDER BY created_at DESC LIMIT ?
+                """, (user_id, limit))
                 data = [{"week": w, "symptom": s, "note": n, "date": d} for w, s, n, d in cursor.fetchall()]
                 return self._limit_tracking_data(data, "symptoms")
-                
+
             elif data_type == "blood_pressure":
                 limit = limit or self.max_tracking_entries
                 cursor.execute("""
-                    SELECT week_number, systolic, diastolic, time, note, created_at FROM blood_pressure_logs 
+                    SELECT week_number, systolic, diastolic, time, note, created_at FROM blood_pressure_logs
+                    WHERE user_id = ? OR user_id = 0
                     ORDER BY created_at DESC LIMIT ?
-                """, (limit,))
+                """, (user_id, limit))
                 data = [{"week": w, "systolic": s, "diastolic": d, "time": t, "note": n, "date": dt} 
                         for w, s, d, t, n, dt in cursor.fetchall()]
                 return self._limit_tracking_data(data, "blood_pressure")
-                
+
             elif data_type == "discharge":
                 limit = limit or self.max_tracking_entries
                 cursor.execute("""
-                    SELECT week_number, type, color, bleeding, note, created_at FROM discharge_logs 
+                    SELECT week_number, type, color, bleeding, note, created_at FROM discharge_logs
+                    WHERE user_id = ? OR user_id = 0
                     ORDER BY created_at DESC LIMIT ?
-                """, (limit,))
+                """, (user_id, limit))
                 data = [{"week": w, "type": ty, "color": c, "bleeding": b, "note": n, "date": d} 
                         for w, ty, c, b, n, d in cursor.fetchall()]
                 return self._limit_tracking_data(data, "discharge")
-            
+
             return []
-            
+
         finally:
             if conn:
                 conn.close()
@@ -290,7 +315,7 @@ class ContextCache:
     def update_cache(self, user_id: str = "default", data_type: str = None, operation: str = "update"):
         """
         Intelligently update cache based on database changes.
-        
+
         Args:
             user_id: User ID to update cache for
             data_type: Type of data that changed ('profile', 'weight', 'medicine', 'symptoms', 'blood_pressure', 'discharge')
@@ -301,10 +326,11 @@ class ContextCache:
         with self.cache_lock:
             # Get current cache from memory or disk (without building from DB)
             current_cache = None
-            
+
             # Check memory cache first
             if user_id in self.memory_cache:
                 current_cache = self.memory_cache[user_id]
+                print(f"⚡ Found existing cache in memory for user {user_id}")
             else:
                 # Check disk cache
                 cache_file = self._get_cache_file_path(user_id)
@@ -313,20 +339,21 @@ class ContextCache:
                         with open(cache_file, 'r') as f:
                             current_cache = json.load(f)
                             self.memory_cache[user_id] = current_cache
+                            print(f"⚡ Found existing cache on disk for user {user_id}")
                     except (json.JSONDecodeError, FileNotFoundError):
                         pass
-            
+
             if not current_cache:
                 # If no cache exists, build full context
                 print("⚙️ No existing cache found, building full context...")
-                context_data = self._build_context()
+                context_data = self._build_context(user_id)
                 if context_data:
                     self.memory_cache[user_id] = context_data
                     self._save_cache(user_id, context_data)
                     return
 
-            if operation in ["update", "create", "delete"] :
-                res = self._cache_update_handler(data_type, current_cache)
+            if operation in ["update", "create", "delete"]:
+                res = self._cache_update_handler(user_id, data_type, current_cache)
                 # Update last updated timestamp
                 if res:
                     current_cache["last_updated"] = datetime.now().isoformat()
