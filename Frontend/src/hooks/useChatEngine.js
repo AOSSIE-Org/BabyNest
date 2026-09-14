@@ -150,7 +150,30 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
 
           if (agentResponse.ok) {
             const agentData = await agentResponse.json();
-            response = agentData.response;
+            const agentResult = agentData.response;
+
+            if (
+              agentResult?.requires_frontend_inference &&
+              agentResult?.prompt
+            ) {
+              const messages = [];
+
+              if (agentResult.system_message) {
+                messages.push({
+                  role: "system",
+                  content: agentResult.system_message
+                });
+              }
+
+              messages.push({
+                role: "user",
+                content: agentResult.prompt
+              });
+
+              response = await generateResponse(messages);
+            } else {
+              response = agentResult;
+            }
           } else {
             throw new Error('Backend agent failed');
           }

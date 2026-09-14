@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BASE_URL } from '@env';
+import { generateResponse } from '../model/model';
 
 /**
  * AgentContext - Manages AI agent context and user data
@@ -112,6 +113,34 @@ export const AgentProvider = ({ children }) => {
       }
 
       const data = await response.json();
+      const recommendationResult = data.recommendations;
+
+      if (
+        recommendationResult?.requires_frontend_inference &&
+        recommendationResult?.prompt
+      ) {
+        const messages = [];
+
+        if (recommendationResult.system_message) {
+          messages.push({
+            role: "system",
+            content: recommendationResult.system_message
+          });
+        }
+
+        messages.push({
+          role: "user",
+          content: recommendationResult.prompt
+        });
+
+        const generatedRecommendations = await generateResponse(messages);
+
+        return {
+          ...data,
+          recommendations: generatedRecommendations
+        };
+      }
+
       return data;
     } catch (err) {
       console.error('Error getting task recommendations:', err);

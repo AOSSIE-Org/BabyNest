@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agent.context import get_relevant_context_from_vector_store
 from agent.intent import classify_intent
-from agent.llm import run_llm
+from agent.llm import prepare_prompt_for_frontend
 from agent.prompt import build_prompt
 from agent.cache import get_context_cache
 
@@ -53,9 +53,9 @@ class BabyNestAgent:
             # Step 3: Retrieve relevant context from the vector store based on the query.
             context = get_relevant_context_from_vector_store(query)
             
-            # Step 4: Build the prompt with the retrieved context and user context, then run the LLM.
+            # Step 4: Build the prompt and hand it to the frontend for local LLM inference.
             prompt = build_prompt(query, context, user_context)
-            return run_llm(prompt)
+            return prepare_prompt_for_frontend(prompt)
             
         except Exception as e:
             return f"Error processing query: {e}"
