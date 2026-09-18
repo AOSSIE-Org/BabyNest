@@ -34,8 +34,18 @@ def set_profile():
     weight = data.get('weight')
     location = data.get('location')
 
-    if not lmp or not location:
-        raise MissingFieldError(['lmp', 'location'])
+    # Collect only the fields that are actually missing
+
+    missing_fields = []
+
+    if not lmp:
+        missing_fields.append('lmp')
+
+    if not location:
+         missing_fields.append('location')
+
+    if missing_fields:
+        raise MissingFieldError(missing_fields)
 
     if (not cycleLength or not isinstance(cycleLength, int)):
         return jsonify({"error": "cycleLength must be a valid integer"}), 400
