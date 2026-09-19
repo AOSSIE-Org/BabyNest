@@ -405,14 +405,16 @@ const ScheduleScreen = () => {
             </View>
           ))}
         </View>
-
+        {console.log('filteredAppointments:', filteredAppointments)}
         {filteredAppointments.map((appt, index) => (
           <View
             key={appt.id}
             style={{
               ...styles.appointment,
               backgroundColor: colors[index % colors.length],
-              top: to_min(appt.appointment_time) - 370,
+              top:
+                ((to_min(appt.appointment_time) - to_min('08:00')) / 60) *
+                timeSlotHeight,
               zIndex: 1,
             }}>
             <TouchableOpacity onPress={() => handleAppointment(appt)}>
