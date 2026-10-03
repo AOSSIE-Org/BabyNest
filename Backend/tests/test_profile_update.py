@@ -9,14 +9,19 @@ backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-# Mock chromadb if not installed in lightweight test environments
-mock_chroma = MagicMock()
-mock_chroma.__path__ = []
-mock_chroma_utils = MagicMock()
-mock_chroma_utils.__path__ = []
-sys.modules["chromadb"] = mock_chroma
-sys.modules["chromadb.utils"] = mock_chroma_utils
-sys.modules["chromadb.config"] = MagicMock()
+# Mock chromadb only if not installed in lightweight test environments
+try:
+    import chromadb
+    import chromadb.utils
+    import chromadb.config
+except ImportError:
+    mock_chroma = MagicMock()
+    mock_chroma.__path__ = []
+    mock_chroma_utils = MagicMock()
+    mock_chroma_utils.__path__ = []
+    sys.modules["chromadb"] = mock_chroma
+    sys.modules["chromadb.utils"] = mock_chroma_utils
+    sys.modules["chromadb.config"] = MagicMock()
 
 from app import app
 from db.db import first_time_setup
@@ -117,10 +122,10 @@ def test_update_profile_string_cycle_length(client):
 
 
 def test_update_profile_invalid_cycle_length(client):
-    """Ensure non-numeric or non-positive cycleLength returns 400 Bad Request."""
+    """Ensure non-numeric, non-positive, bool, float, or non-ASCII cycleLength returns 400 Bad Request."""
     test_client, _ = client
 
-    for invalid in ["not_a_number", 0, -5]:
+    for invalid in ["not_a_number", 0, -5, True, False, 28.9, "٣٠"]:
         res = test_client.patch("/update_profile?user_id=1", json={"cycleLength": invalid})
         assert res.status_code == 400
         assert "cycleLength must be a valid integer" in res.get_json()["error"]
@@ -136,12 +141,13 @@ def test_update_profile_missing_user_id(client):
 
 
 def test_update_profile_non_numeric_user_id(client):
-    """Ensure non-integer user_id returns 400."""
+    """Ensure non-integer or non-ASCII user_id returns 400."""
     test_client, _ = client
 
-    res = test_client.patch("/update_profile?user_id=abc", json={"name": "Alice"})
-    assert res.status_code == 400
-    assert "user_id must be a valid integer" in res.get_json()["error"]
+    for invalid in ["abc", "٣٠", "1.5"]:
+        res = test_client.patch(f"/update_profile?user_id={invalid}", json={"name": "Alice"})
+        assert res.status_code == 400
+        assert "user_id must be a valid integer" in res.get_json()["error"]
 
 
 def test_update_profile_nonexistent_user(client):

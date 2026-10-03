@@ -263,6 +263,9 @@ def update_profile():
     if not user_id:
         return jsonify({"error": "user_id is required"}), 400
 
+    if isinstance(user_id, str) and not user_id.isascii():
+        return jsonify({"error": "user_id must be a valid integer"}), 400
+
     try:
         user_id = int(user_id)
     except (TypeError, ValueError):
@@ -284,7 +287,10 @@ def update_profile():
     location = data.get('location', profile['user_location'])
     user_name = data.get('name', profile['user_name'])
 
-    if cycleLength is None:
+    if cycleLength is None or isinstance(cycleLength, (bool, float)):
+        return jsonify({"error": "cycleLength must be a valid integer"}), 400
+
+    if isinstance(cycleLength, str) and not cycleLength.isascii():
         return jsonify({"error": "cycleLength must be a valid integer"}), 400
 
     try:
