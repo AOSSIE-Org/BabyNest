@@ -1,5 +1,12 @@
 import {openDB} from '../database';
 import {success, failure} from '../utils/serviceResponse';
+import {
+  calculatePregnancyWeek,
+  generateInitialMedicineData,
+  generateInitialSymptoms,
+  generateInitialWeightData,
+  insertDefaultTasks,
+} from '../utils/mockUpHelper';
 
 const DEFAULT_APPOINTMENTS = [
   {
@@ -110,7 +117,6 @@ function calculateAppointmentDate(lmp, daysAfter) {
   return date.toISOString().split('T')[0];
 }
 
-
 /**
  * Create profile
  */
@@ -156,6 +162,17 @@ export async function createProfile(data) {
       );
     }
 
+    // calculate currentWeek
+    let currentWeek;
+    try {
+      currentWeek = calculatePregnancyWeek(lmp);
+    } catch {
+      return failure(
+        'Unable to calculate pregnancy week',
+        'INVALID_PREGNANCY_WEEK',
+      );
+    }
+
     const db = await openDB();
 
     // Use a transaction so profile + appointments are
@@ -190,6 +207,7 @@ export async function createProfile(data) {
       );
 
       const userId = result.insertId;
+      console.log('this is user)d', userId);
 
       // Create default appointments
       for (const appointment of DEFAULT_APPOINTMENTS) {
@@ -224,6 +242,88 @@ export async function createProfile(data) {
         );
       }
 
+      // Create weight logs
+      if (weight !== undefined && weight !== null && Number(weight) > 0) {
+        const initialWeightData = generateInitialWeightData(
+          userId,
+          Number(weight),
+          currentWeek,
+        );
+
+        for (const record of initialWeightData) {
+          await db.execute(
+            `
+            INSERT INTO weekly_weight
+            (
+              user_id,
+              week_number,
+              weight,
+              note
+            )
+            VALUES (?, ?, ?, ?)
+            `,
+            [record.user_id, record.week_number, record.weight, record.note],
+          );
+        }
+      }
+
+      // Create medicine data
+
+      // medicine data for user
+      const initialMedicineData = generateInitialMedicineData(
+        userId,
+        currentWeek,
+      );
+      for (const medicine of initialMedicineData) {
+        await db.execute(
+          `
+            INSERT INTO weekly_medicine
+            (
+              user_id,
+              week_number,
+              name,
+              dose,
+              time,
+              taken,
+              note
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+          [
+            medicine.user_id,
+            medicine.week_number,
+            medicine.name,
+            medicine.dose,
+            medicine.time,
+            medicine.taken,
+            medicine.note,
+          ],
+        );
+      }
+
+      const initialSymptoms = generateInitialSymptoms(userId, currentWeek);
+
+      // create symptom
+      for (const symptom of initialSymptoms) {
+        await db.execute(
+          `
+            INSERT INTO weekly_symptoms
+            (
+              user_id,
+              week_number,
+              symptom,
+              note
+            )
+            VALUES (?, ?, ?, ?)
+            `,
+          [symptom.user_id, symptom.week_number, symptom.symptom, symptom.note],
+        );
+      }
+
+      // create tasks
+      await insertDefaultTasks(db, userId);
+
+      // commit
       await db.execute('COMMIT');
 
       return success({

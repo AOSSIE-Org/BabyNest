@@ -8,8 +8,13 @@ import {BASE_URL} from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteProfile, updateProfile } from '../storage/profile';
 import { addAppointment, deleteAppointment, getAppointments, updateAppointment } from '../storage/appointments';
-import { addBPLog, getBPLogs } from '../storage/bloodPressure';
+import { addBPLog, deleteBPLog, getBPLogs, updateBPLog } from '../storage/bloodPressure';
 import { generateResponse } from '../model/model';
+import { addDischargeLog, deleteDischargeLog, getDischargeLogs, updateDischargeLog } from '../storage/discharge';
+import { deleteMedicine, getAllMedicine, updateMedicine } from '../storage/medicine';
+import { addSymptom, deleteSymptom, getAllSymptoms, updateSymptom } from '../storage/symptoms';
+import { addTask, getTasks } from '../storage/tasks';
+import { addWeight, deleteWeight, getAllWeights, updateWeight } from '../storage/weight';
 
 class RAGService {
   constructor() {
@@ -2065,17 +2070,14 @@ class RAGService {
    */
   async logWeight(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/weight`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          weight: data.weight,
-          week_number: data.week_number || userContext.current_week || 12,
-          note: data.note || '',
-        }),
+      const user_id = await AsyncStorage.getItem("user_id");
+      const addWeight_res = await addWeight(user_id, {
+        weight: data.weight,
+        week_number: data.week_number || userContext.current_week || 12,
+        note: data.note || '',
       });
 
-      if (response.ok) {
+      if (addWeight_res.success) {
         return {
           success: true,
           message: `⚖️ Weight ${data.weight}kg logged for week ${
@@ -2085,7 +2087,7 @@ class RAGService {
           screen: 'weight',
         };
       } else {
-        throw new Error('Failed to log weight');
+        throw new Error(addWeight_res.error.message);
       }
     } catch (error) {
       return {
@@ -2100,17 +2102,14 @@ class RAGService {
    */
   async logSymptoms(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/symptoms`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          symptom: data.symptom,
-          week_number: data.week_number || userContext.current_week || 12,
-          note: data.note || '',
-        }),
+      const user_id = await AsyncStorage.getItem("user_id");
+      const addSymptom_res = await addSymptom(user_id, {
+        symptom: data.symptom,
+        week_number: data.week_number || userContext.current_week || 12,
+        note: data.note || '',
       });
 
-      if (response.ok) {
+      if (addSymptom_res.success) {
         return {
           success: true,
           message: `🩺 Symptom "${data.symptom}" logged for week ${
@@ -2120,7 +2119,7 @@ class RAGService {
           screen: 'symptoms',
         };
       } else {
-        throw new Error('Failed to log symptoms');
+        throw new Error(addSymptom_res.error.message);
       }
     } catch (error) {
       return {
@@ -2173,19 +2172,18 @@ class RAGService {
    */
   async logMedicine(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/set_medicine`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          name: data.name,
-          dose: data.dose || '',
-          time: data.time || '',
-          week_number: data.week_number || userContext.current_week || 12,
-          note: data.note || '',
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const addMedicine_res = await addMedicine(user_id, {
+        name: data.name,
+        dose: data.dose || '',
+        time: data.time || '',
+        week_number: data.week_number || userContext.current_week || 12,
+        note: data.note || '',
       });
-
-      if (response.ok) {
+      if (!addMedicine_res.success) {
+        
+      }
+      if (addMedicine_res.success) {
         return {
           success: true,
           message: `💊 Medicine "${data.name}"${
@@ -2199,7 +2197,7 @@ class RAGService {
           screen: 'medicine',
         };
       } else {
-        throw new Error('Failed to log medicine');
+        throw new Error(addMedicine_res.error.message);
       }
     } catch (error) {
       return {
@@ -2214,19 +2212,16 @@ class RAGService {
    */
   async logDischarge(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/set_discharge_log`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          type: data.type,
-          color: data.color,
-          bleeding: data.bleeding || 'no',
-          week_number: data.week_number || userContext.current_week || 12,
-          note: data.note || '',
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const addDischargeLog_res = await addDischargeLog(user_id, {
+        type: data.type,
+        color: data.color,
+        bleeding: data.bleeding || 'no',
+        week_number: data.week_number || userContext.current_week || 12,
+        note: data.note || '',
       });
 
-      if (response.ok) {
+      if (addDischargeLog_res.success) {
         return {
           success: true,
           message: `🩸 Discharge log recorded for week ${
@@ -2238,7 +2233,7 @@ class RAGService {
           screen: 'discharge',
         };
       } else {
-        throw new Error('Failed to log discharge');
+        throw new Error(addDischargeLog_res.error.message);
       }
     } catch (error) {
       return {
@@ -2253,21 +2248,18 @@ class RAGService {
    */
   async createTask(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/add_task`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          title: data.title,
-          starting_week: data.week || userContext.current_week || 12,
-          ending_week: data.week || userContext.current_week || 12,
-          task_priority: data.priority || 'medium',
-          task_status: 'pending',
-          is_optional: false,
-          content: data.note || '',
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const addTask_res = await addTask(user_id, {
+        title: data.title,
+        starting_week: data.week || userContext.current_week || 12,
+        ending_week: data.week || userContext.current_week || 12,
+        task_priority: data.priority || 'medium',
+        task_status: 'pending',
+        is_optional: false,
+        content: data.note || '',
       });
 
-      if (response.ok) {
+      if (addTask_res.success) {
         return {
           success: true,
           message: `✅ Task "${data.title}" created for week ${
@@ -2277,7 +2269,7 @@ class RAGService {
           screen: 'tasks',
         };
       } else {
-        throw new Error('Failed to create task');
+        throw new Error(addTask_res.error.message);
       }
     } catch (error) {
       return {
@@ -2354,22 +2346,22 @@ class RAGService {
           endpoint = getAppointments;
           break;
         case 'weight':
-          endpoint = '/get_weight';
+          endpoint = getAllWeights;
           break;
         case 'symptoms':
-          endpoint = '/get_symptoms';
+          endpoint = getAllSymptoms;
           break;
         case 'medicine':
-          endpoint = '/get_all_medicine';
+          endpoint = getAllMedicine;
           break;
         case 'blood_pressure':
-          endpoint = '/get_blood_pressure';
+          endpoint = getBPLogs;
           break;
         case 'discharge':
-          endpoint = '/get_discharge_logs';
+          endpoint = getDischargeLogs;
           break;
         case 'tasks':
-          endpoint = '/get_tasks';
+          endpoint = getTasks;
           break;
         default:
           throw new Error('Unknown data type');
@@ -3349,9 +3341,11 @@ class RAGService {
    */
   async viewWeightLogs(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/weight`);
-      if (response.ok) {
-        const logs = await response.json();
+      const user_id = await AsyncStorage.getItem('user_id');
+      const getAllWeights_res = await getAllWeights(user_id);
+      
+      if (getAllWeights_res.success) {
+        const logs = getAllWeights_res.data;
 
         // Filter by week if specified
         let filteredLogs = logs;
@@ -3408,7 +3402,7 @@ class RAGService {
           data: filteredLogs,
         };
       } else {
-        throw new Error('Failed to fetch weight logs');
+        throw new Error(getAllWeights_res.error.message);
       }
     } catch (error) {
       return {
@@ -3423,9 +3417,11 @@ class RAGService {
    */
   async viewMedicineLogs(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/get_medicine`);
-      if (response.ok) {
-        const logs = await response.json();
+      const user_id = await AsyncStorage.getItem("user_id");
+      const getAllMedicine_res = await getAllMedicine(user_id);
+
+      if (getAllMedicine_res.success) {
+        const logs = getAllMedicine_res.data;
 
         // Filter by week if specified
         let filteredLogs = logs;
@@ -3479,7 +3475,7 @@ class RAGService {
           data: filteredLogs,
         };
       } else {
-        throw new Error('Failed to fetch medicine logs');
+        throw new Error(getAllMedicine_res.error.message);
       }
     } catch (error) {
       return {
@@ -3494,9 +3490,10 @@ class RAGService {
    */
   async viewSymptomsLogs(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/symptoms`);
-      if (response.ok) {
-        const logs = await response.json();
+      const user_id = await AsyncStorage.getItem('user_id');
+      const getAllSymptoms_res = await getAllSymptoms(user_id);
+      if (getAllSymptoms_res.success) {
+        const logs = getAllSymptoms_res.data;
 
         // Filter by week if specified
         let filteredLogs = logs;
@@ -3550,7 +3547,7 @@ class RAGService {
           data: filteredLogs,
         };
       } else {
-        throw new Error('Failed to fetch symptoms logs');
+        throw new Error(getAllSymptoms_res.error.message);
       }
     } catch (error) {
       return {
@@ -3650,9 +3647,11 @@ class RAGService {
    */
   async viewDischargeLogs(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/discharge`);
-      if (response.ok) {
-        const logs = await response.json();
+      const user_id = await AsyncStorage.getItem('user_id');
+      const getDischargeLogs_res = await getDischargeLogs(user_id);
+
+      if (getDischargeLogs_res.success) {
+        const logs = getDischargeLogs_res.data;
 
         // Filter by week if specified
         let filteredLogs = logs;
@@ -3706,7 +3705,7 @@ class RAGService {
           data: filteredLogs,
         };
       } else {
-        throw new Error('Failed to fetch discharge logs');
+        throw new Error(getDischargeLogs_res.error.message);
       }
     } catch (error) {
       return {
@@ -3755,26 +3754,22 @@ class RAGService {
    */
   async updateMedicine(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/update_medicine`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          medicine_name: data.medicine_name,
-          dose: data.dose,
-          frequency: data.frequency,
-          start_date: data.start_date,
-          end_date: data.end_date,
-          note: data.note,
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const updateMedicine_res = await updateMedicine(user_id, data.id, {
+        medicine_name: data.medicine_name,
+        dose: data.dose,
+        frequency: data.frequency,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        note: data.note,
       });
-
-      if (response.ok) {
+      if (updateMedicine_res.success) {
         return {
           success: true,
           message: `✅ **Medicine Updated Successfully**\n\n📋 **${data.medicine_name}** has been updated with new information.`,
         };
       } else {
-        throw new Error('Failed to update medicine');
+        throw new Error(updateMedicine_res.error.message);
       }
     } catch (error) {
       return {
@@ -3789,22 +3784,16 @@ class RAGService {
    */
   async deleteMedicine(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/delete_medicine`, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          medicine_name: data.medicine_name,
-          date: data.date,
-        }),
-      });
+      const user_id = await AsyncStorage.getItem('user_id');
+      const deleteMedicine_res = await deleteMedicine(user_id, data.id);
 
-      if (response.ok) {
+      if (deleteMedicine_res.success) {
         return {
           success: true,
           message: `✅ **Medicine Deleted Successfully**\n\n🗑️ **${data.medicine_name}** entry has been removed from your records.`,
         };
       } else {
-        throw new Error('Failed to delete medicine');
+        throw new Error(deleteMedicine_res.error.message);
       }
     } catch (error) {
       return {
@@ -3821,25 +3810,22 @@ class RAGService {
    */
   async updateBloodPressure(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/update_blood_pressure`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          systolic: data.systolic,
-          diastolic: data.diastolic,
-          date: data.date,
-          time: data.time,
-          note: data.note,
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const updateBPLog_res =await updateBPLog(user_id, data.id, {
+        systolic: data.systolic,
+        diastolic: data.diastolic,
+        date: data.date,
+        time: data.time,
+        note: data.note,
       });
 
-      if (response.ok) {
+      if (updateBPLog_res.success) {
         return {
           success: true,
           message: `✅ **Blood Pressure Updated Successfully**\n\n🩺 **${data.systolic}/${data.diastolic}** reading has been updated.`,
         };
       } else {
-        throw new Error('Failed to update blood pressure');
+        throw new Error(updateBPLog_res.error.message);
       }
     } catch (error) {
       return {
@@ -3854,22 +3840,16 @@ class RAGService {
    */
   async deleteBloodPressure(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/delete_blood_pressure`, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          date: data.date,
-          time: data.time,
-        }),
-      });
+      const user_id = await AsyncStorage.getItem('user_id');
+      const deleteBPLog_res = await deleteBPLog(user_id, data.id);
 
-      if (response.ok) {
+      if (deleteBPLog_res.success) {
         return {
           success: true,
           message: `✅ **Blood Pressure Deleted Successfully**\n\n🗑️ Blood pressure reading for ${data.date} has been removed.`,
         };
       } else {
-        throw new Error('Failed to delete blood pressure');
+        throw new Error(deleteBPLog_res.error.message);
       }
     } catch (error) {
       return {
@@ -3886,24 +3866,21 @@ class RAGService {
    */
   async updateDischarge(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/update_discharge`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          discharge_type: data.discharge_type,
-          date: data.date,
-          time: data.time,
-          note: data.note,
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const updateDischargeLog_res = await updateDischargeLog(user_id, data.id, {
+        discharge_type: data.discharge_type,
+        date: data.date,
+        time: data.time,
+        note: data.note,
       });
 
-      if (response.ok) {
+      if (updateDischargeLog_res.success) {
         return {
           success: true,
           message: `✅ **Discharge Updated Successfully**\n\n📋 **${data.discharge_type}** entry has been updated.`,
         };
       } else {
-        throw new Error('Failed to update discharge');
+        throw new Error(updateDischargeLog_res.error.message);
       }
     } catch (error) {
       return {
@@ -3918,22 +3895,16 @@ class RAGService {
    */
   async deleteDischarge(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/delete_discharge`, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          date: data.date,
-          time: data.time,
-        }),
-      });
+      const user_id = await AsyncStorage.getItem('user_id');
+      const deleteDischargeLog_res = await deleteDischargeLog(user_id, data.id);
 
-      if (response.ok) {
+      if (deleteDischargeLog_res.success) {
         return {
           success: true,
           message: `✅ **Discharge Deleted Successfully**\n\n🗑️ Discharge entry for ${data.date} has been removed.`,
         };
       } else {
-        throw new Error('Failed to delete discharge');
+        throw new Error(deleteDischargeLog_res.error.message);
       }
     } catch (error) {
       return {
@@ -3950,24 +3921,21 @@ class RAGService {
    */
   async updateSymptoms(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/update_symptoms`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          symptom: data.symptom,
-          date: data.date,
-          time: data.time,
-          note: data.note,
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const updateSymptom_res = await updateSymptom(user_id, data.id, {
+        symptom: data.symptom,
+        date: data.date,
+        time: data.time,
+        note: data.note,
       });
 
-      if (response.ok) {
+      if (updateSymptom_res.success) {
         return {
           success: true,
           message: `✅ **Symptoms Updated Successfully**\n\n🤒 **${data.symptom}** entry has been updated.`,
         };
       } else {
-        throw new Error('Failed to update symptoms');
+        throw new Error(updateSymptom_res.error.message);
       }
     } catch (error) {
       return {
@@ -3982,22 +3950,15 @@ class RAGService {
    */
   async deleteSymptoms(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/delete_symptoms`, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          date: data.date,
-          time: data.time,
-        }),
-      });
-
-      if (response.ok) {
+      const user_id = await AsyncStorage.getItem('user_id');
+      const deleteSymptom_res = await deleteSymptom(user_id, data.id);
+      if (deleteSymptom_res.success) {
         return {
           success: true,
           message: `✅ **Symptoms Deleted Successfully**\n\n🗑️ Symptoms entry for ${data.date} has been removed.`,
         };
       } else {
-        throw new Error('Failed to delete symptoms');
+        throw new Error(deleteSymptom_res.error.message);
       }
     } catch (error) {
       return {
@@ -4014,24 +3975,21 @@ class RAGService {
    */
   async updateWeight(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/update_weight`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          weight: data.weight,
-          date: data.date,
-          week: data.week,
-          note: data.note,
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const updateWeight_res = await updateWeight(user_id, data.id, {
+        weight: data.weight,
+        date: data.date,
+        week: data.week,
+        note: data.note,
       });
 
-      if (response.ok) {
+      if (updateWeight_res.success) {
         return {
           success: true,
           message: `✅ **Weight Updated Successfully**\n\n⚖️ **${data.weight}kg** entry has been updated.`,
         };
       } else {
-        throw new Error('Failed to update weight');
+        throw new Error(updateWeight_res.error.message);
       }
     } catch (error) {
       return {
@@ -4046,22 +4004,16 @@ class RAGService {
    */
   async deleteWeight(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/delete_weight`, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          date: data.date,
-          time: data.time,
-        }),
-      });
+      const user_id = await AsyncStorage.getItem('user_id');
+      const deleteWeight_res = await deleteWeight(user_id, data.id);
 
-      if (response.ok) {
+      if (deleteWeight_res.success) {
         return {
           success: true,
           message: `✅ **Weight Deleted Successfully**\n\n🗑️ Weight entry for ${data.date} has been removed.`,
         };
       } else {
-        throw new Error('Failed to delete weight');
+        throw new Error(deleteWeight_res.error.message);
       }
     } catch (error) {
       return {
