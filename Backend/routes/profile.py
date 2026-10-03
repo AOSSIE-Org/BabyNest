@@ -259,14 +259,24 @@ def delete_profile():
 def update_profile():
     db = open_db()
     user_id = request.args.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "user_id must be a valid integer"}), 400
+
     profile = db.execute('SELECT * FROM profile WHERE id = ?', (user_id,)).fetchone()
-    data = request.get_json()
-    print("Data", data)
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
     if profile is None:
         raise NotFoundError(resource="Profile")
-    lmp = data.get('LMP', profile['lmp'])
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    lmp = data.get('LMP', data.get('lmp', profile['lmp']))
     cycleLength = data.get('cycleLength', profile['cycleLength'])
     periodLength = data.get('periodLength', profile['periodLength'])
     age = data.get('age', profile['age'])
@@ -274,9 +284,17 @@ def update_profile():
     location = data.get('location', profile['user_location'])
     user_name = data.get('name', profile['user_name'])
 
-    if (not cycleLength or not isinstance(int(cycleLength, base=10), int)):
+    if cycleLength is None:
         return jsonify({"error": "cycleLength must be a valid integer"}), 400
-    if (not isinstance(lmp, str)):
+
+    try:
+        cycleLength = int(cycleLength)
+        if cycleLength <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({"error": "cycleLength must be a valid integer"}), 400
+
+    if not isinstance(lmp, str):
         return jsonify({"error": "lmp must be a valid date string"}), 400
 
     try:
@@ -285,8 +303,8 @@ def update_profile():
         return jsonify({"error": "Invalid lmp date format, expected YYYY-MM-DD"}), 400
 
     db.execute(
-        'UPDATE profile SET dueDate = ?, user_location = ?, lmp = ?, cycleLength = ?, periodLength = ?, age = ?, weight = ?, user_name = ?',
-        (due_date, location, lmp, cycleLength, periodLength, age, weight, user_name)
+        'UPDATE profile SET dueDate = ?, user_location = ?, lmp = ?, cycleLength = ?, periodLength = ?, age = ?, weight = ?, user_name = ? WHERE id = ?',
+        (due_date, location, lmp, cycleLength, periodLength, age, weight, user_name, user_id)
     )
     db.commit()
 

@@ -20,7 +20,7 @@ import argparse
 # To enable context-aware error handling
 parser = argparse.ArgumentParser(description="Run the Flask backend server.")
 parser.add_argument("--env", type=str, default="development", choices=["development", "production"])
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 
 
 app = Flask(__name__)
