@@ -23,6 +23,7 @@ import {Picker} from '@react-native-picker/picker';
 import {countries} from '../data/countries';
 import Toast from 'react-native-toast-message';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { getProfile, updateProfile } from '../storage/profile';
 
 
 const ProfileField = ({label, value}) => {
@@ -82,11 +83,11 @@ export default function ProfileScreen() {
   const fetchProfileData = async () => {
     try {
       const user_id = await AsyncStorage.getItem('user_id');
-      const response = await fetch(
-        `${BASE_URL}/get_profile?user_id=${user_id}`,
-      );
-      if (response.ok) {
-        const data = await response.json();
+
+      const getProfileData = await getProfile(user_id);
+
+      if (getProfileData.success) {
+        const data = await getProfileData.data;
         setProfileData({
           name: data?.user_name || 'Guest',
           due_date: data.dueDate || 'Not set',
@@ -195,20 +196,10 @@ export default function ProfileScreen() {
         return;
       }
       const user_id = await AsyncStorage.getItem('user_id');
-      const response = await fetch(
-        `${BASE_URL}/update_profile?user_id=${user_id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        },
-      );
-      const response_data = await response.json();
+      const updated_data_res = await updateProfile(user_id, data);
 
       // Response handling part
-      if (response.ok) {
+      if (updated_data_res.success) {
         // Update complete profile state
         setProfileData({
           ...editProfileData,
@@ -226,7 +217,7 @@ export default function ProfileScreen() {
       // Error handling part.
       Toast.show({
         type: 'error',
-        text1: response_data.error || 'Enable to update data at backend side.',
+        text1: updated_data_res.error.message || 'Enable to update data at backend side.',
         visibilityTime: 2000,
         position: 'bottom',
         topOffset: 50,

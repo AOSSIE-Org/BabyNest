@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {Provider as PaperProvider} from 'react-native-paper';
 import {ThemeProvider} from './src/theme/ThemeContext';
@@ -8,6 +8,7 @@ import Toast from 'react-native-toast-message';
 import NotificationService from './src/services/NotificationService';
 
 export default function App() {
+  const [currentRouteName, setCurrentRouteName] = useState('Home');
   useEffect(() => {
     const initNotifications = async () => {
       try {
@@ -23,8 +24,19 @@ export default function App() {
     <PaperProvider>
       <ThemeProvider>
         <AgentProvider>
-          <NavigationContainer>
-            <StackNavigation />
+          <NavigationContainer
+            onStateChange={state => {
+              const route = state?.routes?.[state.index];
+
+              if (route?.name === 'MainTabs') {
+                const nestedRoute = route.state?.routes?.[route.state.index];
+
+                setCurrentRouteName(nestedRoute?.name ?? 'Home');
+              } else {
+                setCurrentRouteName(route?.name ?? 'Home');
+              }
+            }}>
+            <StackNavigation currentRouteName={currentRouteName} />
           </NavigationContainer>
           <Toast />
         </AgentProvider>

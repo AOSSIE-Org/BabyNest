@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { BASE_URL } from '@env';
+import React, { createContext, useContext, useState } from 'react';
+import { clearAllAgentContexts, getAgentContext, taskRecommendations } from '../storage/agent';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * AgentContext - Manages AI agent context and user data
@@ -30,7 +31,7 @@ export const AgentProvider = ({ children }) => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const fetchContext = async (user_id = "default", force = false) => {
+  const fetchContext = async (force = false) => {
     // Don't fetch if already initialized and not forced
     if (isInitialized && !force) {
       return;
@@ -40,18 +41,14 @@ export const AgentProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await fetch(`${BASE_URL}/agent/context?user_id=${user_id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const user_id = await AsyncStorage.getItem("user_id");
+      const getAgentContext_res = await getAgentContext(user_id);
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch context: ${response.status}`);
+      if (!getAgentContext_res.success) {
+        throw new Error(`Failed to fetch context: ${getAgentContext_res.error.message}`);
       }
 
-      const data = await response.json();
+      const data = getAgentContext_res.data;
       setContext(data);
       setLastUpdated(new Date());
       setIsInitialized(true);
@@ -65,27 +62,21 @@ export const AgentProvider = ({ children }) => {
     }
   };
 
-  const refreshContext = async (user_id = "default") => {
+  const refreshContext = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/agent/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user_id }),
-      });
+      const response = clearAllAgentContexts();
 
-      if (!response.ok) {
-        throw new Error(`Failed to refresh context: ${response.status}`);
+      if (!response) {
+        throw new Error(`Failed to refresh context`);
       }
 
       // Fetch the updated context with force=true to bypass initialization check
-      await fetchContext(user_id, true);
+      await fetchContext(true);
     } catch (err) {
       console.warn('Context refresh failed, falling back to direct fetch:', err.message);
       // Fallback: just fetch the context directly without refresh
       try {
-        await fetchContext(user_id, true);
+        await fetchContext(true);
       } catch (fallbackErr) {
         setError(fallbackErr.message);
         console.error('Error refreshing context:', fallbackErr);
@@ -93,25 +84,17 @@ export const AgentProvider = ({ children }) => {
     }
   };
 
-  const getTaskRecommendations = async (week = null, user_id = "default") => {
+  const getTaskRecommendations = async (week = null) => {
     try {
-      let url = `${BASE_URL}/agent/tasks/recommendations?user_id=${user_id}`;
-      if (week) {
-        url += `&week=${week}`;
-      }
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`Failed to get recommendations: ${response.status}`);
+      const user_id = await AsyncStorage.getItem('user_id');
+      const response = await taskRecommendations(user_id, week);
+
+      if (!response.success) {
+        throw new Error(`Failed to get recommendations: ${response.error.message}`);
       }
 
-      const data = await response.json();
+      const data = await response.data;
       return data;
     } catch (err) {
       console.error('Error getting task recommendations:', err);
@@ -119,30 +102,9 @@ export const AgentProvider = ({ children }) => {
     }
   };
 
-  const getCacheStatus = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/agent/cache/status`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get cache status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      console.error('Error getting cache status:', err);
-      throw err;
-    }
-  };
-
   // Initialize context when user is ready (e.g., after login/profile setup)
-  const initializeContext = async (user_id = "default") => {
-    await fetchContext(user_id, true);
+  const initializeContext = async () => {
+    await fetchContext(true);
   };
 
   // Check if context is ready for use
@@ -163,7 +125,6 @@ export const AgentProvider = ({ children }) => {
     initializeContext,
     isContextReady,
     getTaskRecommendations,
-    getCacheStatus,
   };
 
   return (

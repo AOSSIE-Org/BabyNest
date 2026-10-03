@@ -20,9 +20,9 @@ import AllTasksScreen from '../Screens/AllTasksScreen';
 import ProfileScreen from  '../Screens/ProfileScreen';
 const Stack = createStackNavigator();
 
-export default function StackNavigation() {
+export default function StackNavigation({currentRouteName}) {
   return (
-    <CustomDrawer>
+    <CustomDrawer currentRouteName={currentRouteName}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {/* Optional onboarding screens */}
         <Stack.Screen name="Onboarding" component={OnBoardingScreen} />

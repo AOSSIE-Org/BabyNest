@@ -14,19 +14,12 @@ import { BASE_URL } from '@env';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import { deleteProfile } from '../storage/profile';
 
 const DRAWER_WIDTH = 260;
 
-export default function CustomDrawer({children}) {
+export default function CustomDrawer({children, currentRouteName}) {
   const navigation = useNavigation();
-  const currentRouteName = useNavigationState(state => {
-    if (!state) return 'Home';
-    const route = state.routes[state.index];
-    if (route.name === 'MainTabs') {
-        return route.state ? route.state.routes[route.state.index].name : 'Home';
-    }
-    return route.name;
-  });
 
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -97,16 +90,13 @@ export default function CustomDrawer({children}) {
 
     try {
       const user_id = await AsyncStorage.getItem('user_id');
-      const res = await fetch(`${BASE_URL}/delete_profile?user_id=${user_id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
+      const delete_user_res = await deleteProfile(user_id);
 
-      if (data?.error) {
-        Alert.alert('Logout Failed', data.error);
+      if (!delete_user_res.success) {
+        Alert.alert('Logout Failed', delete_user_res.error.message);
         Toast.show({
           type: 'error',
-          text1: data.error || 'Enable to Logout',
+          text1: delete_user_res.error.message || 'Enable to Logout',
           visibilityTime: 2000,
           position: 'bottom',
           topOffset: 50,
@@ -155,8 +145,15 @@ export default function CustomDrawer({children}) {
             </TouchableOpacity>
           </View>
 
-           <TouchableOpacity onPress={() => navigateTo('Home')} style={styles.link}>
-            <Text style={{ color: currentRouteName === 'Home' ? '#ff4081' : 'black' }}>Home</Text>
+          <TouchableOpacity
+            onPress={() => navigateTo('Home')}
+            style={styles.link}>
+            <Text
+              style={{
+                color: currentRouteName === 'Home' ? '#ff4081' : 'black',
+              }}>
+              Home
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigateTo('AllTasks')}
@@ -190,7 +187,22 @@ export default function CustomDrawer({children}) {
           </TouchableOpacity>
 
           <View style={styles.logoutContainer}>
-            <TouchableOpacity onPress={handleLogout}>
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert('Logout', 'All data will be wiped out.', [
+                  {
+                    text: 'No',
+                    style: 'cancel',
+                  },
+                  {
+                    text: 'Yes',
+                    style: 'destructive',
+                    onPress: () => {
+                      handleLogout();
+                    },
+                  },
+                ]);
+              }}>
               <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
           </View>

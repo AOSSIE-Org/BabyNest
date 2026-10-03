@@ -11,6 +11,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {TextInput, Button, Card, Portal, Dialog} from 'react-native-paper';
 import HeaderWithBack from '../Components/HeaderWithBack';
 import {BASE_URL} from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deleteBPLog, getBPLogs, updateBPLog } from '../storage/bloodPressure';
 
 export default function BloodPressureScreen() {
   const [week, setWeek] = useState('');
@@ -27,9 +29,15 @@ export default function BloodPressureScreen() {
 
   const fetchBPLogs = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/blood_pressure`);
-      const data = await res.json();
-      setHistory(data.reverse());
+      const user_id = await AsyncStorage.getItem('user_id');
+
+      const getBPLogs_response = await getBPLogs(user_id);
+      if (getBPLogs_response.success) {
+        const data = getBPLogs_response.data;
+        setHistory(data);
+      } else {
+        throw new Error(getBPLogs_response.error.message);
+      }
     } catch (err) {
       console.error('Failed to fetch BP logs:', err);
     }
@@ -85,17 +93,20 @@ export default function BloodPressureScreen() {
 
   const handleUpdate = async () => {
     try {
-      await fetch(`${BASE_URL}/blood_pressure/${editData.id}`, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          week_number: editData.week_number,
-          systolic: editData.systolic,
-          diastolic: editData.diastolic,
-          time: editData.time,
-          note: editData.note,
-        }),
+      const user_id = await AsyncStorage.getItem("user_id");
+
+      const response = await updateBPLog(user_id, {
+        week_number: editData.week_number,
+        systolic: editData.systolic,
+        diastolic: editData.diastolic,
+        time: editData.time,
+        note: editData.note,
       });
+
+      if (!response.success) {
+        throw new Error(response.error.message);
+      }
+
       setEditVisible(false);
       setEditData(null);
       fetchBPLogs();
@@ -119,9 +130,12 @@ export default function BloodPressureScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await fetch(`${BASE_URL}/blood_pressure/${id}`, {
-                method: 'DELETE',
-              });
+              const user_id = await AsyncStorage.getItem("user_id");
+              const response = await deleteBPLog(user_id, id);
+              if (!response.success) {
+                throw new Error(response.error.message);
+              }
+
               fetchBPLogs();
             } catch (err) {
               console.error('Failed to delete BP log:', err);

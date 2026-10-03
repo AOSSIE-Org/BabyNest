@@ -16,9 +16,9 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Toast from 'react-native-toast-message';
-import {BASE_URL} from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from '../services/NotificationService';
+import { addAppointment, deleteAppointment, getAppointments, updateAppointment } from '../storage/appointments';
 
 const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const colors = ['#FDE68A', '#BFDBFE', '#FECACA', '#D1FAE5'];
@@ -69,8 +69,23 @@ const ScheduleScreen = ({route}) => {
     end: 9.0,
   });
   const scrollViewRef = useRef(null);
+
+  // Fetch user id from local storage
+  const getUserId = async () => {
+    const id = await AsyncStorage.getItem('user_id');
+    setUserId(id);
+    return id;
+  };
+
+  
+  // Fetch appointments on first load
+  useEffect(() => {
+    getUserId();
+    fetchAppointments();
+  }, []);
   
   useEffect(() => {
+    getUserId();
     const getAppointmentY = time => {
       return ((to_min(time) - 60) / 60) * timeSlotHeight;
     };
@@ -99,14 +114,6 @@ const ScheduleScreen = ({route}) => {
     };
   }, [route.params?.appointment_date, route.params?.appointment_time]);
 
-  useEffect(() => {
-    const getUserId = async () => {
-      const id = await AsyncStorage.getItem('user_id');
-      setUserId(id);
-    };
-
-    getUserId();
-  }, []);
 
   const [appointments, setAppointments] = useState([]);
   const [newAppointment, setNewAppointment] = useState({
@@ -138,23 +145,22 @@ const ScheduleScreen = ({route}) => {
     }).start();
   }, [fadeAnim]);
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
 
   const fetchAppointments = async () => {
     try {
+      const user_id = await getUserId();
       setRefreshing(true);
-      const response = await fetch(
-        `${BASE_URL}/get_appointments?user_id=${user_id}`,
-      );
-      const data = await response.json();
+      const appointments_response = await getAppointments(user_id);
+      const data = appointments_response.data;
+      if (!appointments_response.success) {
+        throw new Error(appointments_response.error.message);
+      }
 
       if (JSON.stringify(data) !== JSON.stringify(appointments)) {
         setAppointments(data);
       }
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error('Error fetching appointments:', error.message);
     } finally {
       setRefreshing(false);
     }
@@ -196,22 +202,21 @@ const ScheduleScreen = ({route}) => {
     setDateSelectorVisible(false);
   };
 
-  const addAppointment = async () => {
+  const addAppointmentHandler = async () => {
     try {
       setNewAppointment(prevState => ({
         ...prevState,
         user_id: user_id,
       }));
-      const response = await fetch(`${BASE_URL}/add_appointment`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(newAppointment),
-      });
-
-      const data = await response.json();
+      const add_appointment_res = await addAppointment(newAppointment);
+      
       closeModals();
       setAddAppointmentModalVisible(false);
-      if (response.ok) {
+      if (!add_appointment_res.success) {
+        throw new Error(add_appointment_res.error.message);
+      }
+
+      if (add_appointment_res.success) {
         console.log('Success', 'Appointment created successfully!');
         setNewAppointment({
           title: '',
@@ -231,55 +236,24 @@ const ScheduleScreen = ({route}) => {
           topOffset: 50,
         });
         
-        // Notifications
-        NotificationService.showLocalNotification(
-          "Appointment Created",
-          `"${newAppointment.title}" scheduled for ${newAppointment.appointment_date} at ${newAppointment.appointment_time}.`
-        );
-
-        if (data && data.id) {
-        NotificationService.scheduleAppointmentReminder(
-          newAppointment.title,
-          newAppointment.content,
-          newAppointment.appointment_date,
-          newAppointment.appointment_time,
-          data.id
-        );
-      } else {
-        console.warn('[useCalendar] No ID returned from backend, skipping reminder schedule.');
-      }
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: data.error || 'Something went wrong!',
-          visibilityTime: 2000,
-          position: 'bottom',
-          topOffset: 50,
-        });
-        console.log('Error', data.error || 'Something went wrong!');
-      }
+      } 
     } catch (error) {
       Toast.show({
         type: 'error',
-        text1: 'Error adding appointment!',
+        text1: error.message || 'Error adding appointment!',
         visibilityTime: 2000,
         position: 'bottom',
         topOffset: 50,
       });
-      console.error('Error adding appointment:', error);
+      console.error('Error adding appointment:', error.message);
     }
   };
 
   const handleDeleteAppointment = async id => {
     try {
-      const response = await fetch(
-        `${BASE_URL}/delete_appointment/${id}/${user_id}`,
-        {
-          method: 'DELETE',
-        },
-      );
-      const data = await response.json();
-      if (response.ok) {
+
+      const delete_appointment_res = await deleteAppointment(id, user_id);
+      if (delete_appointment_res.success) {
         Toast.show({
           type: 'success',
           text1: 'Appointment deleted successfully!',
@@ -288,20 +262,15 @@ const ScheduleScreen = ({route}) => {
           topOffset: 50,
         });
         fetchAppointments();
-        NotificationService.showLocalNotification(
-          "Appointment Deleted", 
-          `"${selectedAppointment?.title || 'Appointment'}" has been cancelled.`
-        );
-        NotificationService.cancelNotification(id);
       } else {
         Toast.show({
           type: 'error',
-          text1: data.error || 'Something went wrong!',
+          text1: delete_appointment_res.error.message || 'Something went wrong!',
           visibilityTime: 2000,
           position: 'bottom',
           topOffset: 50,
         });
-        console.log('Error', data.error || 'Something went wrong!');
+        console.log('Error', delete_appointment_res.error.message || 'Something went wrong!');
       }
     } catch (error) {
       Toast.show({
@@ -324,16 +293,9 @@ const ScheduleScreen = ({route}) => {
 
   const handleSaveEditAppointment = async () => {
     try {
-      const response = await fetch(
-        `${BASE_URL}/update_appointment/${editAppointment.id}`,
-        {
-          method: 'PATCH',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(editAppointment),
-        },
-      );
-      const data = await response.json();
-      if (response.ok) {
+      const update_appointment_res = await updateAppointment(editAppointment.id, editAppointment);
+      const data = update_appointment_res.data;
+      if (update_appointment_res.success) {
         Toast.show({
           type: 'success',
           text1: 'Appointment updated successfully!',
@@ -341,25 +303,10 @@ const ScheduleScreen = ({route}) => {
           position: 'bottom',
           topOffset: 50,
         });
-        const fetchSuccess = fetchAppointments();
-        if (fetchSuccess) {
-          NotificationService.showLocalNotification(
-            "Appointment Updated", 
-            `"${editAppointment.title}" rescheduled to ${editAppointment.appointment_date} at ${editAppointment.appointment_time}.`
-          );
-          NotificationService.cancelNotification(editAppointment.id);
-          NotificationService.scheduleAppointmentReminder(
-              editAppointment.title, 
-              editAppointment.content, 
-              editAppointment.appointment_date, 
-              editAppointment.appointment_time, 
-              editAppointment.id
-          );
-      }
       } else {
         Toast.show({
           type: 'error',
-          text1: data.error || 'Something went wrong!',
+          text1: update_appointment_res.error.message || 'Something went wrong!',
           visibilityTime: 2000,
           position: 'bottom',
           topOffset: 50,
@@ -658,7 +605,7 @@ const ScheduleScreen = ({route}) => {
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[styles.button, styles.saveButton]}
-                onPress={addAppointment}
+                onPress={addAppointmentHandler}
                 activeOpacity={0.8}>
                 <Text style={styles.saveButtonText}>Save Appointment</Text>
               </TouchableOpacity>

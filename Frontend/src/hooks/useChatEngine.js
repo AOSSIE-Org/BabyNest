@@ -124,41 +124,43 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       if (result && typeof result === 'object') {
         response = result.message;
 
-        if (result.requiresFollowUp && result.intent && result.partialData && result.missingFields) {
+        if (
+          result.requiresFollowUp &&
+          result.intent &&
+          result.partialData &&
+          result.missingFields
+        ) {
           conversationContext.setPendingFollowUp(
             result.intent,
             result.partialData,
-            result.missingFields
+            result.missingFields,
           );
         } else {
           conversationContext.clearPendingFollowUp();
         }
       } else {
         // Fallback to backend agent
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
-        try {
-          const agentResponse = await fetch(`${BASE_URL}/agent`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: text, user_id: "default" }),
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-
-          if (agentResponse.ok) {
-            const agentData = await agentResponse.json();
-            response = agentData.response;
-          } else {
-            throw new Error('Backend agent failed');
+          if (__DEV__) {
+            console.warn(
+              '⚠️ Invalid result from RAG/local processing. Falling back to local model.',
+            );
           }
-        } catch (backendError) {
-          clearTimeout(timeoutId);
-          console.warn('Backend fallback failed or timed out, using local model:', backendError.message);
-          response = await generateResponse(updatedConversationForModel);
-        }
+
+          try {
+            const startTime = Date.now();
+
+            response = await generateResponse(updatedConversationForModel);
+
+            if (__DEV__) {
+              console.log(
+                `⏱️ Local Model Fallback Latency: ${Date.now() - startTime}ms`,
+              );
+            }
+          } catch (error) {
+            console.error('❌ Local model fallback failed:', error);
+
+            response = "I'm sorry, I couldn't process your request right now.";
+          }
       }
 
       // 🛡️ Cancellation Guard: If the conversation was cleared while thinking, discard the response.

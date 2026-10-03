@@ -6,6 +6,10 @@
 
 import {BASE_URL} from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deleteProfile, updateProfile } from '../storage/profile';
+import { addAppointment, deleteAppointment, getAppointments, updateAppointment } from '../storage/appointments';
+import { addBPLog, getBPLogs } from '../storage/bloodPressure';
+import { generateResponse } from '../model/model';
 
 class RAGService {
   constructor() {
@@ -2019,19 +2023,22 @@ class RAGService {
       console.log('Original date:', data.date, '→ Proper date:', properDate);
       console.log('Original time:', data.time, '→ Proper time:', properTime);
 
-      const response = await fetch(`${BASE_URL}/add_appointment`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          title: data.title || 'Appointment',
-          content: `Appointment scheduled via chat`,
-          appointment_date: properDate,
-          appointment_time: properTime,
-          appointment_location: data.location || 'TBD',
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const add_appointment_res = await addAppointment({
+        title: data.title || 'Appointment',
+        content: `Appointment scheduled via chat`,
+        appointment_date: properDate,
+        appointment_time: properTime,
+        appointment_location: data.location || 'TBD',
+        user_id,
       });
 
-      if (response.ok) {
+      if (!add_appointment_res.success) {
+        throw new Error(add_appointment_res.error.message);
+      }
+
+      const data = add_appointment_res.data;
+      if (add_appointment_res.success) {
         return {
           success: true,
           message: `📅 Appointment "${
@@ -2128,19 +2135,16 @@ class RAGService {
    */
   async logBloodPressure(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/blood_pressure`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          systolic: data.systolic,
-          diastolic: data.diastolic,
-          week_number: data.week_number || userContext.current_week || 12,
-          time: data.time || new Date().toLocaleTimeString(),
-          note: data.note || '',
-        }),
+      const user_id = await AsyncStorage.getItem('user_id');
+      const addBPLog_response = await addBPLog(user_id, {
+        systolic: data.systolic,
+        diastolic: data.diastolic,
+        week_number: data.week_number || userContext.current_week || 12,
+        time: data.time || new Date().toLocaleTimeString(),
+        note: data.note || '',
       });
 
-      if (response.ok) {
+      if (addBPLog_response.success) {
         return {
           success: true,
           message: `🩸 Blood pressure ${data.systolic}/${
@@ -2152,7 +2156,9 @@ class RAGService {
           screen: 'bloodpressure',
         };
       } else {
-        throw new Error('Failed to log blood pressure');
+        throw new Error(
+          addBPLog_response.error.message || 'Failed to log blood pressure',
+        );
       }
     } catch (error) {
       return {
@@ -2315,15 +2321,10 @@ class RAGService {
    */
   async updateProfile(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/update_profile`, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          [data.field]: data.value,
-        }),
-      });
+      const user_id = await AsyncStorage.getItem('user_id');
+      const updated_data_res = await updateProfile(user_id, data.value);
 
-      if (response.ok) {
+      if (updated_data_res.success) {
         return {
           success: true,
           message: `👤 Profile updated successfully! ${data.field} set to ${data.value}`,
@@ -2346,11 +2347,11 @@ class RAGService {
    */
   async getData(data, userContext) {
     try {
-      const user_id = await AsyncStorage.getItem("user_id");
+      const user_id = await AsyncStorage.getItem('user_id');
       let endpoint = '';
       switch (data.type) {
         case 'appointments':
-          endpoint = `/get_appointments?user_id=${user_id}`;
+          endpoint = getAppointments;
           break;
         case 'weight':
           endpoint = '/get_weight';
@@ -2374,9 +2375,9 @@ class RAGService {
           throw new Error('Unknown data type');
       }
 
-      const response = await fetch(`${BASE_URL}${endpoint}`);
-      if (response.ok) {
-        const result = await response.json();
+      const response = await endpoint(user_id);
+      if (response.success) {
+        const result = response.data;
 
         // Format the data for display
         let formattedMessage = '';
@@ -2454,7 +2455,7 @@ class RAGService {
           data: result,
         };
       } else {
-        throw new Error('Failed to fetch data');
+        throw new Error(appointments_response.error.message);
       }
     } catch (error) {
       return {
@@ -2469,13 +2470,15 @@ class RAGService {
    */
   async updateAppointment(data, userContext) {
     try {
+      const user_id = await AsyncStorage.getItem('user_id');
+
       // First, get all appointments to find the one to update
-      const appointmentsResponse = await fetch(`${BASE_URL}/get_appointments`);
-      if (!appointmentsResponse.ok) {
-        throw new Error('Failed to fetch appointments');
+      const appointments_response = await getAppointments(user_id);
+      if (!appointments_response.success) {
+        throw new Error(appointments_response.error.message);
       }
 
-      const appointments = await appointmentsResponse.json();
+      const appointments = appointments_response.data;
       const matchingAppointments = this.findMatchingAppointments(
         appointments,
         data.appointment_identifier,
@@ -2524,22 +2527,18 @@ class RAGService {
         content: data.note || appointmentToUpdate.content,
       };
 
-      const response = await fetch(
-        `${BASE_URL}/update_appointment/${appointmentToUpdate.id}`,
-        {
-          method: 'PATCH',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(updateData),
-        },
+      const update_appointment_res = await updateAppointment(
+        appointmentToUpdate.id,
+        updateData,
       );
 
-      if (response.ok) {
+      if (update_appointment_res.success) {
         return {
           success: true,
           message: `✅ Appointment "${updateData.title}" updated successfully!\n\n📅 Date: ${updateData.appointment_date}\n⏰ Time: ${updateData.appointment_time}\n📍 Location: ${updateData.appointment_location}`,
         };
       } else {
-        throw new Error('Failed to update appointment');
+        throw new Error(update_appointment_res.error.message);
       }
     } catch (error) {
       return {
@@ -2554,13 +2553,15 @@ class RAGService {
    */
   async deleteAppointment(data, userContext) {
     try {
+      const user_id = await AsyncStorage.getItem('user_id');
+
       // First, get all appointments to find the one to delete
-      const appointmentsResponse = await fetch(`${BASE_URL}/get_appointments`);
-      if (!appointmentsResponse.ok) {
-        throw new Error('Failed to fetch appointments');
+      const appointments_response = await getAppointments(user_id);
+      if (!appointments_response.success) {
+        throw new Error(appointments_response.error.message);
       }
 
-      const appointments = await appointmentsResponse.json();
+      const appointments = appointments_response.data;
       const matchingAppointments = this.findMatchingAppointments(
         appointments,
         data.appointment_identifier,
@@ -2605,21 +2606,18 @@ class RAGService {
       // Single match - proceed with deletion
       const appointmentToDelete = matchingAppointments[0];
 
-      const response = await fetch(
-        `${BASE_URL}/delete_appointment/${appointmentToDelete.id}`,
-        {
-          method: 'DELETE',
-        },
+      const delete_appointment_res = await deleteAppointment(
+        appointmentToDelete.id,
+        user_id,
       );
-
-      if (response.ok) {
+      if (delete_appointment_res.success) {
         return {
           success: true,
           message: `✅ Appointment "${appointmentToDelete.title}" deleted successfully!`,
         };
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete appointment');
+        const errorMessage = delete_appointment_res.error.message;
+        throw new Error(errorMessage || 'Failed to delete appointment');
       }
     } catch (error) {
       console.error('Delete appointment error:', error);
@@ -2774,19 +2772,21 @@ class RAGService {
    */
   async logout(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/delete_profile`, {
-        method: 'DELETE',
-      });
+      const user_id = await AsyncStorage.getItem('user_id');
+      const delete_user_res = await deleteProfile(user_id);
 
-      return {
-        success: true,
-        message: `👋 Logging out... Goodbye!`,
-        action: 'logout',
-      };
+      if (delete_user_res.success) {
+        return {
+          success: true,
+          message: `👋 Logging out... Goodbye!`,
+          action: 'logout',
+        };
+      }
+      throw new Error(delete_user_res.error.message);
     } catch (error) {
       return {
-        success: true,
-        message: `👋 Logging out... Goodbye!`,
+        success: false,
+        message: error,
         action: 'logout',
       };
     }
@@ -2797,32 +2797,68 @@ class RAGService {
    */
   async handleGeneralChat(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/agent`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          query: data.query || '',
-          user_id: 'default',
-        }),
-      });
+      const query = data?.query?.trim() || '';
 
-      if (response.ok) {
-        const result = await response.json();
+      if (!query) {
         return {
           success: true,
           message:
-            result.response || "I'm here to help with your pregnancy journey!",
+            "I'm here to help with your pregnancy journey! What would you like to know?",
           action: 'generalChat',
+          intent: 'general_chat',
         };
-      } else {
-        throw new Error('Backend agent request failed');
       }
-    } catch (error) {
+
+      if (__DEV__) {
+        console.log('🤖 Handling general chat with local AI...');
+        console.log('Query:', query);
+      }
+
+      // Build a simple context-aware prompt for the local model
+      const prompt = `
+  You are BabyNest, a helpful pregnancy assistant.
+
+  The user's request did not match any specific app intent, so respond naturally.
+
+  User context:
+  ${JSON.stringify(userContext || {}, null, 2)}
+
+  User message:
+  ${query}
+
+  Instructions:
+  - Answer the user's question naturally and clearly.
+  - Use the provided user context when it is relevant.
+  - Do not pretend that an app action was performed.
+  - Do not invent medical information.
+  - If the question is unrelated to pregnancy, you can still answer normally.
+  - Keep the response concise and conversational.
+  `;
+
+      const response = await generateResponse([
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ]);
+
       return {
         success: true,
         message:
+          response ||
           "I'm here to help with your pregnancy journey! How can I assist you today?",
         action: 'generalChat',
+        intent: 'general_chat',
+      };
+    } catch (error) {
+      console.error('❌ General chat failed:', error);
+
+      return {
+        success: true,
+        message:
+          "I'm here to help with your pregnancy journey! Could you try asking your question another way?",
+        action: 'generalChat',
+        intent: 'general_chat',
       };
     }
   }
@@ -3529,9 +3565,10 @@ class RAGService {
    */
   async viewBloodPressureLogs(data, userContext) {
     try {
-      const response = await fetch(`${BASE_URL}/blood_pressure`);
-      if (response.ok) {
-        const logs = await response.json();
+      const user_id = await AsyncStorage.getItem('user_id');
+      const getBPLogs_response = await getBPLogs(user_id);
+      if (getBPLogs_response.success) {
+        const logs = getBPLogs_response.data;
 
         // Filter by week if specified
         let filteredLogs = logs;
@@ -3595,7 +3632,10 @@ class RAGService {
           data: filteredLogs,
         };
       } else {
-        throw new Error('Failed to fetch blood pressure logs');
+        throw new Error(
+          getBPLogs_response.error.message ||
+            'Failed to fetch blood pressure logs',
+        );
       }
     } catch (error) {
       return {

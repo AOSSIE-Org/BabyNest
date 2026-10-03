@@ -3,6 +3,9 @@
  * Manages conversation state and follow-up context for RAG system
  */
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { deleteAppointment, updateAppointment } from "../storage/appointments";
+
 class ConversationContext {
   constructor() {
     this.pendingFollowUp = null;
@@ -311,21 +314,18 @@ class ConversationContext {
     const results = [];
     let successCount = 0;
     
-    // Import BASE_URL from environment
-    const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5000';
-    
+    const user_id = await AsyncStorage.getItem("user_id");
+
     for (const appointment of selectedAppointments) {
       try {
-        const response = await fetch(`${BASE_URL}/delete_appointment/${appointment.id}`, {
-          method: 'DELETE'
-        });
-        
-        if (response.ok) {
+
+        const delete_appointment_res = await deleteAppointment(appointment.id, user_id);
+        if (delete_appointment_res.success) {
           successCount++;
           results.push(`✅ "${appointment.title}" deleted successfully`);
         } else {
-          const errorData = await response.json();
-          results.push(`❌ Failed to delete "${appointment.title}": ${errorData.error || 'Unknown error'}`);
+          const errorMessage = delete_appointment_res.error.message;
+          results.push(`❌ Failed to delete "${appointment.title}": ${errorMessage || 'Unknown error'}`);
         }
       } catch (error) {
         results.push(`❌ Error deleting "${appointment.title}": ${error.message}`);
@@ -353,23 +353,15 @@ class ConversationContext {
         content: updateData.note || selectedAppointment.content
       };
       
-      // Import BASE_URL from environment
-      const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5000';
+      const update_appointment_res = await updateAppointment(selectedAppointment.id, updatePayload);
       
-      const response = await fetch(`${BASE_URL}/update_appointment/${selectedAppointment.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatePayload)
-      });
-      
-      if (response.ok) {
+      if (update_appointment_res.success) {
         return {
           success: true,
           message: `✅ Appointment "${updatePayload.title}" updated successfully!\n\n📅 Date: ${updatePayload.appointment_date}\n⏰ Time: ${updatePayload.appointment_time}\n📍 Location: ${updatePayload.appointment_location}`
         };
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update appointment');
+        throw new Error(update_appointment_res.error.message || 'Failed to update appointment');
       }
     } catch (error) {
       return {
