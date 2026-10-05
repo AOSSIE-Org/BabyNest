@@ -258,7 +258,7 @@ export async function updateBPLog(userId, id, data) {
       return failure('No data provided', 'NO_DATA');
     }
 
-    if (data.weekNumber > 40) {
+    if (data.week_number > 40) {
       return failure('Please enter a valid week', 'INVALID_FEILDS');
     }
     const db = await openDB();

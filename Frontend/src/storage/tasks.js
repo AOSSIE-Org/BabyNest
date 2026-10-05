@@ -312,18 +312,20 @@ export async function moveTaskToAppointment(userId, taskId, data) {
 
     const appointmentContent = data.appointment_content ?? task.content;
 
-    // Mark task as appointment
-    await db.execute(
-      `UPDATE tasks
+    await db.execute('BEGIN TRANSACTION');
+    let appointmentResult;
+    try {
+      await db.execute(
+        `UPDATE tasks
        SET isAppointmentMade = 1
        WHERE id = ?
          AND user_id = ?`,
-      [parsedTaskId, parsedUserId],
-    );
+        [parsedTaskId, parsedUserId],
+      );
 
-    // Create appointment for the same user
-    const appointmentResult = await db.execute(
-      `INSERT INTO appointments (
+      // Create appointment for the same user
+      appointmentResult = await db.execute(
+        `INSERT INTO appointments (
         title,
         content,
         appointment_date,
@@ -333,16 +335,22 @@ export async function moveTaskToAppointment(userId, taskId, data) {
         user_id
       )
       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        appointmentTitle,
-        appointmentContent,
-        data.appointment_date,
-        data.appointment_time,
-        data.appointment_location,
-        'pending',
-        parsedUserId,
-      ],
-    );
+        [
+          appointmentTitle,
+          appointmentContent,
+          data.appointment_date,
+          data.appointment_time,
+          data.appointment_location,
+          'pending',
+          parsedUserId,
+        ],
+      );
+      
+      await db.execute('COMMIT');
+    } catch (error) {
+      await db.execute('ROLLBACK');
+      throw error;
+    }
 
     clearAgentContext(parsedUserId);
 

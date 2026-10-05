@@ -143,7 +143,7 @@ export function generateInitialSymptoms(userId, currentWeek) {
     user_id: userId,
     week_number: currentWeek,
     symptom: symptom.symptom,
-    note: `${symptom.note} ${MOCK_SYMPTOM_NOTE}`,
+    note: `${symptom.note}`,
   }));
 }
 
