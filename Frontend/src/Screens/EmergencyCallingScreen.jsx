@@ -139,6 +139,10 @@ async function sendSMS(phoneNumber) {
     try {
       const supported = await Linking.canOpenURL(fallbackUrl);
       if (supported) {
+        Alert.alert(
+          'Notice',
+          'SMS message text could not be prefilled. Please enter the emergency message before sending.',
+        );
         await Linking.openURL(fallbackUrl);
         return true;
       }
@@ -191,6 +195,7 @@ export default function EmergencyCallingScreen({navigation}) {
   const timerRef = useRef(null);
   const isCancelledRef = useRef(false);
   const wasCountdownActiveRef = useRef(false);
+  const wasCountdownActiveBeforeDeleteRef = useRef(false);
 
   /**
    * Cancel any active countdown permanently and mark the auto-call as cancelled.
@@ -198,6 +203,7 @@ export default function EmergencyCallingScreen({navigation}) {
   const cancelCountdown = useCallback(() => {
     isCancelledRef.current = true;
     wasCountdownActiveRef.current = false;
+    wasCountdownActiveBeforeDeleteRef.current = false;
     setIsCountdownActive(false);
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -283,6 +289,7 @@ export default function EmergencyCallingScreen({navigation}) {
       mounted = false;
       isCancelledRef.current = true;
       wasCountdownActiveRef.current = false;
+      wasCountdownActiveBeforeDeleteRef.current = false;
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
@@ -395,32 +402,80 @@ export default function EmergencyCallingScreen({navigation}) {
       if (contactsLoading) {
         return;
       }
-      cancelCountdown();
+
+      const wasActive = isCountdownActive && !isCancelledRef.current;
+      wasCountdownActiveBeforeDeleteRef.current = wasActive;
+      if (wasActive) {
+        setIsCountdownActive(false);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      }
+
+      let resolved = false;
+      const handleCancelOrDismiss = () => {
+        if (resolved) {
+          return;
+        }
+        resolved = true;
+        if (
+          wasCountdownActiveBeforeDeleteRef.current &&
+          !isCancelledRef.current
+        ) {
+          wasCountdownActiveBeforeDeleteRef.current = false;
+          setIsCountdownActive(true);
+        } else {
+          wasCountdownActiveBeforeDeleteRef.current = false;
+        }
+      };
+
       Alert.alert(
         'Remove Contact',
         `Remove ${contacts[index].name} from emergency contacts?`,
         [
-          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: handleCancelOrDismiss,
+          },
           {
             text: 'Remove',
             style: 'destructive',
             onPress: async () => {
+              resolved = true;
               const updated = contacts.filter((_, i) => i !== index);
               const saved = await saveContacts(updated);
               if (saved) {
+                cancelCountdown();
                 setContacts(updated);
                 Toast.show({
                   type: 'info',
                   text1: 'Contact Removed',
                   text2: 'Emergency contact was removed.',
                 });
+              } else {
+                Toast.show({
+                  type: 'error',
+                  text1: 'Delete Failed',
+                  text2: 'Could not remove contact. Please try again.',
+                });
+                if (
+                  wasCountdownActiveBeforeDeleteRef.current &&
+                  !isCancelledRef.current
+                ) {
+                  wasCountdownActiveBeforeDeleteRef.current = false;
+                  setIsCountdownActive(true);
+                } else {
+                  wasCountdownActiveBeforeDeleteRef.current = false;
+                }
               }
             },
           },
         ],
       );
     },
-    [contactsLoading, cancelCountdown, contacts],
+    [contactsLoading, isCountdownActive, cancelCountdown, contacts],
   );
 
   /**

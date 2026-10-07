@@ -351,6 +351,7 @@ describe('EmergencyCallingScreen', () => {
     NativeModules.SMSComposer = {
       sendSMS: jest.fn(() => Promise.reject(new Error('Unavailable'))),
     };
+    const alertSpy = jest.spyOn(Alert, 'alert');
 
     const contacts = [{name: 'iOS Fallback', phone: '9876543210'}];
     AsyncStorage.getItem.mockResolvedValue(JSON.stringify(contacts));
@@ -369,7 +370,12 @@ describe('EmergencyCallingScreen', () => {
 
     expect(Linking.canOpenURL).toHaveBeenCalledWith('sms:9876543210');
     expect(Linking.openURL).toHaveBeenCalledWith('sms:9876543210');
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Notice',
+      'SMS message text could not be prefilled. Please enter the emergency message before sending.',
+    );
 
+    alertSpy.mockRestore();
     delete NativeModules.SMSComposer;
     Platform.OS = originalOS;
   });
@@ -577,6 +583,296 @@ describe('EmergencyCallingScreen', () => {
     });
 
     expect(call).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+  });
+
+  it('displays warning when iOS native SMSComposer is undefined and recipient fallback opens', async () => {
+    const originalOS = Platform.OS;
+    Platform.OS = 'ios';
+    delete NativeModules.SMSComposer;
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    const contacts = [{name: 'iOS No SMSComposer', phone: '+1 (555) 000-1111'}];
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(contacts));
+
+    let renderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <EmergencyCallingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    const smsBtn = renderer.root.findByProps({testID: 'sms-button-0'});
+    await act(async () => {
+      smsBtn.props.onPress();
+    });
+
+    expect(Linking.canOpenURL).toHaveBeenCalledWith('sms:+15550001111');
+    expect(Linking.openURL).toHaveBeenCalledWith('sms:+15550001111');
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Notice',
+      'SMS message text could not be prefilled. Please enter the emergency message before sending.',
+    );
+
+    alertSpy.mockRestore();
+    Platform.OS = originalOS;
+  });
+
+  it('resumes active countdown when delete confirmation is cancelled', async () => {
+    const contacts = [
+      {name: 'Contact 1', phone: '1111111111'},
+      {name: 'Contact 2', phone: '2222222222'},
+    ];
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(contacts));
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    let renderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <EmergencyCallingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    // Advance 2s (countdown should be 3s)
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(extractText(renderer.toJSON())).toContain('3');
+
+    // Tap delete button
+    const deleteBtn = renderer.root.findByProps({testID: 'delete-button-0'});
+    act(() => {
+      deleteBtn.props.onPress();
+    });
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Remove Contact',
+      'Remove Contact 1 from emergency contacts?',
+      expect.any(Array),
+    );
+
+    // Advance 5s while confirmation is open; countdown is paused, no call
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(call).not.toHaveBeenCalled();
+
+    // User presses Cancel
+    const buttons = alertSpy.mock.calls[0][2];
+    const cancelBtn = buttons.find(b => b.text === 'Cancel');
+    act(() => {
+      cancelBtn.onPress();
+    });
+
+    // Countdown resumes with remaining time (3s)
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(call).not.toHaveBeenCalled();
+
+    // Advance 1s to reach 0
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(call).toHaveBeenCalledWith({
+      number: '1111111111',
+      prompt: false,
+      skipCanOpen: true,
+    });
+
+    alertSpy.mockRestore();
+  });
+
+  it('resumes active countdown when deletion fails in saveContacts', async () => {
+    const contacts = [
+      {name: 'Contact 1', phone: '1111111111'},
+      {name: 'Contact 2', phone: '2222222222'},
+    ];
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(contacts));
+    AsyncStorage.setItem.mockRejectedValueOnce(new Error('Storage failure'));
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    let renderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <EmergencyCallingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    // Advance 2s (countdown at 3s)
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(extractText(renderer.toJSON())).toContain('3');
+
+    // Tap delete button
+    const deleteBtn = renderer.root.findByProps({testID: 'delete-button-0'});
+    act(() => {
+      deleteBtn.props.onPress();
+    });
+
+    // Advance 5s; countdown paused
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(call).not.toHaveBeenCalled();
+
+    // User presses Remove, but storage fails
+    const buttons = alertSpy.mock.calls[0][2];
+    const removeBtn = buttons.find(b => b.text === 'Remove');
+    await act(async () => {
+      await removeBtn.onPress();
+    });
+
+    // Countdown resumes with remaining time (3s)
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(call).not.toHaveBeenCalled();
+
+    // Advance 1s to reach 0
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(call).toHaveBeenCalledWith({
+      number: '1111111111',
+      prompt: false,
+      skipCanOpen: true,
+    });
+
+    alertSpy.mockRestore();
+  });
+
+  it('permanently cancels countdown on successful deletion', async () => {
+    const contacts = [
+      {name: 'Contact 1', phone: '1111111111'},
+      {name: 'Contact 2', phone: '2222222222'},
+    ];
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(contacts));
+    AsyncStorage.setItem.mockResolvedValue(undefined);
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    let renderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <EmergencyCallingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    // Advance 2s
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    // Tap delete button
+    const deleteBtn = renderer.root.findByProps({testID: 'delete-button-0'});
+    act(() => {
+      deleteBtn.props.onPress();
+    });
+
+    // User confirms Remove and save succeeds
+    const buttons = alertSpy.mock.calls[0][2];
+    const removeBtn = buttons.find(b => b.text === 'Remove');
+    await act(async () => {
+      await removeBtn.onPress();
+    });
+
+    // Advance timers past remaining time; call should NOT be made
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(call).not.toHaveBeenCalled();
+
+    alertSpy.mockRestore();
+  });
+
+  it('does not resume countdown when deletion is cancelled if countdown was inactive', async () => {
+    const contacts = [
+      {name: 'Contact 1', phone: '1111111111'},
+      {name: 'Contact 2', phone: '2222222222'},
+    ];
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(contacts));
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    let renderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <EmergencyCallingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    // Make manual SMS press to cancel countdown
+    const smsButton = renderer.root.findByProps({testID: 'sms-button-0'});
+    await act(async () => {
+      smsButton.props.onPress();
+    });
+    alertSpy.mockClear();
+
+    // Now tap delete button
+    const deleteBtn = renderer.root.findByProps({testID: 'delete-button-1'});
+    act(() => {
+      deleteBtn.props.onPress();
+    });
+
+    // User cancels delete
+    const buttons = alertSpy.mock.calls[0][2];
+    const cancelBtn = buttons.find(b => b.text === 'Cancel');
+    act(() => {
+      cancelBtn.onPress();
+    });
+
+    // Advance timers; countdown was inactive and must remain inactive
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(call).not.toHaveBeenCalled();
+
+    alertSpy.mockRestore();
+  });
+
+  it('does not resume countdown when deletion fails if countdown was inactive', async () => {
+    const contacts = [
+      {name: 'Contact 1', phone: '1111111111'},
+      {name: 'Contact 2', phone: '2222222222'},
+    ];
+    AsyncStorage.getItem.mockResolvedValue(JSON.stringify(contacts));
+    AsyncStorage.setItem.mockRejectedValueOnce(new Error('Storage error'));
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    let renderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <EmergencyCallingScreen navigation={mockNavigation} />,
+      );
+    });
+
+    // Tap manual Call on secondary contact to cancel countdown
+    const callBtn1 = renderer.root.findByProps({testID: 'call-button-1'});
+    await act(async () => {
+      callBtn1.props.onPress();
+    });
+    expect(call).toHaveBeenCalledTimes(1);
+
+    // Tap delete button on contact 0
+    const deleteBtn = renderer.root.findByProps({testID: 'delete-button-0'});
+    act(() => {
+      deleteBtn.props.onPress();
+    });
+
+    // User confirms Remove, but save fails
+    const buttons = alertSpy.mock.calls[0][2];
+    const removeBtn = buttons.find(b => b.text === 'Remove');
+    await act(async () => {
+      await removeBtn.onPress();
+    });
+
+    // Advance timers; countdown must not restart
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    // Call count remains 1 from the manual call earlier
+    expect(call).toHaveBeenCalledTimes(1);
+
     alertSpy.mockRestore();
   });
 });
