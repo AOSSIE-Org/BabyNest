@@ -2,9 +2,16 @@ import React, {useState} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+/**
+ * SOSAlertScreen allows the user to trigger the emergency calling
+ * flow by tapping the alert circle multiple times.
+ */
 export default function SOSAlertScreen({navigation}) {
   const [tapCount, setTapCount] = useState(0);
 
+  /**
+   * Handle user tap on the alert button and navigate once threshold is reached.
+   */
   const handleTap = () => {
     if (tapCount >= 3) {
       navigation.navigate('EmergencyCalling');

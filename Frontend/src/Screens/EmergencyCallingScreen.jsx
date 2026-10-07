@@ -10,10 +10,13 @@ import {
   TextInput,
   FlatList,
   Platform,
+  ActivityIndicator,
+  NativeModules,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import call from 'react-native-phone-call';
 
 const STORAGE_KEY = 'emergency_contacts';
 const COUNTDOWN_SECONDS = 5;
@@ -45,6 +48,15 @@ function isValidPhone(phone) {
 }
 
 /**
+ * Normalize a phone number string by removing spaces, dashes, and parentheses.
+ */
+function normalizePhone(phone) {
+  return typeof phone === 'string'
+    ? phone.replace(/[\s\-()]/g, '')
+    : phone;
+}
+
+/**
  * Load emergency contacts from AsyncStorage.
  */
 async function loadContacts() {
@@ -56,10 +68,11 @@ async function loadContacts() {
         return parsed;
       }
     }
+    return [];
   } catch (error) {
     console.error('Failed to load emergency contacts:', error);
+    throw error;
   }
-  return [];
 }
 
 /**
@@ -76,22 +89,25 @@ async function saveContacts(contacts) {
 }
 
 /**
- * Attempt to make a phone call using the Linking API.
+ * Attempt to make a phone call using react-native-phone-call.
+ * Accepts an optional isCancelled callback to avoid initiating the call if aborted.
  */
-async function makeCall(phoneNumber) {
-  const url = `tel:${phoneNumber}`;
-  try {
-    const supported = await Linking.canOpenURL(url);
-    if (supported) {
-      await Linking.openURL(url);
-      return true;
-    }
-    Alert.alert(
-      'Call Not Supported',
-      'Phone calls are not supported on this device.',
-    );
+async function makeCall(phoneNumber, isCancelled) {
+  if (isCancelled && isCancelled()) {
     return false;
+  }
+  const cleanPhone = normalizePhone(phoneNumber);
+  try {
+    await call({
+      number: cleanPhone,
+      prompt: false,
+      skipCanOpen: true,
+    });
+    return true;
   } catch (error) {
+    if (isCancelled && isCancelled()) {
+      return false;
+    }
     console.error('Failed to make call:', error);
     Alert.alert('Call Failed', 'Could not initiate the phone call.');
     return false;
@@ -99,13 +115,48 @@ async function makeCall(phoneNumber) {
 }
 
 /**
- * Attempt to open the SMS app using the Linking API.
+ * Attempt to open the SMS app.
+ * Uses native SMS composer on iOS with fallback to recipient-only link,
+ * and prefilled URL intent on Android.
  */
 async function sendSMS(phoneNumber) {
-  const url =
-    Platform.OS === 'ios'
-      ? `sms:${phoneNumber}&body=Emergency!%20I%20need%20help!`
-      : `sms:${phoneNumber}?body=Emergency!%20I%20need%20help!`;
+  const cleanPhone = normalizePhone(phoneNumber);
+  const emergencyMessage = 'Emergency! I need help!';
+
+  if (Platform.OS === 'ios') {
+    const {SMSComposer} = NativeModules;
+    if (SMSComposer && typeof SMSComposer.sendSMS === 'function') {
+      try {
+        await SMSComposer.sendSMS(cleanPhone, emergencyMessage);
+        return true;
+      } catch (error) {
+        console.error('Failed to compose SMS via native composer:', error);
+      }
+    }
+
+    // Fallback: recipient-only sms: url if native composer is unavailable or fails
+    const fallbackUrl = `sms:${cleanPhone}`;
+    try {
+      const supported = await Linking.canOpenURL(fallbackUrl);
+      if (supported) {
+        await Linking.openURL(fallbackUrl);
+        return true;
+      }
+      Alert.alert(
+        'SMS Not Supported',
+        'SMS is not supported on this device.',
+      );
+      return false;
+    } catch (error) {
+      console.error('Failed to send SMS:', error);
+      Alert.alert('SMS Failed', 'Could not open the SMS app.');
+      return false;
+    }
+  }
+
+  // Android: prefilled message body
+  const bodyEncoded = encodeURIComponent(emergencyMessage);
+  const url = `sms:${cleanPhone}?body=${bodyEncoded}`;
   try {
     const supported = await Linking.canOpenURL(url);
     if (supported) {
@@ -124,24 +175,114 @@ async function sendSMS(phoneNumber) {
   }
 }
 
+/**
+ * EmergencyCallingScreen manages emergency contacts, initiates an automated countdown
+ * upon entry, and allows immediate calling or SMS messaging to saved emergency contacts.
+ */
 export default function EmergencyCallingScreen({navigation}) {
   const [contacts, setContacts] = useState([]);
+  const [contactsLoading, setContactsLoading] = useState(true);
+  const [contactsLoadError, setContactsLoadError] = useState(false);
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const timerRef = useRef(null);
+  const isCancelledRef = useRef(false);
+  const wasCountdownActiveRef = useRef(false);
+
+  /**
+   * Cancel any active countdown permanently and mark the auto-call as cancelled.
+   */
+  const cancelCountdown = useCallback(() => {
+    isCancelledRef.current = true;
+    wasCountdownActiveRef.current = false;
+    setIsCountdownActive(false);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Open the Add Contact modal and pause countdown if active.
+   */
+  const handleOpenAddModal = useCallback(() => {
+    wasCountdownActiveRef.current = isCountdownActive;
+    if (isCountdownActive) {
+      setIsCountdownActive(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    setShowAddModal(true);
+  }, [isCountdownActive]);
+
+  /**
+   * Close the Add Contact modal and resume countdown if it was active prior to opening.
+   */
+  const handleCloseAddModal = useCallback(() => {
+    setShowAddModal(false);
+    setNewName('');
+    setNewPhone('');
+    if (wasCountdownActiveRef.current && !isCancelledRef.current) {
+      wasCountdownActiveRef.current = false;
+      setIsCountdownActive(true);
+    } else {
+      wasCountdownActiveRef.current = false;
+    }
+  }, []);
+
+  /**
+   * Trigger initial loading of contacts from AsyncStorage.
+   */
+  const fetchContacts = useCallback(() => {
+    setContactsLoading(true);
+    setContactsLoadError(false);
+    loadContacts()
+      .then(loaded => {
+        setContacts(loaded);
+        setContactsLoading(false);
+        if (loaded.length > 0) {
+          isCancelledRef.current = false;
+          setIsCountdownActive(true);
+        }
+      })
+      .catch(() => {
+        setContactsLoading(false);
+        setContactsLoadError(true);
+      });
+  }, []);
 
   // Load contacts on mount
   useEffect(() => {
-    loadContacts().then(loaded => {
-      setContacts(loaded);
-      if (loaded.length > 0) {
-        setIsCountdownActive(true);
-      }
-    });
+    let mounted = true;
+    setContactsLoading(true);
+    setContactsLoadError(false);
+    loadContacts()
+      .then(loaded => {
+        if (!mounted) {
+          return;
+        }
+        setContacts(loaded);
+        setContactsLoading(false);
+        if (loaded.length > 0) {
+          isCancelledRef.current = false;
+          setIsCountdownActive(true);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setContactsLoading(false);
+          setContactsLoadError(true);
+        }
+      });
     return () => {
+      mounted = false;
+      isCancelledRef.current = true;
+      wasCountdownActiveRef.current = false;
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
@@ -169,20 +310,25 @@ export default function EmergencyCallingScreen({navigation}) {
   useEffect(() => {
     if (countdown === 0 && isCountdownActive && contacts.length > 0) {
       setIsCountdownActive(false);
-      makeCall(contacts[0].phone);
+      makeCall(contacts[0].phone, () => isCancelledRef.current);
     }
   }, [countdown, isCountdownActive, contacts]);
 
+  /**
+   * Handler for when the user taps "I AM SAFE".
+   */
   const handleSafe = useCallback(() => {
-    setIsCountdownActive(false);
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+    cancelCountdown();
     navigation.goBack();
-  }, [navigation]);
+  }, [cancelCountdown, navigation]);
 
+  /**
+   * Handler for adding a new emergency contact.
+   */
   const handleAddContact = useCallback(async () => {
+    if (contactsLoading) {
+      return;
+    }
     const trimmedName = newName.trim();
     const trimmedPhone = newPhone.trim();
 
@@ -220,10 +366,17 @@ export default function EmergencyCallingScreen({navigation}) {
         text2: `${trimmedName} added as emergency contact.`,
       });
 
-      // Start countdown if this was the first contact
+      // Start countdown if this was the first contact, or resume if it was active
       if (contacts.length === 0) {
+        isCancelledRef.current = false;
+        wasCountdownActiveRef.current = false;
         setCountdown(COUNTDOWN_SECONDS);
         setIsCountdownActive(true);
+      } else if (wasCountdownActiveRef.current && !isCancelledRef.current) {
+        wasCountdownActiveRef.current = false;
+        setIsCountdownActive(true);
+      } else {
+        wasCountdownActiveRef.current = false;
       }
     } else {
       Toast.show({
@@ -232,10 +385,17 @@ export default function EmergencyCallingScreen({navigation}) {
         text2: 'Could not save contact. Please try again.',
       });
     }
-  }, [newName, newPhone, contacts]);
+  }, [contactsLoading, newName, newPhone, contacts]);
 
+  /**
+   * Handler for deleting an emergency contact.
+   */
   const handleDeleteContact = useCallback(
     index => {
+      if (contactsLoading) {
+        return;
+      }
+      cancelCountdown();
       Alert.alert(
         'Remove Contact',
         `Remove ${contacts[index].name} from emergency contacts?`,
@@ -250,8 +410,9 @@ export default function EmergencyCallingScreen({navigation}) {
               if (saved) {
                 setContacts(updated);
                 Toast.show({
-                  type: 'success',
+                  type: 'info',
                   text1: 'Contact Removed',
+                  text2: 'Emergency contact was removed.',
                 });
               }
             },
@@ -259,9 +420,12 @@ export default function EmergencyCallingScreen({navigation}) {
         ],
       );
     },
-    [contacts],
+    [contactsLoading, cancelCountdown, contacts],
   );
 
+  /**
+   * Render item callback for emergency contacts list.
+   */
   const renderContact = ({item, index}) => (
     <View style={styles.contactCard}>
       <View style={styles.contactAvatar}>
@@ -278,22 +442,69 @@ export default function EmergencyCallingScreen({navigation}) {
       <View style={styles.contactActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => makeCall(item.phone)}>
+          testID={`call-button-${index}`}
+          onPress={() => {
+            cancelCountdown();
+            makeCall(item.phone);
+          }}>
           <Icon name="call" size={20} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.smsButton]}
-          onPress={() => sendSMS(item.phone)}>
+          testID={`sms-button-${index}`}
+          onPress={() => {
+            cancelCountdown();
+            sendSMS(item.phone);
+          }}>
           <Icon name="chatbubble" size={20} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.deleteButton]}
+          testID={`delete-button-${index}`}
           onPress={() => handleDeleteContact(index)}>
           <Icon name="trash" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
   );
+
+  // Still loading contacts from storage
+  if (contactsLoading) {
+    return (
+      <View style={styles.emptyContainer}>
+        <ActivityIndicator
+          size="large"
+          color="#FF6F61"
+          testID="loading-indicator"
+        />
+      </View>
+    );
+  }
+
+  // Error loading contacts from storage
+  if (contactsLoadError) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Icon name="alert-circle-outline" size={80} color="#FF6F61" />
+        <Text style={styles.emptyTitle}>Failed to Load Contacts</Text>
+        <Text style={styles.emptySubtitle}>
+          There was an error loading your emergency contacts. Please try again.
+        </Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          testID="retry-button"
+          onPress={fetchContacts}>
+          <Text style={styles.addButtonText}>Retry</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.backLink}
+          testID="go-back-button"
+          onPress={() => navigation.goBack()}>
+          <Text style={styles.backLinkText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // No contacts — show prompt to add
   if (contacts.length === 0) {
@@ -306,11 +517,15 @@ export default function EmergencyCallingScreen({navigation}) {
         </Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => setShowAddModal(true)}>
+          testID="add-contact-button"
+          onPress={handleOpenAddModal}>
           <Icon name="add-circle" size={24} color="#fff" />
           <Text style={styles.addButtonText}>Add Emergency Contact</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backLink}
+          testID="go-back-button"
+          onPress={() => navigation.goBack()}>
           <Text style={styles.backLinkText}>Go Back</Text>
         </TouchableOpacity>
 
@@ -322,11 +537,7 @@ export default function EmergencyCallingScreen({navigation}) {
           onNameChange={setNewName}
           onPhoneChange={setNewPhone}
           onAdd={handleAddContact}
-          onClose={() => {
-            setShowAddModal(false);
-            setNewName('');
-            setNewPhone('');
-          }}
+          onClose={handleCloseAddModal}
         />
       </View>
     );
@@ -366,7 +577,8 @@ export default function EmergencyCallingScreen({navigation}) {
         ListFooterComponent={
           <TouchableOpacity
             style={styles.addContactInline}
-            onPress={() => setShowAddModal(true)}>
+            testID="add-contact-inline-button"
+            onPress={handleOpenAddModal}>
             <Icon name="add" size={20} color="#fff" />
             <Text style={styles.addContactInlineText}>Add Contact</Text>
           </TouchableOpacity>
@@ -374,7 +586,10 @@ export default function EmergencyCallingScreen({navigation}) {
       />
 
       {/* I AM SAFE Button */}
-      <TouchableOpacity style={styles.safeButton} onPress={handleSafe}>
+      <TouchableOpacity
+        style={styles.safeButton}
+        testID="safe-button"
+        onPress={handleSafe}>
         <Icon name="shield-checkmark" size={22} color="#FF6F61" />
         <Text style={styles.safeText}>I AM SAFE</Text>
       </TouchableOpacity>
@@ -387,11 +602,7 @@ export default function EmergencyCallingScreen({navigation}) {
         onNameChange={setNewName}
         onPhoneChange={setNewPhone}
         onAdd={handleAddContact}
-        onClose={() => {
-          setShowAddModal(false);
-          setNewName('');
-          setNewPhone('');
-        }}
+        onClose={handleCloseAddModal}
       />
     </View>
   );
@@ -438,10 +649,16 @@ function AddContactModal({
           />
 
           <View style={styles.modalButtons}>
-            <TouchableOpacity style={styles.modalCancel} onPress={onClose}>
+            <TouchableOpacity
+              style={styles.modalCancel}
+              testID="modal-cancel-button"
+              onPress={onClose}>
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalSave} onPress={onAdd}>
+            <TouchableOpacity
+              style={styles.modalSave}
+              testID="modal-save-button"
+              onPress={onAdd}>
               <Text style={styles.modalSaveText}>Save</Text>
             </TouchableOpacity>
           </View>
