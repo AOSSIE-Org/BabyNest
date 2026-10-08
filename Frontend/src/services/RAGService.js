@@ -4,7 +4,6 @@
  * Handles all user queries with semantic understanding
  */
 
-import {BASE_URL} from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteProfile, updateProfile } from '../storage/profile';
 import { addAppointment, deleteAppointment, getAppointments, updateAppointment } from '../storage/appointments';
@@ -191,96 +190,6 @@ class RAGService {
         optionalFields: ['week', 'priority', 'note'],
       },
 
-      // Mood tracking intents
-      log_mood: {
-        keywords: [
-          'mood',
-          'feeling',
-          'happy',
-          'sad',
-          'anxious',
-          'stressed',
-          'calm',
-          'energetic',
-        ],
-        examples: [
-          'log my mood',
-          'I feel happy',
-          'feeling anxious',
-          'my mood is good',
-          'record mood',
-          'add mood entry',
-          'I am stressed',
-          'feeling calm today',
-        ],
-        action: 'logMood',
-        requiredFields: ['mood'],
-        optionalFields: ['intensity', 'note'],
-      },
-
-      // Sleep tracking intents
-      log_sleep: {
-        keywords: [
-          'sleep',
-          'bedtime',
-          'wake up',
-          'slept',
-          'sleeping',
-          'hours of sleep',
-        ],
-        examples: [
-          'log sleep',
-          'I slept 8 hours',
-          'went to bed at 10pm',
-          'woke up at 6am',
-          'add sleep entry',
-          'record sleep',
-          'slept well',
-          'poor sleep last night',
-        ],
-        action: 'logSleep',
-        requiredFields: ['duration'],
-        optionalFields: ['bedtime', 'wake_time', 'quality', 'note'],
-      },
-
-      // Analytics and query intents
-      query_analytics: {
-        keywords: [
-          'analytics',
-          'stats',
-          'statistics',
-          'trend',
-          'average',
-          'summary',
-          'report',
-          'show',
-          'chart',
-          'graph',
-          'visualization',
-        ],
-        examples: [
-          'show weight analytics',
-          'show weight trend',
-          'weight analytics',
-          'sleep analytics',
-          'mood analytics',
-          'blood pressure analytics',
-          'show sleep data',
-          'weight chart',
-          'sleep trend',
-          'mood summary',
-          'analytics dashboard',
-          'show my health data',
-          'generate health report',
-          'weight statistics',
-          'sleep statistics',
-          'mood statistics',
-        ],
-        action: 'queryAnalytics',
-        requiredFields: ['metric'],
-        optionalFields: ['timeframe', 'chart_type'],
-      },
-
       // View logs intents
       view_weight_logs: {
         keywords: [
@@ -395,22 +304,6 @@ class RAGService {
         action: 'viewDischargeLogs',
         requiredFields: [],
         optionalFields: ['week_number', 'limit'],
-      },
-
-      // Undo/delete intents
-      undo_action: {
-        keywords: ['undo', 'delete', 'remove', 'cancel', 'revert'],
-        examples: [
-          'undo last action',
-          'delete last entry',
-          'remove last weight',
-          'cancel last appointment',
-          'revert changes',
-          'undo my last log',
-        ],
-        action: 'undoAction',
-        requiredFields: [],
-        optionalFields: ['action_type'],
       },
 
       // Navigation intents
@@ -715,62 +608,6 @@ class RAGService {
         requiredFields: ['date'],
         optionalFields: ['time'],
       },
-
-      // Mood CRUD operations
-      update_mood: {
-        keywords: ['update', 'change', 'modify', 'edit', 'mood'],
-        examples: [
-          'update mood',
-          'change mood entry',
-          'modify mood record',
-          'edit mood log',
-          'update feeling',
-        ],
-        action: 'updateMood',
-        requiredFields: ['mood'],
-        optionalFields: ['intensity', 'date', 'note'],
-      },
-
-      delete_mood: {
-        keywords: ['delete', 'remove', 'mood'],
-        examples: [
-          'delete mood',
-          'remove mood entry',
-          'delete mood record',
-          'remove mood log',
-        ],
-        action: 'deleteMood',
-        requiredFields: ['date'],
-        optionalFields: ['time'],
-      },
-
-      // Sleep CRUD operations
-      update_sleep: {
-        keywords: ['update', 'change', 'modify', 'edit', 'sleep'],
-        examples: [
-          'update sleep',
-          'change sleep entry',
-          'modify sleep record',
-          'edit sleep log',
-          'update bedtime',
-        ],
-        action: 'updateSleep',
-        requiredFields: ['duration'],
-        optionalFields: ['bedtime', 'wake_time', 'quality', 'date', 'note'],
-      },
-
-      delete_sleep: {
-        keywords: ['delete', 'remove', 'sleep'],
-        examples: [
-          'delete sleep',
-          'remove sleep entry',
-          'delete sleep record',
-          'remove sleep log',
-        ],
-        action: 'deleteSleep',
-        requiredFields: ['date'],
-        optionalFields: ['time'],
-      },
     };
   }
 
@@ -831,31 +668,6 @@ class RAGService {
         action: 'unknown',
         confidence: 0,
       };
-    }
-
-    // Special case: If query contains analytics-related keywords, prioritize analytics intent
-    const analyticsKeywords = [
-      'analytics',
-      'stats',
-      'statistics',
-      'trend',
-      'chart',
-      'graph',
-      'report',
-    ];
-    const hasAnalyticsKeyword = analyticsKeywords.some(keyword =>
-      query.includes(keyword),
-    );
-
-    if (hasAnalyticsKeyword) {
-      const analyticsIntent = this.intentEmbeddings['query_analytics'];
-      if (analyticsIntent) {
-        return {
-          name: 'query_analytics',
-          ...analyticsIntent,
-          confidence: 1.0,
-        };
-      }
     }
 
     // Special case: If query contains view-related keywords, prioritize view logs intents
@@ -1089,26 +901,6 @@ class RAGService {
         data.appointment_identifier = this.extractAppointmentIdentifier(query);
         break;
 
-      case 'log_mood':
-        data.mood = this.extractMood(query);
-        data.intensity = this.extractIntensity(query);
-        data.note = this.extractNote(query);
-        break;
-
-      case 'log_sleep':
-        data.duration = this.extractSleepDuration(query);
-        data.bedtime = this.extractBedtime(query);
-        data.wake_time = this.extractWakeTime(query);
-        data.quality = this.extractSleepQuality(query);
-        data.note = this.extractNote(query);
-        break;
-
-      case 'query_analytics':
-        data.metric = this.extractMetric(query);
-        data.timeframe = this.extractTimeframe(query);
-        data.chart_type = this.extractChartType(query);
-        break;
-
       case 'view_weight_logs':
         data.week_number = this.extractWeek(query);
         data.limit = this.extractLimit(query);
@@ -1134,8 +926,8 @@ class RAGService {
         data.limit = this.extractLimit(query);
         break;
 
-      case 'undo_action':
-        data.action_type = this.extractActionType(query);
+      case "general_chat":
+        data.message = userQuery;
         break;
     }
 
@@ -1697,10 +1489,6 @@ class RAGService {
         '💡 **Tip**: You can provide all details at once! For example: "log medicine paracetamol 500mg twice daily starting today"',
       log_discharge:
         '💡 **Tip**: You can provide all details at once! For example: "log discharge normal this morning with note light flow"',
-      log_mood:
-        '💡 **Tip**: You can provide all details at once! For example: "log mood happy with high intensity today feeling great"',
-      log_sleep:
-        '💡 **Tip**: You can provide all details at once! For example: "log sleep 8 hours from 10pm to 6am with excellent quality"',
       create_task:
         '💡 **Tip**: You can provide all details at once! For example: "create task buy vitamins for next week with note urgent"',
       update_appointment:
@@ -1727,16 +1515,6 @@ class RAGService {
         '💡 **Tip**: You can provide all details at once! For example: "update weight change to 66kg for week 12"',
       delete_weight:
         '💡 **Tip**: You can provide all details at once! For example: "delete weight from yesterday"',
-      update_mood:
-        '💡 **Tip**: You can provide all details at once! For example: "update mood change to anxious with medium intensity"',
-      delete_mood:
-        '💡 **Tip**: You can provide all details at once! For example: "delete mood from this morning"',
-      update_sleep:
-        '💡 **Tip**: You can provide all details at once! For example: "update sleep change to 7 hours with good quality"',
-      delete_sleep:
-        '💡 **Tip**: You can provide all details at once! For example: "delete sleep from last night"',
-      query_analytics:
-        '💡 **Tip**: You can provide all details at once! For example: "show weight analytics for this month as line chart"',
       get_data:
         '💡 **Tip**: You can provide all details at once! For example: "show my appointments for next week"',
       navigate:
@@ -1788,12 +1566,6 @@ class RAGService {
           return await this.updateAppointment(data, userContext);
         case 'deleteAppointment':
           return await this.deleteAppointment(data, userContext);
-        case 'logMood':
-          return await this.logMood(data, userContext);
-        case 'logSleep':
-          return await this.logSleep(data, userContext);
-        case 'queryAnalytics':
-          return await this.queryAnalytics(data, userContext);
         case 'viewWeightLogs':
           return await this.viewWeightLogs(data, userContext);
         case 'viewMedicineLogs':
@@ -1804,8 +1576,6 @@ class RAGService {
           return await this.viewBloodPressureLogs(data, userContext);
         case 'viewDischargeLogs':
           return await this.viewDischargeLogs(data, userContext);
-        case 'undoAction':
-          return await this.undoAction(data, userContext);
         case 'emergency':
           return await this.triggerEmergency(data, userContext);
         case 'logout':
@@ -1842,18 +1612,6 @@ class RAGService {
           return await this.updateWeight(data, userContext);
         case 'deleteWeight':
           return await this.deleteWeight(data, userContext);
-
-        // Mood CRUD operations
-        case 'updateMood':
-          return await this.updateMood(data, userContext);
-        case 'deleteMood':
-          return await this.deleteMood(data, userContext);
-
-        // Sleep CRUD operations
-        case 'updateSleep':
-          return await this.updateSleep(data, userContext);
-        case 'deleteSleep':
-          return await this.deleteSleep(data, userContext);
 
         default:
           return {
@@ -2042,14 +1800,14 @@ class RAGService {
         throw new Error(add_appointment_res.error.message);
       }
 
-      const data = add_appointment_res.data;
+      const add_appointment_data = add_appointment_res.data;
       if (add_appointment_res.success) {
         return {
           success: true,
           message: `📅 Appointment "${
-            data.title || 'Appointment'
-          }" scheduled for ${data.date || 'TBD'} at ${data.time || 'TBD'}${
-            data.location ? ` at ${data.location}` : ''
+            add_appointment_data.title || 'Appointment'
+          }" scheduled for ${add_appointment_data.date || 'TBD'} at ${add_appointment_data.time || 'TBD'}${
+            add_appointment_data.location ? ` at ${add_appointment_data.location}` : ''
           }`,
           action: 'navigate',
           screen: 'appointments',
@@ -2789,7 +2547,7 @@ class RAGService {
    */
   async handleGeneralChat(data, userContext) {
     try {
-      const query = data?.query?.trim() || '';
+      const query = data?.message?.trim() || '';
 
       if (!query) {
         return {
@@ -2855,486 +2613,6 @@ class RAGService {
     }
   }
 
-  /**
-   * Extract mood from query
-   */
-  extractMood(query) {
-    const moods = {
-      happy: ['happy', 'joyful', 'cheerful', 'good', 'great', 'wonderful'],
-      sad: ['sad', 'down', 'depressed', 'blue', 'melancholy'],
-      anxious: ['anxious', 'worried', 'nervous', 'stressed', 'tense'],
-      calm: ['calm', 'peaceful', 'relaxed', 'serene', 'tranquil'],
-      energetic: ['energetic', 'excited', 'pumped', 'motivated', 'active'],
-      tired: ['tired', 'exhausted', 'drained', 'fatigued', 'sleepy'],
-      frustrated: ['frustrated', 'annoyed', 'irritated', 'angry', 'mad'],
-    };
-
-    for (const [mood, keywords] of Object.entries(moods)) {
-      for (const keyword of keywords) {
-        if (query.includes(keyword)) {
-          return mood;
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Extract mood intensity from query
-   */
-  extractIntensity(query) {
-    const intensityPatterns = [
-      /very\s+(.*)/,
-      /extremely\s+(.*)/,
-      /quite\s+(.*)/,
-      /somewhat\s+(.*)/,
-      /a little\s+(.*)/,
-      /slightly\s+(.*)/,
-    ];
-
-    for (const pattern of intensityPatterns) {
-      const match = query.match(pattern);
-      if (match) {
-        const intensity = match[1].toLowerCase();
-        if (intensity.includes('very') || intensity.includes('extremely'))
-          return 'high';
-        if (intensity.includes('quite') || intensity.includes('somewhat'))
-          return 'medium';
-        if (intensity.includes('little') || intensity.includes('slightly'))
-          return 'low';
-      }
-    }
-    return 'medium'; // Default intensity
-  }
-
-  /**
-   * Extract sleep duration from query
-   */
-  extractSleepDuration(query) {
-    const durationPatterns = [
-      /(\d+(?:\.\d+)?)\s*hours?/,
-      /(\d+(?:\.\d+)?)\s*hrs?/,
-      /slept\s*(\d+(?:\.\d+)?)/,
-      /(\d+(?:\.\d+)?)\s*hours?\s*of\s*sleep/,
-    ];
-
-    for (const pattern of durationPatterns) {
-      const match = query.match(pattern);
-      if (match) {
-        return parseFloat(match[1]);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Extract bedtime from query
-   */
-  extractBedtime(query) {
-    const timePatterns = [
-      /went\s+to\s+bed\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i,
-      /bedtime\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i,
-      /slept\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i,
-    ];
-
-    for (const pattern of timePatterns) {
-      const match = query.match(pattern);
-      if (match) {
-        return this.convertToTime(match[1]);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Extract wake time from query
-   */
-  extractWakeTime(query) {
-    const timePatterns = [
-      /woke\s+up\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i,
-      /wake\s+up\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i,
-      /got\s+up\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i,
-    ];
-
-    for (const pattern of timePatterns) {
-      const match = query.match(pattern);
-      if (match) {
-        return this.convertToTime(match[1]);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Extract sleep quality from query
-   */
-  extractSleepQuality(query) {
-    const qualityKeywords = {
-      excellent: ['excellent', 'great', 'amazing', 'perfect', 'wonderful'],
-      good: ['good', 'well', 'decent', 'fine', 'okay'],
-      fair: ['fair', 'average', 'ok', 'so-so'],
-      poor: ['poor', 'bad', 'terrible', 'awful', 'horrible'],
-    };
-
-    for (const [quality, keywords] of Object.entries(qualityKeywords)) {
-      for (const keyword of keywords) {
-        if (query.includes(keyword)) {
-          return quality;
-        }
-      }
-    }
-    return 'good'; // Default quality
-  }
-
-  /**
-   * Extract metric from analytics query
-   */
-  extractMetric(query) {
-    const metrics = {
-      weight: ['weight', 'weigh', 'kg', 'kilos', 'pounds', 'lbs'],
-      sleep: ['sleep', 'sleeping', 'bedtime', 'hours of sleep'],
-      mood: ['mood', 'feeling', 'emotions', 'mental health'],
-      symptoms: ['symptoms', 'pain', 'nausea', 'discomfort'],
-      appointments: ['appointments', 'visits', 'checkups', 'consultations'],
-    };
-
-    for (const [metric, keywords] of Object.entries(metrics)) {
-      for (const keyword of keywords) {
-        if (query.includes(keyword)) {
-          return metric;
-        }
-      }
-    }
-    return 'weight'; // Default metric
-  }
-
-  /**
-   * Extract timeframe from analytics query
-   */
-  extractTimeframe(query) {
-    const timeframes = {
-      today: ['today', 'this day'],
-      week: ['this week', 'past week', 'last 7 days'],
-      month: ['this month', 'past month', 'last month', '30 days'],
-      year: ['this year', 'past year', 'last year'],
-      all: ['all time', 'ever', 'total', 'overall'],
-    };
-
-    for (const [timeframe, keywords] of Object.entries(timeframes)) {
-      for (const keyword of keywords) {
-        if (query.includes(keyword)) {
-          return timeframe;
-        }
-      }
-    }
-    return 'week'; // Default timeframe
-  }
-
-  /**
-   * Extract chart type from analytics query
-   */
-  extractChartType(query) {
-    const chartTypes = {
-      line: ['trend', 'over time', 'progression', 'line'],
-      bar: ['bar', 'comparison', 'comparative'],
-      pie: ['pie', 'distribution', 'breakdown'],
-      summary: ['summary', 'overview', 'stats', 'statistics'],
-    };
-
-    for (const [chartType, keywords] of Object.entries(chartTypes)) {
-      for (const keyword of keywords) {
-        if (query.includes(keyword)) {
-          return chartType;
-        }
-      }
-    }
-    return 'summary'; // Default chart type
-  }
-
-  /**
-   * Extract action type from undo query
-   */
-  extractActionType(query) {
-    const actionTypes = {
-      weight: ['weight', 'weigh'],
-      appointment: ['appointment', 'visit', 'checkup'],
-      symptom: ['symptom', 'symptoms'],
-      mood: ['mood', 'feeling'],
-      sleep: ['sleep', 'sleeping'],
-      medicine: ['medicine', 'medication'],
-    };
-
-    for (const [actionType, keywords] of Object.entries(actionTypes)) {
-      for (const keyword of keywords) {
-        if (query.includes(keyword)) {
-          return actionType;
-        }
-      }
-    }
-    return 'last'; // Default to last action
-  }
-
-  /**
-   * Log mood entry
-   */
-  async logMood(data, userContext) {
-    try {
-      const response = await fetch(`${BASE_URL}/log_mood`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          mood: data.mood,
-          intensity: data.intensity || 'medium',
-          note: data.note || '',
-          week_number: userContext.current_week || 12,
-        }),
-      });
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: `😊 Mood logged successfully!\n\n**Mood:** ${
-            data.mood
-          }\n**Intensity:** ${data.intensity || 'medium'}\n**Week:** ${
-            userContext.current_week || 12
-          }`,
-        };
-      } else {
-        throw new Error('Failed to log mood');
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Failed to log mood: ${error.message}`,
-      };
-    }
-  }
-
-  /**
-   * Log sleep entry
-   */
-  async logSleep(data, userContext) {
-    try {
-      const response = await fetch(`${BASE_URL}/log_sleep`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          duration: data.duration,
-          bedtime: data.bedtime || null,
-          wake_time: data.wake_time || null,
-          quality: data.quality || 'good',
-          note: data.note || '',
-          week_number: userContext.current_week || 12,
-        }),
-      });
-
-      if (response.ok) {
-        let message = `😴 Sleep logged successfully!\n\n**Duration:** ${data.duration} hours`;
-        if (data.bedtime) message += `\n**Bedtime:** ${data.bedtime}`;
-        if (data.wake_time) message += `\n**Wake time:** ${data.wake_time}`;
-        message += `\n**Quality:** ${data.quality || 'good'}\n**Week:** ${
-          userContext.current_week || 12
-        }`;
-
-        return {
-          success: true,
-          message: message,
-        };
-      } else {
-        throw new Error('Failed to log sleep');
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Failed to log sleep: ${error.message}`,
-      };
-    }
-  }
-
-  /**
-   * Query analytics and generate reports
-   */
-  async queryAnalytics(data, userContext) {
-    try {
-      const response = await fetch(`${BASE_URL}/get_analytics`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          metric: data.metric,
-          timeframe: data.timeframe || 'week',
-          chart_type: data.chart_type || 'summary',
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-
-        let message = `📊 **${
-          data.metric.charAt(0).toUpperCase() + data.metric.slice(1)
-        } Analytics**\n\n`;
-
-        // Use the insights from the backend response
-        if (result.insights) {
-          for (const [key, value] of Object.entries(result.insights)) {
-            if (key === 'trend') {
-              message += `**Trend:** ${value}\n`;
-            } else if (key === 'average') {
-              if (data.metric === 'weight') {
-                message += `**Average:** ${value} kg\n`;
-              } else if (data.metric === 'sleep') {
-                message += `**Average:** ${value} hours\n`;
-              } else {
-                message += `**Average:** ${value}\n`;
-              }
-            } else if (key === 'change') {
-              message += `**Change:** ${value}\n`;
-            } else if (key === 'dominant') {
-              message += `**Dominant:** ${value}\n`;
-            } else if (key === 'recommendation') {
-              message += `**Recommendation:** ${value}\n`;
-            } else if (key === 'message') {
-              message += `**Summary:** ${value}\n`;
-            } else if (key === 'min_weight') {
-              message += `**Min Weight:** ${value}kg\n`;
-            } else if (key === 'max_weight') {
-              message += `**Max Weight:** ${value}kg\n`;
-            } else if (key === 'min_sleep') {
-              message += `**Min Sleep:** ${value} hours\n`;
-            } else if (key === 'max_sleep') {
-              message += `**Max Sleep:** ${value} hours\n`;
-            } else if (key === 'total_entries') {
-              message += `**Total Entries:** ${value}\n`;
-            } else if (key === 'happy_percentage') {
-              message += `**Happiness:** ${value}%\n`;
-            } else if (key === 'calm_percentage') {
-              message += `**Calmness:** ${value}%\n`;
-            } else if (key === 'unique_weeks') {
-              message += `**Weeks Tracked:** ${value}\n`;
-            }
-          }
-        }
-
-        // Add chart visualization
-        if (result.data && result.data.labels && result.data.datasets) {
-          message += `\n📊 **Chart Visualization:**\n`;
-
-          const labels = result.data.labels;
-          const dataset = result.data.datasets[0];
-          const dataPoints = dataset.data;
-
-          // Create a simple text-based chart
-          if (
-            result.chartConfig.type === 'line' ||
-            result.chartConfig.type === 'bar'
-          ) {
-            message += this.createTextChart(
-              labels,
-              dataPoints,
-              dataset.label,
-              result.chartConfig.type,
-            );
-          } else if (result.chartConfig.type === 'pie') {
-            message += this.createPieChart(labels, dataPoints);
-          }
-
-          message += `\n📈 **Chart Data:** ${result.chartConfig.type} chart with ${dataPoints.length} data points\n`;
-        }
-
-        return {
-          success: true,
-          message: message,
-          data: result.data,
-          chartConfig: result.chartConfig,
-          insights: result.insights,
-          chartReady: true,
-        };
-      } else {
-        throw new Error('Failed to fetch analytics');
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Failed to get analytics: ${error.message}`,
-      };
-    }
-  }
-
-  /**
-   * Create a text-based chart visualization
-   */
-  createTextChart(labels, dataPoints, label, chartType) {
-    let chart = '';
-
-    // Find min and max values for scaling
-    const minValue = Math.min(...dataPoints);
-    const maxValue = Math.max(...dataPoints);
-    const range = maxValue - minValue;
-    const scale = range > 0 ? range : 1;
-
-    // Chart header
-    chart += `\`\`\`\n`;
-    chart += `${label}\n`;
-    chart += `┌${'─'.repeat(50)}┐\n`;
-
-    if (chartType === 'line') {
-      // Create line chart
-      for (let i = 0; i < labels.length; i++) {
-        const value = dataPoints[i];
-        const normalizedValue = ((value - minValue) / scale) * 40; // Scale to 40 chars
-        const barLength = Math.max(1, Math.round(normalizedValue));
-
-        chart += `│ ${labels[i].padEnd(10)} █${'█'.repeat(barLength)} ${value}${
-          i < labels.length - 1 ? '\n' : ''
-        }`;
-      }
-    } else if (chartType === 'bar') {
-      // Create bar chart
-      for (let i = 0; i < labels.length; i++) {
-        const value = dataPoints[i];
-        const normalizedValue = ((value - minValue) / scale) * 40; // Scale to 40 chars
-        const barLength = Math.max(1, Math.round(normalizedValue));
-
-        chart += `│ ${labels[i].padEnd(10)} █${'█'.repeat(barLength)} ${value}${
-          i < labels.length - 1 ? '\n' : ''
-        }`;
-      }
-    }
-
-    chart += `\n└${'─'.repeat(50)}┘\n`;
-    chart += `Range: ${minValue} - ${maxValue}\n`;
-    chart += `\`\`\`\n`;
-
-    return chart;
-  }
-
-  /**
-   * Create a text-based pie chart visualization
-   */
-  createPieChart(labels, dataPoints) {
-    let chart = '';
-    const total = dataPoints.reduce((a, b) => a + b, 0);
-
-    chart += `\`\`\`\n`;
-    chart += `Distribution:\n`;
-    chart += `┌${'─'.repeat(40)}┐\n`;
-
-    // Calculate percentages and create bars
-    for (let i = 0; i < labels.length; i++) {
-      const value = dataPoints[i];
-      const percentage = ((value / total) * 100).toFixed(1);
-      const barLength = Math.round((value / total) * 30); // Scale to 30 chars
-
-      chart += `│ ${labels[i].padEnd(15)} █${'█'.repeat(
-        barLength,
-      )} ${percentage}%\n`;
-    }
-
-    chart += `└${'─'.repeat(40)}┘\n`;
-    chart += `Total: ${total}\n`;
-    chart += `\`\`\`\n`;
-
-    return chart;
-  }
 
   /**
    * View weight logs
@@ -3715,38 +2993,6 @@ class RAGService {
     }
   }
 
-  /**
-   * Undo last action
-   */
-  async undoAction(data, userContext) {
-    try {
-      const response = await fetch(`${BASE_URL}/undo_last_action`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          action_type: data.action_type || 'last',
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        return {
-          success: true,
-          message: `↩️ **Action undone successfully!**\n\n**Undone:** ${
-            result.action_description || 'Last action'
-          }\n**Type:** ${result.action_type || 'Unknown'}`,
-        };
-      } else {
-        throw new Error('Failed to undo action');
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Failed to undo action: ${error.message}`,
-      };
-    }
-  }
-
   // ==================== MEDICINE CRUD OPERATIONS ====================
 
   /**
@@ -4023,135 +3269,6 @@ class RAGService {
     }
   }
 
-  // ==================== MOOD CRUD OPERATIONS ====================
-
-  /**
-   * Update mood entry
-   */
-  async updateMood(data, userContext) {
-    try {
-      const response = await fetch(`${BASE_URL}/update_mood`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          mood: data.mood,
-          intensity: data.intensity,
-          date: data.date,
-          note: data.note,
-        }),
-      });
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: `✅ **Mood Updated Successfully**\n\n😊 **${data.mood}** entry has been updated.`,
-        };
-      } else {
-        throw new Error('Failed to update mood');
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Failed to update mood: ${error.message}`,
-      };
-    }
-  }
-
-  /**
-   * Delete mood entry
-   */
-  async deleteMood(data, userContext) {
-    try {
-      const response = await fetch(`${BASE_URL}/delete_mood`, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          date: data.date,
-          time: data.time,
-        }),
-      });
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: `✅ **Mood Deleted Successfully**\n\n🗑️ Mood entry for ${data.date} has been removed.`,
-        };
-      } else {
-        throw new Error('Failed to delete mood');
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Failed to delete mood: ${error.message}`,
-      };
-    }
-  }
-
-  // ==================== SLEEP CRUD OPERATIONS ====================
-
-  /**
-   * Update sleep entry
-   */
-  async updateSleep(data, userContext) {
-    try {
-      const response = await fetch(`${BASE_URL}/update_sleep`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          duration: data.duration,
-          bedtime: data.bedtime,
-          wake_time: data.wake_time,
-          quality: data.quality,
-          date: data.date,
-          note: data.note,
-        }),
-      });
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: `✅ **Sleep Updated Successfully**\n\n😴 **${data.duration} hours** sleep entry has been updated.`,
-        };
-      } else {
-        throw new Error('Failed to update sleep');
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Failed to update sleep: ${error.message}`,
-      };
-    }
-  }
-
-  /**
-   * Delete sleep entry
-   */
-  async deleteSleep(data, userContext) {
-    try {
-      const response = await fetch(`${BASE_URL}/delete_sleep`, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          date: data.date,
-          time: data.time,
-        }),
-      });
-
-      if (response.ok) {
-        return {
-          success: true,
-          message: `✅ **Sleep Deleted Successfully**\n\n🗑️ Sleep entry for ${data.date} has been removed.`,
-        };
-      } else {
-        throw new Error('Failed to delete sleep');
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `❌ Failed to delete sleep: ${error.message}`,
-      };
-    }
-  }
 }
 
 // Export singleton instance
