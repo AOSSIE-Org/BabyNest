@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generateResponse } from '../model/model';
 import { ragService } from '../services/RAGService';
 import { conversationContext } from '../services/ConversationContext';
-import { BASE_URL } from "@env";
 
 export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [conversation, setConversation] = useState([]);

@@ -28,7 +28,7 @@ export async function getTasks(userId) {
   }
 }
 
-// Get task by ID (||)
+// Get task by ID
 export async function getTask(userId, taskId) {
   try {
     const parsedUserId = Number(userId);
