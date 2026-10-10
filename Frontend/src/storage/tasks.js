@@ -156,6 +156,10 @@ export async function updateTask(userId, taskId, data) {
     if (Number(data?.ending_week) > 40) {
       return failure('Ending week cannot be greater than 40', 'INVALID_VALUE');
     }
+    
+    if (Number(data?.starting_week) <= 0) {
+      return failure('Starting week must be greater than 0', 'INVALID_VALUE');
+    }
 
     const db = await openDB();
 

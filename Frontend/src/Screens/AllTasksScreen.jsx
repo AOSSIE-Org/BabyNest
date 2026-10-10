@@ -117,7 +117,7 @@ export default function AllTasksScreen({navigation, route}) {
                 topOffset: 50,
               });
 
-              getTasks(user_id);
+              await getTasks(user_id);
             } catch (error) {
               console.log('Delete task Error:', error);
             }

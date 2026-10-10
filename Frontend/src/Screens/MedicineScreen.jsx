@@ -96,7 +96,7 @@ export default function MedicineScreen() {
       if (!addMedicine_res.success) {
         Toast.show({
           type: 'error',
-          text1: addMedicine_res.error.message || 'Error adding appointment!',
+          text1: addMedicine_res.error.message || 'Error adding medicine!',
           visibilityTime: 2000,
           position: 'bottom',
           topOffset: 50,
