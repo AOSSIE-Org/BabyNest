@@ -1287,21 +1287,21 @@ class RAGService {
    */
   extractScreenName(query) {
     const screens = {
-      home: ['home', 'main', 'dashboard'],
-      weight: ['weight', 'weigh', 'weight screen', 'weight tracking'],
-      symptoms: ['symptoms', 'symptom', 'symptom screen'],
-      medicine: ['medicine', 'medication', 'med', 'medicine screen'],
-      appointments: ['appointments', 'appointment', 'calendar', 'schedule'],
-      blood_pressure: [
+      Home: ['home', 'main', 'dashboard'],
+      Weight: ['weight', 'weigh', 'weight screen', 'weight tracking'],
+      Symptoms: ['symptoms', 'symptom', 'symptom screen'],
+      Medicine: ['medicine', 'medication', 'med', 'medicine screen'],
+      Calendar: ['appointments', 'appointment', 'calendar', 'schedule'],
+      BloodPressure: [
         'blood pressure',
         'bp',
         'pressure',
         'blood pressure screen',
       ],
-      discharge: ['discharge', 'discharge log', 'bleeding', 'spotting'],
-      timeline: ['timeline', 'history', 'timeline screen'],
-      settings: ['settings', 'profile', 'profile screen'],
-      tasks: ['tasks', 'reminders', 'todo', 'task screen', 'all tasks'],
+      Discharge: ['discharge', 'discharge log', 'bleeding', 'spotting'],
+      Timeline: ['timeline', 'history', 'timeline screen'],
+      Profile: ['settings', 'profile', 'profile screen'],
+      AllTasks: ['tasks', 'reminders', 'todo', 'task screen', 'all tasks'],
     };
 
     for (const [screen, keywords] of Object.entries(screens)) {
@@ -2051,7 +2051,7 @@ class RAGService {
       blood_pressure: 'BloodPressure',
       discharge: 'Discharge',
       timeline: 'Timeline',
-      settings: 'Settings',
+      settings: 'Profile',
       tasks: 'AllTasks',
     };
 
@@ -2079,7 +2079,7 @@ class RAGService {
           success: true,
           message: `👤 Profile updated successfully! ${data.field} set to ${data.value}`,
           action: 'navigate',
-          screen: 'settings',
+          screen: 'Profile',
         };
       } else {
         throw new Error('Failed to update profile');
@@ -2583,6 +2583,37 @@ class RAGService {
   - Do not invent medical information.
   - If the question is unrelated to pregnancy, you can still answer normally.
   - Keep the response concise and conversational.
+
+  The tasks you can perform are:
+    create_appointment
+    log_weight
+    log_symptoms
+    log_blood_pressure
+    log_medicine
+    log_discharge
+    create_task
+    view_weight_logs
+    view_medicine_logs
+    view_symptoms_logs
+    view_blood_pressure_logs
+    view_discharge_logs
+    navigate
+    update_profile
+    get_data
+    update_appointment
+    delete_appointment
+    emergency
+    logout
+    update_medicine
+    delete_medicine
+    update_blood_pressure
+    delete_blood_pressure
+    update_discharge
+    delete_discharge
+    update_symptoms
+    delete_symptoms
+    update_weight
+    delete_weight
   `;
 
       const response = await generateResponse([
