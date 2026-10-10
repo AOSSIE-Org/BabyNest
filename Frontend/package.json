@@ -38,6 +38,7 @@
     "react-native-nitro-modules": "0.29.8",
     "react-native-nitro-sqlite": "9.1.11",
     "react-native-paper": "^5.13.1",
+    "react-native-phone-call": "^1.2.0",
     "react-native-safe-area-context": "^5.2.0",
     "react-native-screens": "4.6.0",
     "react-native-sqlite-storage": "^6.0.1",
