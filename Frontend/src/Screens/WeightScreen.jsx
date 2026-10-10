@@ -8,9 +8,16 @@ import {
   Alert,
 } from 'react-native';
 import {TextInput, Button, Card, Dialog, Portal} from 'react-native-paper';
-import {BASE_URL} from '@env';
 import HeaderWithBack from '../Components/HeaderWithBack';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {
+  addWeight,
+  deleteWeight,
+  getAllWeights,
+  updateWeight,
+} from '../storage/weight';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 export default function WeightScreen() {
   const [week, setWeek] = useState('');
@@ -21,45 +28,67 @@ export default function WeightScreen() {
 
   const [editVisible, setEditVisible] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [user_id, setUser_id] = useState(null);
 
-  const fetchWeightHistory = async () => {
+  const fetchWeightHistory = async userId => {
     try {
-      const res = await fetch(`${BASE_URL}/weight`);
-      if (!res.ok) {
-        throw new Error('Network response was not ok');
+      const getAllWeights_res = await getAllWeights(userId);
+
+      if (!getAllWeights_res.success) {
+        throw new Error(getAllWeights_res.error.message);
       }
-      const data = await res.json();
-      setHistory(data.reverse());
+
+      const data = getAllWeights_res.data;
+      setHistory(data);
     } catch (err) {
       console.error('Failed to fetch weights:', err);
     }
   };
- 
 
-  const formatLocalDate = (utcDateString) => {
+  const formatLocalDate = utcDateString => {
     if (!utcDateString) return '';
-    const dateStringWithZ = utcDateString.endsWith('Z') ? utcDateString : `${utcDateString}Z`;
+    const dateStringWithZ = utcDateString.endsWith('Z')
+      ? utcDateString
+      : `${utcDateString}Z`;
     const date = new Date(dateStringWithZ);
     if (isNaN(date.getTime())) return 'Invalid date';
-   return date.toLocaleString(undefined, {
+    return date.toLocaleString(undefined, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: true, 
+      hour12: true,
     });
   };
 
-
   useEffect(() => {
-    fetchWeightHistory();
+    const loadData = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('user_id');
+
+        console.log('userid:', userId);
+
+        setUser_id(userId);
+
+        if (!userId) {
+          console.log('No user ID found');
+          return;
+        }
+
+        await fetchWeightHistory(userId);
+      } catch (err) {
+        console.error('Failed to load data:', err);
+      }
+    };
+
+    loadData();
   }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchWeightHistory();
+    await fetchWeightHistory(user_id);
     setRefreshing(false);
   };
 
@@ -70,18 +99,34 @@ export default function WeightScreen() {
     }
 
     try {
-      await fetch(`${BASE_URL}/weight`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({week_number: week, weight, note}),
+      const addWeight_res = await addWeight(user_id, {
+        week_number: week,
+        weight,
+        note,
+      });
+      if (!addWeight_res.success) {
+        Toast.show({
+          type: 'error',
+          text1: addWeight_res.error.message || 'Error add weight!',
+          visibilityTime: 2000,
+          position: 'bottom',
+          topOffset: 50,
+        });
+        throw new Error(addWeight_res.error.message);
+      }
+      Toast.show({
+        type: 'success',
+        text1: 'Weight added successfully!',
+        visibilityTime: 2000,
+        position: 'bottom',
+        topOffset: 50,
       });
       setWeek('');
       setWeight('');
       setNote('');
-      fetchWeightHistory();
+      fetchWeightHistory(user_id);
     } catch (err) {
       console.error('Failed to save weight:', err);
-      Alert.alert('Error', 'Failed to save weight entry. Please try again.');
     }
   };
 
@@ -96,13 +141,29 @@ export default function WeightScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await fetch(`${BASE_URL}/weight/${id}`, {
-                method: 'DELETE',
+              const deleteWeight_res = await deleteWeight(user_id, id);
+              if (!deleteWeight_res.success) {
+                Toast.show({
+                  type: 'error',
+                  text1:
+                    deleteWeight_res.error.message || 'Error deleting weight!',
+                  visibilityTime: 2000,
+                  position: 'bottom',
+                  topOffset: 50,
+                });
+                throw new Error(deleteWeight_res.error.message);
+              }
+
+              Toast.show({
+                type: 'success',
+                text1: 'Weight deleted successfully!',
+                visibilityTime: 2000,
+                position: 'bottom',
+                topOffset: 50,
               });
-              fetchWeightHistory();
+              fetchWeightHistory(user_id);
             } catch (err) {
               console.error('Failed to delete weight:', err);
-              Alert.alert('Error', 'Failed to delete entry. Please try again.');
             }
           },
         },
@@ -117,21 +178,33 @@ export default function WeightScreen() {
 
   const handleUpdate = async () => {
     try {
-      await fetch(`${BASE_URL}/weight/${editData.id}`, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          week_number: editData.week_number,
-          weight: editData.weight,
-          note: editData.note,
-        }),
+      const updateWeight_res = await updateWeight(user_id, editData.id, {
+        week_number: editData.week_number,
+        weight: editData.weight,
+        note: editData.note,
+      });
+      if (!updateWeight_res.success) {
+        Toast.show({
+          type: 'error',
+          text1: updateWeight_res.error.message || 'Error update weight!',
+          visibilityTime: 2000,
+          position: 'bottom',
+          topOffset: 50,
+        });
+        throw new Error(updateWeight_res.error.message);
+      }
+      Toast.show({
+        type: 'success',
+        text1: 'Weight updated successfully!',
+        visibilityTime: 2000,
+        position: 'bottom',
+        topOffset: 50,
       });
       setEditVisible(false);
       setEditData(null);
-      fetchWeightHistory();
+      fetchWeightHistory(user_id);
     } catch (err) {
       console.error('Failed to update weight:', err);
-      Alert.alert('Error', 'Failed to update entry. Please try again.');
     }
   };
 
@@ -156,7 +229,8 @@ export default function WeightScreen() {
               mode="outlined"
               left={<TextInput.Icon icon="calendar" />}
               style={styles.input}
-             />
+              textColor="#454545"
+            />
             <TextInput
               label="Weight (kg)"
               value={weight}
@@ -165,6 +239,7 @@ export default function WeightScreen() {
               mode="outlined"
               left={<TextInput.Icon icon="weight-kilogram" />}
               style={styles.input}
+              textColor="#454545"
             />
             <TextInput
               label="Note (optional)"
@@ -174,6 +249,7 @@ export default function WeightScreen() {
               numberOfLines={4}
               mode="outlined"
               style={[styles.input, styles.noteInput]}
+              textColor="#454545"
             />
 
             <Button
@@ -200,29 +276,35 @@ export default function WeightScreen() {
                   </Text>
                 </View>
                 <View style={styles.iconRow}>
-                  <Icon
-                    name="create-outline"
-                    size={20}
-                    color="#4a90e2"
-                    onPress={() => openEditModal(entry)}
-                    style={styles.iconButton}
-                  />
-                  <Icon
-                    name="trash-outline"
-                    size={20}
-                    color="#e74c3c"
-                    onPress={() => handleDelete(entry.id)}
-                    style={styles.iconButton}
-                  />
+                  <View style={styles.editButtonbg}>
+                    <Icon
+                      name="pencil"
+                      size={20}
+                      color="#4a90e2"
+                      onPress={() => openEditModal(entry)}
+                      style={styles.iconButton}
+                    />
+                  </View>
+                  <View style={styles.deleteButtonbg}>
+                    <Icon
+                      name="trash"
+                      size={20}
+                      color="#e74c3c"
+                      onPress={() => handleDelete(entry.id)}
+                    />
+                  </View>
                 </View>
               </View>
 
-              <Text style={styles.entrySub}>Weight: {entry.weight} kg</Text>
+              <Text style={styles.entrySub}>
+                Weight:{' '}
+                <Text style={{fontWeight: '500'}}>{entry.weight} kg</Text>
+              </Text>
               {entry.note ? (
                 <Text style={styles.entryNote}>Note: {entry.note}</Text>
               ) : null}
               <Text style={styles.entryDate}>
-               {formatLocalDate(entry.created_at)}
+                {formatLocalDate(entry.created_at)}
               </Text>
             </Card.Content>
           </Card>
@@ -231,9 +313,13 @@ export default function WeightScreen() {
 
       {/* Edit Dialog */}
       <Portal>
-        <Dialog visible={editVisible} onDismiss={() => setEditVisible(false)}>
-          <Dialog.Title>Edit Entry</Dialog.Title>
-          <Dialog.Content >
+        <Dialog
+          visible={editVisible}
+          onDismiss={() => setEditVisible(false)}
+          style={styles.editDialog}>
+          <Dialog.Title style={styles.editTitle}>Edit Entry</Dialog.Title>
+
+          <Dialog.Content>
             <TextInput
               label="Week Number"
               value={editData?.week_number?.toString() || ''}
@@ -243,7 +329,11 @@ export default function WeightScreen() {
               keyboardType="numeric"
               mode="outlined"
               style={styles.input}
+              textColor="#454545"
+              outlineStyle={styles.inputOutline}
+              activeOutlineColor="rgb(218,79,122)"
             />
+
             <TextInput
               label="Weight"
               value={editData?.weight?.toString() || ''}
@@ -251,7 +341,11 @@ export default function WeightScreen() {
               keyboardType="numeric"
               mode="outlined"
               style={styles.input}
+              textColor="#454545"
+              outlineStyle={styles.inputOutline}
+              activeOutlineColor="rgb(218,79,122)"
             />
+
             <TextInput
               label="Note"
               value={editData?.note || ''}
@@ -260,11 +354,24 @@ export default function WeightScreen() {
               multiline
               numberOfLines={3}
               style={styles.input}
+              textColor="#454545"
+              outlineStyle={styles.inputOutline}
+              activeOutlineColor="rgb(218,79,122)"
             />
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setEditVisible(false)}>Cancel</Button>
-            <Button onPress={handleUpdate}>Save</Button>
+
+          <Dialog.Actions style={styles.editActions}>
+            <Button onPress={() => setEditVisible(false)} textColor="#666">
+              Cancel
+            </Button>
+
+            <Button
+              onPress={handleUpdate}
+              mode="contained"
+              buttonColor="rgba(218, 79, 123, 0.95)"
+              style={styles.saveButton}>
+              <Text style={styles.saveButtonText}>Save</Text>
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -292,7 +399,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginBottom: 15,
     borderRadius: 10,
-   
   },
   noteInput: {
     minHeight: 100,
@@ -320,7 +426,7 @@ const styles = StyleSheet.create({
   entryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    gap: 5,
   },
   entryRowBetween: {
     flexDirection: 'row',
@@ -345,14 +451,61 @@ const styles = StyleSheet.create({
   entryDate: {
     fontSize: 12,
     color: '#aaa',
-    marginTop: 6,
+    marginTop: 5,
   },
   iconRow: {
     flexDirection: 'row',
     marginTop: 10,
     gap: 12,
   },
+  editButtonbg: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4a91e227',
+  },
   iconButton: {
-    marginRight: 20,
+    marginLeft: 2,
+  },
+  deleteButtonbg: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e74d3c2c',
+  },
+  editDialog: {
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+  },
+
+  editTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#222',
+  },
+
+  input: {
+    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+  },
+
+  inputOutline: {
+    borderRadius: 10,
+  },
+
+  editActions: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+
+  saveButton: {
+    borderRadius: 8,
+  },
+  saveButtonText: {
+    color: '#fff',
   },
 });

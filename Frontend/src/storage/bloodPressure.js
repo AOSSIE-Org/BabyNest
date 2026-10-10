@@ -44,6 +44,9 @@ export async function addBPLog(userId, data) {
         'INVALID_WEEK_NUMBER',
       );
     }
+    if (weekNumber > 40) {
+      return failure('Please enter a valid week', 'INVALID_FEILDS');
+    }
 
     if (!Number.isFinite(systolic)) {
       return failure('systolic must be a valid number', 'INVALID_SYSTOLIC');
@@ -255,6 +258,9 @@ export async function updateBPLog(userId, id, data) {
       return failure('No data provided', 'NO_DATA');
     }
 
+    if (data.week_number > 40) {
+      return failure('Please enter a valid week', 'INVALID_FEILDS');
+    }
     const db = await openDB();
 
     // IMPORTANT:

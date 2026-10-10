@@ -22,9 +22,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Picker} from '@react-native-picker/picker';
 import {countries} from '../data/countries';
 import Toast from 'react-native-toast-message';
-import { launchImageLibrary } from 'react-native-image-picker';
-import { getProfile, updateProfile } from '../storage/profile';
-
+import {launchImageLibrary} from 'react-native-image-picker';
+import {getProfile, updateProfile} from '../storage/profile';
 
 const ProfileField = ({label, value}) => {
   return (
@@ -120,7 +119,21 @@ export default function ProfileScreen() {
         const savedImage = await AsyncStorage.getItem('profile_image');
 
         if (savedImage) {
-          setProfileImage(savedImage);
+          try {
+            const response = await fetch(savedImage, {method: 'HEAD'});
+
+            if (response.ok) {
+              setProfileImage(savedImage);
+            } else {
+              setProfileImage(null);
+              await AsyncStorage.removeItem('profile_image');
+            }
+          } catch (error) {
+            console.log('Failed to verify profile image:', error);
+            setProfileImage(null);
+          }
+        } else {
+          setProfileImage(null);
         }
       } catch (error) {
         console.log('Error loading profile image:', error);
