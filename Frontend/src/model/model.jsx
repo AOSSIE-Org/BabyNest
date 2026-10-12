@@ -6,10 +6,17 @@ import DeviceInfo from "react-native-device-info";
 import {MODEL_NAME, HF_TO_GGUF, GGUF_FILE} from "@env";
 
 let context = null;
+let modelGeneration = 0;
 
 const MAX_CACHE_SIZE = 100;
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const responseCache = new Map();
+
+// Scope replies to a loaded model lifetime, including reloads of the same file.
+const invalidateResponseCache = () => {
+  modelGeneration += 1;
+  responseCache.clear();
+};
 
 const setCache = (key, value) => {
   // Enforce size limit
@@ -107,19 +114,22 @@ export const loadModel = async (modelName) => {
       return false;
     }
 
+    invalidateResponseCache();
     if (context) {
-      await releaseAllLlama();
       context = null;
+      await releaseAllLlama();
     }
 
     if (!(await checkMemoryBeforeLoading(destPath))) return false;
 
-    context = await initLlama({
+    const loadedContext = await initLlama({
         model: destPath, 
         n_ctx: 2048,
         n_gpu_layers: 0, // Disabled GPU layers to fix emulator lag/hang
         n_threads: 2     // Reduced threads for emulator stability
     });
+    invalidateResponseCache();
+    context = loadedContext;
     if (__DEV__) console.log("Model context initialized.");
     return true;
   } catch (error) {
@@ -129,11 +139,12 @@ export const loadModel = async (modelName) => {
 };
 
 export const unloadModel = async () => {
+  invalidateResponseCache();
   try {
     if (context) {
       if (__DEV__) console.log("Releasing model context...");
-      await releaseAllLlama();
       context = null;
+      await releaseAllLlama();
       if (__DEV__) console.log("Model context released.");
     }
   } catch (error) {
@@ -147,17 +158,6 @@ export const generateResponse = async (conversation) => {
       return null;
     }
 
-    const lastMessage = conversation.filter(msg => msg?.role === "user").pop();
-    const cacheKey = lastMessage?.content?.trim();
-
-    if (cacheKey) {
-      const cachedResponse = getCache(cacheKey);
-      if (cachedResponse) {
-        console.log("Returning cached response for:", cacheKey);
-        return cachedResponse;
-      }
-    }
-  
     const stopWords = [
       "</s>", 
       "<|end|>", 
@@ -169,6 +169,10 @@ export const generateResponse = async (conversation) => {
     ];
   
     try {
+      const requestContext = context;
+      const requestGeneration = modelGeneration;
+      if (!requestContext) throw new Error("Model is not loaded.");
+
       // Check if conversation already has a system message
       const hasSystemMessage = conversation.some(msg => msg.role === "system");
       
@@ -189,13 +193,19 @@ export const generateResponse = async (conversation) => {
         messagesToSend = [defaultSystemMessage, ...conversation];
       }
   
-      if (__DEV__) console.log("Starting inference...");
-      const startTime = Date.now();
-      const result = await context.completion({
+      const completionOptions = {
         messages: messagesToSend,
         n_predict: 256, // Reduced from 500 for faster felt response
         stop: stopWords
-      });
+      };
+      // Use exactly the effective prompt/options, without trimming any messages.
+      const cacheKey = JSON.stringify([requestGeneration, completionOptions]);
+      const cachedResponse = getCache(cacheKey);
+      if (cachedResponse !== null) return cachedResponse;
+
+      if (__DEV__) console.log("Starting inference...");
+      const startTime = Date.now();
+      const result = await requestContext.completion(completionOptions);
       if (__DEV__) {
         const endTime = Date.now();
         console.log(`⚡ Inference Time: ${endTime - startTime}ms`);
@@ -203,8 +213,8 @@ export const generateResponse = async (conversation) => {
   
       const response = result?.text?.trim();
       
-      // Cache the successful response
-      if (response && cacheKey) {
+      // A completion from a released/replaced model must not refill the cache.
+      if (response && requestContext === context && requestGeneration === modelGeneration) {
         setCache(cacheKey, response);
       }
 
