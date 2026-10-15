@@ -68,8 +68,6 @@ export default function WeightScreen() {
       try {
         const userId = await AsyncStorage.getItem('user_id');
 
-        console.log('userid:', userId);
-
         setUser_id(userId);
 
         if (!userId) {

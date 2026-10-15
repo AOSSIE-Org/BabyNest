@@ -12,16 +12,16 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import {BASE_URL} from '@env';
 import {useDrawer} from '../context/DrawerContext';
 import {babySizes} from '../data/babySizes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Pressable } from 'react-native';
-import { getProfile } from '../storage/profile';
-import { getAppointments } from '../storage/appointments';
+import {Pressable} from 'react-native';
+import {getProfile} from '../storage/profile';
+import {getAppointments} from '../storage/appointments';
+import {getTasks} from '../storage/tasks';
+import TaskDetailsModal from '../Components/TaskDetailsModal';
 
-export default function HomeScreen({ navigation }) {
-  console.log(BASE_URL);
+export default function HomeScreen({navigation}) {
   const [dueDate, setDueDate] = useState('');
   const [currentWeek, setCurrentWeek] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,8 +31,17 @@ export default function HomeScreen({ navigation }) {
   const weekScrollRef = useRef(null);
   const {openDrawer} = useDrawer();
   const [profileImage, setProfileImage] = useState(null);
+  const [taskDetailsVisible, setTaskDetailsVisible] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [user_id, setUserId] = useState(null);
 
   useEffect(() => {
+    const getUserId = async () => {
+      const id = await AsyncStorage.getItem('user_id');
+      setUserId(id);
+      return id;
+    };
+    getUserId();
     fetchData();
   }, []);
 
@@ -43,7 +52,21 @@ export default function HomeScreen({ navigation }) {
         const savedImage = await AsyncStorage.getItem('profile_image');
 
         if (savedImage) {
-          setProfileImage(savedImage);
+          try {
+            const response = await fetch(savedImage, {method: 'HEAD'});
+
+            if (response.ok) {
+              setProfileImage(savedImage);
+            } else {
+              setProfileImage(null);
+              await AsyncStorage.removeItem('profile_image');
+            }
+          } catch (error) {
+            console.log('Failed to verify profile image:', error);
+            setProfileImage(null);
+          }
+        } else {
+          setProfileImage(null);
         }
       } catch (error) {
         console.log('Error loading profile image:', error);
@@ -77,12 +100,18 @@ export default function HomeScreen({ navigation }) {
         }
 
         setAllAppointments(apptData || []);
-      } catch (error) { 
-        console.log("Error while fetching appointments > HomeScreen.jsx:", error);
+      } catch (error) {
+        console.log(
+          'Error while fetching appointments > HomeScreen.jsx:',
+          error,
+        );
       }
-      
-      const taskRes = await fetch(`${BASE_URL}/get_tasks`);
-      const taskData = await taskRes.json();
+
+      const getTasks_res = await getTasks(user_id);
+      if (!getTasks_res.success) {
+        throw new Error(getTasks_res.error.message);
+      }
+      const taskData = await getTasks_res.data;
       setAllTasks(taskData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -129,9 +158,10 @@ export default function HomeScreen({ navigation }) {
       return {...appt, week_number: weekNumber};
     })
     .filter(appt => appt.week_number === currentWeek)
-    .sort((a, b) => a.week_number - b.week_number)
+    .sort((a, b) => a.week_number - b.week_number);
 
   const filteredTasks = allTasks
+    .filter(task => task.task_status === "pending")
     .filter(task => parseInt(task.starting_week) >= currentWeek)
     .sort((a, b) => parseInt(a.starting_week) - parseInt(b.starting_week))
     .slice(0, 3);
@@ -245,21 +275,29 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>This Week's Tasks</Text>
           {filteredTasks.map((task, idx) => (
-            <View key={idx} style={styles.card}>
-              <Icon
-                name="checkmark-circle-outline"
-                size={20}
-                color="rgb(218,79,122)"
-              />
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{task.title}</Text>
-                <Text>
-                  {task.starting_week === task.ending_week
-                    ? `Week ${task.starting_week}`
-                    : `Weeks ${task.starting_week}-${task.ending_week}`}
-                </Text>
+            <TouchableOpacity
+              key={idx}
+              activeOpacity={0.75}
+              onPress={() => {
+                setSelectedTaskId(task.id);
+                setTaskDetailsVisible(true);
+              }}>
+              <View style={styles.card}>
+                <Icon
+                  name="checkmark-circle-outline"
+                  size={20}
+                  color="rgb(218,79,122)"
+                />
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{task.title}</Text>
+                  <Text>
+                    {task.starting_week === task.ending_week
+                      ? `Week ${task.starting_week}`
+                      : `Weeks ${task.starting_week}-${task.ending_week}`}
+                  </Text>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -269,6 +307,16 @@ export default function HomeScreen({ navigation }) {
           onPress={() => navigation.jumpTo('Chat')}>
           <MaterialIcons name="smart-toy" size={24} color="#fff" />
         </TouchableOpacity>
+
+        <TaskDetailsModal
+          visible={taskDetailsVisible}
+          userId={user_id}
+          taskId={selectedTaskId}
+          onClose={() => {
+            setTaskDetailsVisible(false);
+            setSelectedTaskId(null);
+          }}
+        />
       </ScrollView>
     </SafeAreaView>
   );

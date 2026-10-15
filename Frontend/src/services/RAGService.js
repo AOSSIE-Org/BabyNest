@@ -5,15 +5,45 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { deleteProfile, updateProfile } from '../storage/profile';
-import { addAppointment, deleteAppointment, getAppointments, updateAppointment } from '../storage/appointments';
-import { addBPLog, deleteBPLog, getBPLogs, updateBPLog } from '../storage/bloodPressure';
-import { generateResponse } from '../model/model';
-import { addDischargeLog, deleteDischargeLog, getDischargeLogs, updateDischargeLog } from '../storage/discharge';
-import { deleteMedicine, getAllMedicine, updateMedicine } from '../storage/medicine';
-import { addSymptom, deleteSymptom, getAllSymptoms, updateSymptom } from '../storage/symptoms';
-import { addTask, getTasks } from '../storage/tasks';
-import { addWeight, deleteWeight, getAllWeights, updateWeight } from '../storage/weight';
+import {updateProfile} from '../storage/profile';
+import {
+  addAppointment,
+  deleteAppointment,
+  getAppointments,
+  updateAppointment,
+} from '../storage/appointments';
+import {
+  addBPLog,
+  deleteBPLog,
+  getBPLogs,
+  updateBPLog,
+} from '../storage/bloodPressure';
+import {generateRAGResponse, generateResponse} from '../model/model';
+import {
+  addDischargeLog,
+  deleteDischargeLog,
+  getDischargeLogs,
+  updateDischargeLog,
+} from '../storage/discharge';
+import {
+  deleteMedicine,
+  getAllMedicine,
+  updateMedicine,
+} from '../storage/medicine';
+import {
+  addSymptom,
+  deleteSymptom,
+  getAllSymptoms,
+  updateSymptom,
+} from '../storage/symptoms';
+import {addTask, getTasks} from '../storage/tasks';
+import {
+  addWeight,
+  deleteWeight,
+  getAllWeights,
+  updateWeight,
+} from '../storage/weight';
+import {openDB} from '../database';
 
 class RAGService {
   constructor() {
@@ -109,6 +139,44 @@ class RAGService {
         action: 'logSymptoms',
         requiredFields: ['symptom'],
         optionalFields: ['week_number', 'note'],
+      },
+
+      // Analytics and query intents
+      query_analytics: {
+        keywords: [
+          'analytics',
+          'stats',
+          'statistics',
+          'trend',
+          'average',
+          'summary',
+          'report',
+          'show',
+          'chart',
+          'graph',
+          'visualization',
+        ],
+        examples: [
+          'show weight analytics',
+          'show weight trend',
+          'weight analytics',
+          'sleep analytics',
+          'mood analytics',
+          'blood pressure analytics',
+          'show sleep data',
+          'weight chart',
+          'sleep trend',
+          'mood summary',
+          'analytics dashboard',
+          'show my health data',
+          'generate health report',
+          'weight statistics',
+          'sleep statistics',
+          'mood statistics',
+        ],
+        action: 'queryAnalytics',
+        requiredFields: ['metric'],
+        optionalFields: ['timeframe', 'chart_type'],
       },
 
       // Blood pressure logging intents
@@ -342,7 +410,7 @@ class RAGService {
           'edit details',
         ],
         action: 'updateProfile',
-        requiredFields: ['field'],
+        requiredFields: [],
         optionalFields: ['value'],
       },
 
@@ -624,9 +692,11 @@ class RAGService {
 
       // 1. Find the best matching intent
       const bestIntent = await this.findBestIntent(userQuery);
+      console.log("Intent found ", bestIntent);
 
       // 2. Extract structured data from the query
       const extractedData = await this.extractData(userQuery, bestIntent);
+      console.log("Data extracted", bestIntent);
 
       // 3. Check if we have all required information
       const missingFields = this.checkMissingFields(extractedData, bestIntent);
@@ -670,6 +740,33 @@ class RAGService {
       };
     }
 
+    // Special case: If query contains analytics-related keywords, prioritize analytics intent
+    const analyticsKeywords = [
+      'analytics',
+      'stats',
+      'analysis',
+      'analyse',
+      'statistics',
+      'trend',
+      'chart',
+      'graph',
+      'report',
+    ];
+    const hasAnalyticsKeyword = analyticsKeywords.some(keyword =>
+      query.includes(keyword),
+    );
+
+    if (hasAnalyticsKeyword) {
+      const analyticsIntent = this.intentEmbeddings['query_analytics'];
+      if (analyticsIntent) {
+        return {
+          name: 'query_analytics',
+          ...analyticsIntent,
+          confidence: 1.0,
+        };
+      }
+    }
+
     // Special case: If query contains view-related keywords, prioritize view logs intents
     const viewLogsKeywords = [
       'logs',
@@ -679,7 +776,6 @@ class RAGService {
       'show',
       'view',
       'display',
-      'my',
       'all',
     ];
     const hasViewLogsKeyword = viewLogsKeywords.some(keyword =>
@@ -820,57 +916,147 @@ class RAGService {
     const query = userQuery.toLowerCase();
 
     switch (intent.name) {
+      case 'query_analytics':
+        data.metric = this.extractAnalyticsMetric(query);
+        break;
+
       case 'create_appointment':
-        data.title = this.extractAppointmentTitle(query);
-        data.date = this.extractDate(query);
-        data.time = this.extractTime(query);
-        data.location = this.extractLocation(query);
+        const systemPromptForAppointment =
+          this.getAppointmentExtractionPrompt();
+
+        const extractedDataForAppointment = await generateRAGResponse(
+          query,
+          systemPromptForAppointment,
+        );
+
+        if (!extractedDataForAppointment) {
+          throw new Error('Failed to extract appointment details.');
+        }
+
+        data.title = extractedDataForAppointment.title ?? null;
+        data.date = extractedDataForAppointment.date ?? null;
+        data.time = extractedDataForAppointment.time ?? null;
+        data.location = extractedDataForAppointment.location ?? null;
+
         break;
 
       case 'log_weight':
-        data.weight = this.extractWeight(query);
-        data.week_number = this.extractWeek(query);
-        data.note = this.extractNote(query);
+        const systemPromptForWeight = this.getWeightExtractionPrompt();
+
+        const extractedDataForWeight = await generateRAGResponse(
+          query,
+          systemPromptForWeight,
+        );
+        
+        if (!extractedDataForWeight) {
+          throw new Error('Failed to extract weight details.');
+        }
+
+        data.weight = extractedDataForWeight.weight ?? null;
+        data.week_number = extractedDataForWeight.week_number ?? null;
+        data.note = extractedDataForWeight.note ?? null;
         break;
 
       case 'log_symptoms':
-        data.symptom = this.extractSymptom(query);
-        data.week_number = this.extractWeek(query);
-        data.note = this.extractNote(query);
+        const systemPromptForSymptoms = this.getSymptomsExtractionPrompt();
+
+        const extractedDataForSymptoms = await generateRAGResponse(
+          query,
+          systemPromptForSymptoms,
+        );
+
+        if (!extractedDataForSymptoms) {
+          throw new Error('Failed to extract symptom details.');
+        }
+        const symptomData = extractedDataForSymptoms.data;
+
+        data.symptom = symptomData.symptom ?? null;
+        data.week_number = symptomData.week_number ?? null;
+        data.note = symptomData.note ?? null;
+
         break;
 
       case 'log_blood_pressure':
-        const bp = this.extractBloodPressure(query);
-        data.systolic = bp.systolic;
-        data.diastolic = bp.diastolic;
-        data.time = this.extractTime(query);
-        data.week_number = this.extractWeek(query);
-        data.note = this.extractNote(query);
+        const systemPromptForBloodPressure =
+          this.getBloodPressureExtractionPrompt();
+        const extractedDataForBloodPressure = await generateRAGResponse(
+          query,
+          systemPromptForBloodPressure,
+        );
+
+        if (!extractedDataForBloodPressure) {
+          throw new Error('Failed to extract blood pressure details.');
+        }
+
+        const bloodPressureData = extractedDataForBloodPressure.data;
+
+        data.systolic = bloodPressureData.systolic ?? null;
+        data.diastolic = bloodPressureData.diastolic ?? null;
+        data.time = bloodPressureData.time ?? null;
+        data.week_number = bloodPressureData.week_number ?? null;
+        data.note = bloodPressureData.note ?? null;
+
         break;
 
       case 'log_medicine':
         console.log('🔍 DEBUG: Extracting medicine data from query:', query);
-        data.name = this.extractMedicineName(query);
-        data.dose = this.extractDose(query);
-        data.time = this.extractTime(query);
-        data.week_number = this.extractWeek(query);
-        data.note = this.extractNote(query);
+        const systemPromptForMedicine = this.getMedicineExtractionPrompt();
+        const extractedDataForMedicine = await generateRAGResponse(
+          query,
+          systemPromptForMedicine,
+        );
+
+        if (!extractedDataForMedicine) {
+          throw new Error('Failed to extract medicine details.');
+        }
+        const medicineData = extractedDataForMedicine.data;
+
+        data.name = medicineData.name ?? null;
+        data.dose = medicineData.dose ?? null;
+        data.time = medicineData.time ?? null;
+        data.week_number = medicineData.week_number ?? null;
+        data.note = medicineData.note ?? null;
         console.log('🔍 DEBUG: Extracted medicine data:', data);
         break;
 
       case 'log_discharge':
-        data.type = this.extractDischargeType(query);
-        data.color = this.extractDischargeColor(query);
-        data.bleeding = this.extractBleeding(query);
-        data.week_number = this.extractWeek(query);
-        data.note = this.extractNote(query);
+        const systemPromptForDischarge = this.getDischargeExtractionPrompt();
+        const extractedDataForDischarge = await generateRAGResponse(
+          query,
+          systemPromptForDischarge,
+        );
+
+        if (!extractedDataForDischarge) {
+          throw new Error('Failed to extract discharge details.');
+        }
+        const dischargeData = extractedDataForDischarge.data;
+
+        data.type = dischargeData.type ?? null;
+        data.color = dischargeData.color ?? null;
+        data.bleeding = dischargeData.bleeding ?? null;
+        data.week_number = dischargeData.week_number ?? null;
+        data.note = dischargeData.note ?? null;
+
         break;
 
       case 'create_task':
-        data.title = this.extractTaskTitle(query);
-        data.week = this.extractWeek(query);
-        data.priority = this.extractPriority(query);
-        data.note = this.extractNote(query);
+        const systemPromptForTask = this.getTaskExtractionPrompt();
+        const extractedDataForTask = await generateRAGResponse(
+          query,
+          systemPromptForTask,
+        );
+
+        if (!extractedDataForTask) {
+          throw new Error('Failed to extract task details.');
+        }
+
+        const taskData = extractedDataForTask.data;
+
+        data.title = taskData.title ?? null;
+        data.week = taskData.week ?? null;
+        data.priority = taskData.priority ?? null;
+        data.note = taskData.note ?? null;
+
         break;
 
       case 'navigate':
@@ -878,55 +1064,94 @@ class RAGService {
         break;
 
       case 'update_profile':
-        data.field = this.extractProfileField(query);
-        data.value = this.extractProfileValue(query);
+        const systemPromptForProfile = this.getProfileExtractionPrompt();
+        const extractedDataForProfile = await generateRAGResponse(
+          query,
+          systemPromptForProfile,
+        );
+
+        if (!extractedDataForProfile) {
+          throw new Error('Failed to extract profile details.');
+        }
+
+        const profileData = extractedDataForProfile.data;
+
+        for (const field of [
+          'age',
+          'location',
+          'due_date',
+          'lmp',
+          'name',
+          'periodLength',
+        ]) {
+          if (profileData[field] !== null && profileData[field] !== undefined) {
+            data[field] = profileData[field];
+          }
+        }
         break;
 
       case 'get_data':
-        data.type = this.extractDataType(query);
-        data.week = this.extractWeek(query);
-        data.date = this.extractDate(query);
+        const systemPromptForData = this.getDataExtractionPrompt();
+        const extractedDataForData = await generateRAGResponse(
+          query,
+          systemPromptForData,
+        );
+
+        if (!extractedDataForData) {
+          throw new Error('Failed to extract data query details.');
+        }
+
+        const requestedData = extractedDataForData.data;
+
+        data.type = requestedData.type ?? null;
+        data.week = requestedData.week ?? null;
+        data.date = requestedData.date ?? null;
         break;
 
       case 'update_appointment':
-        data.appointment_identifier = this.extractAppointmentIdentifier(query);
-        data.title = this.extractAppointmentTitle(query);
-        data.date = this.extractDate(query);
-        data.time = this.extractTime(query);
-        data.location = this.extractLocation(query);
-        data.note = this.extractNote(query);
+        const systemPromptForUpdateAppointment =
+          this.getUpdateAppointmentExtractionPrompt();
+
+        const extractedDataForUpdateAppointment = await generateRAGResponse(
+          query,
+          systemPromptForUpdateAppointment,
+        );
+
+        if (!extractedDataForUpdateAppointment) {
+          throw new Error('Failed to extract appointment update details.');
+        }
+
+        const appointmentData = extractedDataForUpdateAppointment.data;
+
+        data.appointment_identifier =
+          appointmentData.appointment_identifier ?? null;
+        data.title = appointmentData.title ?? null;
+        data.date = appointmentData.date ?? null;
+        data.time = appointmentData.time ?? null;
+        data.location = appointmentData.location ?? null;
+        data.note = appointmentData.note ?? null;
         break;
 
       case 'delete_appointment':
-        data.appointment_identifier = this.extractAppointmentIdentifier(query);
+        data.appointment_identifier = null;
         break;
 
       case 'view_weight_logs':
-        data.week_number = this.extractWeek(query);
-        data.limit = this.extractLimit(query);
         break;
 
       case 'view_medicine_logs':
-        data.week_number = this.extractWeek(query);
-        data.limit = this.extractLimit(query);
         break;
 
       case 'view_symptoms_logs':
-        data.week_number = this.extractWeek(query);
-        data.limit = this.extractLimit(query);
         break;
 
       case 'view_blood_pressure_logs':
-        data.week_number = this.extractWeek(query);
-        data.limit = this.extractLimit(query);
         break;
 
       case 'view_discharge_logs':
-        data.week_number = this.extractWeek(query);
-        data.limit = this.extractLimit(query);
         break;
 
-      case "general_chat":
+      case 'general_chat':
         data.message = userQuery;
         break;
     }
@@ -934,353 +1159,493 @@ class RAGService {
     return data;
   }
 
-  /**
-   * Extract appointment identifier from query
-   */
-  extractAppointmentIdentifier(query) {
-    // Check for specific appointment types
-    const appointmentTypes = [
-      'ultrasound',
+  extractAnalyticsMetric = query => {
+    const appointmentsMetricData = [
+      'appointment',
+      'appointments',
+      'schedule',
+      'schedules',
+      'scheduled',
+      'booking',
+      'bookings',
       'checkup',
-      'consultation',
-      'blood test',
-      'scan',
+      'check-up',
       'visit',
-      'examination',
-    ];
-    for (const type of appointmentTypes) {
-      if (query.includes(type)) {
-        return {type: 'title', value: type};
-      }
-    }
-
-    // Check for dates
-    const date = this.extractDate(query);
-    if (date) {
-      return {type: 'date', value: date};
-    }
-
-    // Check for times
-    const time = this.extractTime(query);
-    if (time) {
-      return {type: 'time', value: time};
-    }
-
-    // Check for locations
-    const location = this.extractLocation(query);
-    if (location) {
-      return {type: 'location', value: location};
-    }
-
-    // Check for day names
-    const dayNames = [
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-      'sunday',
-    ];
-    for (const day of dayNames) {
-      if (query.includes(day)) {
-        return {type: 'day', value: day};
-      }
-    }
-
-    // Check for relative terms
-    const relativeTerms = [
-      'tomorrow',
-      'today',
-      'next week',
-      'first',
-      'second',
-      'last',
-    ];
-    for (const term of relativeTerms) {
-      if (query.includes(term)) {
-        return {type: 'relative', value: term};
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Extract appointment title from query
-   */
-  extractAppointmentTitle(query) {
-    const appointmentTypes = [
-      'ultrasound',
-      'checkup',
-      'consultation',
-      'blood test',
-      'scan',
-      'visit',
-      'examination',
-    ];
-    for (const type of appointmentTypes) {
-      if (query.includes(type)) {
-        return type;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Extract date from query
-   */
-  extractDate(query) {
-    const datePatterns = [
-      /(\d{1,2}\/\d{1,2}\/\d{4})/,
-      /(\d{1,2}-\d{1,2}-\d{4})/,
-      /(\d{4}-\d{1,2}-\d{1,2})/,
-      /(\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4})/i,
-      /(\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december))/i,
-      /(tomorrow|today|next week|next month)/i,
-      /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i,
-      /(january|february|march|april|may|june|july|august|september|october|november|december)/i,
-      /(\d{1,2}\/\d{1,2})/,
-      /(\d{1,2}-\d{1,2})/,
+      'visits',
     ];
 
-    for (const pattern of datePatterns) {
-      const match = query.match(pattern);
-      if (match) {
-        return match[1];
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Extract time from query
-   */
-  extractTime(query) {
-    const timePatterns = [
-      /(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM))/,
-      /(\d{1,2}\s*(?:am|pm|AM|PM))/,
-      /(morning|afternoon|evening|night)/,
+    const tasksMetricData = [
+      'task',
+      'tasks',
+      'todo',
+      'to-do',
+      'todos',
+      'to-dos',
+      'pending task',
+      'completed task',
+      'activity',
+      'activities',
     ];
 
-    for (const pattern of timePatterns) {
-      const match = query.match(pattern);
-      if (match) {
-        return match[1];
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Extract location from query
-   */
-  extractLocation(query) {
-    const locations = [
-      'city hospital',
-      'medical center',
-      'doctor office',
-      'health center',
-      'delhi',
-      'mumbai',
-      'bangalore',
-      'chennai',
-      'hyderabad',
-      'kolkata',
-      'pune',
-      'hospital',
-      'clinic',
+    const blood_pressure_logsMetricData = [
+      'blood pressure',
+      'blood pressures',
+      'bp',
+      'systolic',
+      'diastolic',
+      'hypertension',
     ];
 
-    // Check multi-word locations first (longer matches)
-    for (const location of locations) {
-      if (query.includes(location)) {
-        return location;
-      }
-    }
-    return null;
-  }
+    const discharge_logsMetricData = [
+      'discharge',
+      'discharges',
+      'vaginal discharge',
+      'fluid discharge',
+      'discharge log',
+    ];
 
-  /**
-   * Extract weight from query
-   */
-  extractWeight(query) {
-    const weightMatch = query.match(
-      /(\d+(?:\.\d+)?)\s*(?:kg|kilos?|pounds?|lbs?)/,
-    );
-    return weightMatch ? parseFloat(weightMatch[1]) : null;
-  }
+    const weightMetricData = [
+      'weight',
+      'weights',
+      'body weight',
+      'weight gain',
+      'weight loss',
+    ];
 
-  /**
-   * Extract week from query
-   */
-  extractWeek(query) {
-    const weekMatch = query.match(/week\s+(\d+)/);
-    return weekMatch ? parseInt(weekMatch[1]) : null;
-  }
+    const medicineMetricData = [
+      'medicine',
+      'medicines',
+      'medication',
+      'medications',
+      'drug',
+      'drugs',
+      'pills',
+      'tablets',
+    ];
 
-  /**
-   * Extract limit from query
-   */
-  extractLimit(query) {
-    const limitMatch = query.match(/(?:last|recent|top)\s+(\d+)/);
-    return limitMatch ? parseInt(limitMatch[1]) : null;
-  }
-
-  /**
-   * Extract symptom from query
-   */
-  extractSymptom(query) {
-    const symptoms = [
+    const symptomsMetricData = [
+      'symptom',
+      'symptoms',
+      'pain',
       'nausea',
       'vomiting',
-      'dizziness',
       'headache',
       'fatigue',
-      'back pain',
       'cramps',
-      'spotting',
-      'bleeding',
-      'swelling',
-      'heartburn',
-      'constipation',
-      'morning sickness',
-      'mood swings',
-      'food cravings',
-      'aversion',
+      'dizziness',
     ];
 
-    for (const symptom of symptoms) {
-      if (query.includes(symptom)) {
-        return symptom;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Extract blood pressure from query
-   */
-  extractBloodPressure(query) {
-    const bpMatch = query.match(/(\d+)\s*\/\s*(\d+)/);
-    return bpMatch
-      ? {
-          systolic: parseInt(bpMatch[1]),
-          diastolic: parseInt(bpMatch[2]),
-        }
-      : {systolic: null, diastolic: null};
-  }
-
-  /**
-   * Extract medicine name from query
-   */
-  extractMedicineName(query) {
-    const medicines = [
-      'paracetamol',
-      'acetaminophen',
-      'ibuprofen',
-      'aspirin',
-      'iron',
-      'folic acid',
-      'calcium',
-      'vitamin d',
-      'prenatal vitamins',
-      'omeprazole',
-      'ranitidine',
+    const metrics = [
+      {
+        keywords: appointmentsMetricData,
+        metric: 'appointment_metric',
+      },
+      {
+        keywords: tasksMetricData,
+        metric: 'task_metric',
+      },
+      {
+        keywords: blood_pressure_logsMetricData,
+        metric: 'blood_pressure_metric',
+      },
+      {
+        keywords: discharge_logsMetricData,
+        metric: 'discharge_metric',
+      },
+      {
+        keywords: weightMetricData,
+        metric: 'weight_metric',
+      },
+      {
+        keywords: medicineMetricData,
+        metric: 'medicine_metric',
+      },
+      {
+        keywords: symptomsMetricData,
+        metric: 'symptom_metric',
+      },
     ];
 
-    for (const medicine of medicines) {
-      if (query.includes(medicine)) {
-        return medicine;
-      }
+    if (typeof query !== 'string' || !query.trim()) {
+      return null;
     }
-    return null;
-  }
 
-  /**
-   * Extract dose from query
-   */
-  extractDose(query) {
-    const doseMatch = query.match(
-      /(\d+(?:\.\d+)?)\s*(?:mg|ml|tablets?|pills?|drops?)/,
+    const normalizedQuery = query.toLowerCase();
+
+    const matchedMetric = metrics.find(({keywords}) =>
+      keywords.some(keyword => {
+        const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        const regex = new RegExp(
+          `(^|[^a-z0-9])${escapedKeyword}([^a-z0-9]|$)`,
+          'i',
+        );
+
+        return regex.test(normalizedQuery);
+      }),
     );
-    return doseMatch ? doseMatch[0] : null;
-  }
+
+    return matchedMetric?.metric ?? null;
+  };
 
   /**
-   * Extract discharge type from query
+   *
+   * @returns String
    */
-  extractDischargeType(query) {
-    const types = ['normal', 'spotting', 'heavy', 'light', 'abnormal'];
-    for (const type of types) {
-      if (query.includes(type)) {
-        return type;
+  getUpdateAppointmentExtractionPrompt = () => {
+    const currentDate = new Date().toISOString().slice(0, 10);
+
+    return `
+      You are a structured data extraction engine for BabyNest.
+
+      Extract appointment identification and update details from the user's query.
+      Do not answer conversationally or execute any action.
+
+      Return only a valid JSON object in this exact structure:
+
+      {
+        "intent": "update_appointment",
+        "data": {
+          "appointment_identifier": {
+            "type": null,
+            "value": null
+          },
+          "title": null,
+          "date": null,
+          "time": null,
+          "location": null,
+          "note": null
+        },
+        "missing_fields": [],
+        "needs_clarification": false
       }
-    }
-    return null;
-  }
+
+      Rules:
+      - appointment_identifier identifies the existing appointment to update.
+      - Its type must be one of: "title", "date", "time", "location",
+        "relative", or "day".
+      - Its value must identify the existing appointment using information
+        explicitly stated by the user.
+      - Prefer a specific existing appointment title when mentioned.
+      - Otherwise, use its explicit date, time, or location if provided.
+      - Recognize relative references such as "my next appointment",
+        "last appointment", "first appointment", "second appointment",
+        "upcoming appointment", "appointment tomorrow", or weekdays.
+      - For relative references, use type "relative" and preserve the
+        relevant phrase as the value. For weekday references, type "day"
+        and use the weekday name as the value.
+      - Do not use the new title, date, time, or location being requested
+        as the identifier unless it also clearly identifies the existing
+        appointment.
+      - title: Extract the new title only if the user requests a title change.
+      - date: Extract the new date only if the user requests a date change,
+        formatted as YYYY-MM-DD when clear.
+      - time: Extract the new time only if the user requests a time change,
+        formatted as HH:mm in 24-hour format.
+      - location: Extract the new location only if the user requests a
+        location change.
+      - note: Extract additional update details stated by the user.
+      - Current date: ${currentDate}. Resolve relative dates when possible.
+      - Use null for missing or uncertain fields.
+      - Never invent appointment details.
+      - If the existing appointment cannot be identified clearly, include
+        "appointment_identifier" in missing_fields and set
+        needs_clarification to true.
+      - Return valid JSON only, without Markdown or explanations.
+`;
+  };
 
   /**
-   * Extract discharge color from query
+   *
+   * @returns String
    */
-  extractDischargeColor(query) {
-    const colors = ['clear', 'white', 'pink', 'brown', 'red', 'yellow'];
-    for (const color of colors) {
-      if (query.includes(color)) {
-        return color;
-      }
-    }
-    return null;
+  getAppointmentExtractionPrompt = () => {
+    const currentDate = new Date().toISOString().slice(0, 10);
+
+    return `
+  You are a structured data extraction engine for BabyNest.
+
+  Extract appointment details from the user's query.
+  Do not answer conversationally. Do not execute any action.
+  Return only a valid JSON object with exactly these keys:
+
+  {
+    "title": string or null,
+    "date": string or null,
+    "time": string or null,
+    "location": string or null
   }
+
+  Required fields: title, date, time, location.
+
+  Rules:
+  - Extract only explicitly stated or clearly implied information.
+  - Never invent missing values. Use null when unknown.
+  - Resolve relative dates using the current date: ${currentDate}.
+  - Format dates as YYYY-MM-DD.
+  - Format times as HH:mm in 24-hour format.
+  - Extract a concise, meaningful appointment title.
+  - Return only JSON, without Markdown or explanations.
+  `;
+  };
 
   /**
-   * Extract bleeding status from query
+   *
+   * @returns String
    */
-  extractBleeding(query) {
-    if (
-      query.includes('bleeding') ||
-      query.includes('blood') ||
-      query.includes('red')
-    ) {
-      return 'yes';
-    } else if (query.includes('no bleeding') || query.includes('no blood')) {
-      return 'no';
-    }
-    return null;
+  getWeightExtractionPrompt = () => {
+    return `
+  You are a structured data extraction engine for BabyNest.
+
+  Extract weight logging details from the user's message.
+  Do not answer conversationally or execute any action.
+
+  Return only a valid JSON object with exactly these keys:
+
+  {
+    "weight": number or null,
+    "week_number": number or null,
+    "note": string or null
   }
+
+  Rules:
+  - Extract weight as a numeric value in kilograms.
+  - Convert grams to kilograms when the unit is explicitly provided.
+  - Extract the pregnancy week number only if stated or clearly
+    established by the conversation.
+  - Do not confuse the pregnancy week with the number of weeks
+    since a previous weight measurement.
+  - Extract any additional relevant note provided by the user.
+  - Use null for missing or uncertain values.
+  - Never invent measurements or pregnancy details.
+  - Return valid JSON only, without Markdown or explanations.
+  `;
+  };
 
   /**
-   * Extract task title from query
+   *
+   * @returns String
    */
-  extractTaskTitle(query) {
-    const tasks = [
-      'ultrasound',
-      'blood test',
-      'urine test',
-      'checkup',
-      'consultation',
-      'scan',
-      'examination',
-      'vaccination',
-      'glucose test',
-    ];
+  getSymptomsExtractionPrompt = () => {
+    return `
+  You are a structured data extraction engine for BabyNest.
 
-    for (const task of tasks) {
-      if (query.includes(task)) {
-        return task;
-      }
-    }
-    return null;
+  Extract symptom details from the user's query.
+  Do not answer conversationally or execute any action.
+
+  Return only a valid JSON object in this exact structure:
+
+  {
+    "intent": "log_symptoms",
+    "data": {
+      "symptom": null,
+      "week_number": null,
+      "note": null
+    },
+    "missing_fields": [],
+    "needs_clarification": false
   }
+
+  Rules:
+  - symptom: Extract the symptom explicitly reported by the user.
+  - week_number: Extract the pregnancy week as a number only when
+    explicitly stated or clearly established by the provided context.
+  - note: Extract additional relevant details, such as severity,
+    duration, frequency, or associated symptoms.
+  - Use null for missing or uncertain values.
+  - Never invent symptoms, pregnancy weeks, or medical details.
+  - Do not infer a medical diagnosis.
+  - If the symptom itself is missing or ambiguous, add "symptom"
+    to missing_fields and set needs_clarification to true.
+  - Return valid JSON only, without Markdown or explanations.
+  `;
+  };
 
   /**
-   * Extract priority from query
+   *
+   * @returns String
    */
-  extractPriority(query) {
-    if (query.includes('high') || query.includes('urgent')) return 'high';
-    if (query.includes('low')) return 'low';
-    return 'medium';
+  getBloodPressureExtractionPrompt = () => {
+    return `
+  You are a structured data extraction engine for BabyNest.
+
+  Extract blood pressure logging details from the user's query.
+  Do not answer conversationally or execute any action.
+
+  Return only a valid JSON object in this exact structure:
+
+  {
+    "intent": "log_blood_pressure",
+    "data": {
+      "systolic": null,
+      "diastolic": null,
+      "time": null,
+      "week_number": null,
+      "note": null
+    },
+    "missing_fields": [],
+    "needs_clarification": false
   }
+
+  Rules:
+  - systolic: Extract the systolic blood pressure as a number.
+  - diastolic: Extract the diastolic blood pressure as a number.
+  - Interpret readings such as "120 over 80" as systolic 120
+    and diastolic 80.
+  - time: Extract the measurement time in HH:mm 24-hour format.
+  - week_number: Extract the pregnancy week as a number only
+    when explicitly stated or clearly established by context.
+  - note: Extract additional relevant details stated by the user.
+  - Use null for missing or uncertain values.
+  - Never invent readings, times, or pregnancy weeks.
+  - Do not diagnose a medical condition from a blood pressure reading.
+  - If either blood pressure value is missing or ambiguous, add
+    the corresponding field name to missing_fields and set
+    needs_clarification to true.
+  - Return valid JSON only, without Markdown or explanations.
+  `;
+  };
+
+  /**
+   *
+   * @returns String
+   */
+  getMedicineExtractionPrompt = () => {
+    return `
+  You are a structured data extraction engine for BabyNest.
+
+  Extract medicine logging details from the user's query.
+  Do not answer conversationally or execute any action.
+
+  Return only a valid JSON object in this exact structure:
+
+  {
+    "intent": "log_medicine",
+    "data": {
+      "name": null,
+      "dose": null,
+      "time": null,
+      "week_number": null,
+      "note": null
+    },
+    "missing_fields": [],
+    "needs_clarification": false
+  }
+
+  Rules:
+  - name: Extract the medicine name exactly as stated by the user.
+  - dose: Extract the stated dosage, including its unit
+    (e.g., "500 mg", "1 tablet", "5 ml").
+  - time: Extract the medicine-taking time in HH:mm 24-hour format.
+    Convert times such as "9 AM" to "09:00" and "8 PM" to "20:00".
+  - week_number: Extract the pregnancy week as a number only when
+    explicitly stated or clearly established by context.
+  - note: Extract additional relevant details stated by the user,
+    such as frequency, instructions, or reason for taking the medicine.
+    Do not duplicate the medicine name or dose in the note.
+  - Use null for missing or uncertain values.
+  - Never invent medicine names, doses, times, or pregnancy weeks.
+  - Do not recommend medicines or change the user's stated dosage.
+  - If the medicine name is missing or ambiguous, add "name" to
+    missing_fields and set needs_clarification to true.
+  - If the dose is missing, leave it null; do not invent a dose.
+  - Return valid JSON only, without Markdown or explanations.
+  `;
+  };
+
+  /**
+   *
+   * @returns String
+   */
+  getDischargeExtractionPrompt = () => {
+    return `
+  You are a structured data extraction engine for BabyNest.
+
+  Extract vaginal discharge logging details from the user's query.
+  Do not answer conversationally, diagnose, or execute any action.
+
+  Return only a valid JSON object in this exact structure:
+
+  {
+    "intent": "log_discharge",
+    "data": {
+      "type": null,
+      "color": null,
+      "bleeding": null,
+      "week_number": null,
+      "note": null
+    },
+    "missing_fields": [],
+    "needs_clarification": false
+  }
+
+  Rules:
+  - type: Extract the discharge type as stated by the user, such as
+    watery, mucus-like, thick, sticky, or unusual.
+  - color: Extract the stated color, such as clear, white, yellow,
+    pink, brown, or red. Do not infer a color.
+  - bleeding: Extract whether bleeding is reported.
+    Use true if bleeding is explicitly reported, false if explicitly
+    denied, and null if not mentioned or uncertain.
+  - week_number: Extract the pregnancy week as a number only when
+    explicitly stated or clearly established by context.
+  - note: Extract other relevant details, such as amount, consistency,
+    odor, duration, or associated symptoms. Do not repeat information
+    already captured in other fields.
+  - Use null for missing or uncertain values.
+  - Never invent symptoms or infer details the user did not provide.
+  - If the discharge type is missing or ambiguous, add "type" to
+    missing_fields and set needs_clarification to true.
+  - Do not diagnose a medical condition.
+  - Return valid JSON only, without Markdown or explanations.
+  `;
+  };
+
+  /**
+   *
+   * @returns String
+   */
+  getTaskExtractionPrompt = () => {
+    return `
+You are a structured data extraction engine for BabyNest.
+
+Extract task creation details from the user's query.
+Do not answer conversationally or execute any action.
+
+Return only a valid JSON object in this exact structure:
+
+{
+  "intent": "create_task",
+  "data": {
+    "title": null,
+    "week": null,
+    "priority": null,
+    "note": null
+  },
+  "missing_fields": [],
+  "needs_clarification": false
+}
+
+Rules:
+- title: Extract a short, clear task title describing what the user
+  wants to do. Do not invent a task that the user did not request.
+- week: Extract the pregnancy week as a number only when explicitly
+  stated or clearly established by context. Otherwise, use null.
+- priority: Extract the priority if stated. Allowed values are
+  "low", "medium", and "high".
+  Map "urgent", "very important", or "as soon as possible" to "high".
+  Map "not urgent" or "low priority" to "low".
+  Use "medium" only when explicitly stated. Otherwise, use null.
+- note: Extract additional task details, instructions, or context
+  that are not already captured in the title, week, or priority.
+  Use null if no additional details are provided.
+- Use null for missing or uncertain values.
+- Never invent a week number or priority.
+- If the task title is missing or ambiguous, add "title" to
+  missing_fields and set needs_clarification to true.
+- Return valid JSON only, without Markdown or explanations.
+`;
+  };
 
   /**
    * Extract screen name from query
@@ -1315,74 +1680,91 @@ class RAGService {
   }
 
   /**
-   * Extract profile field from query
+   *
+   * @returns String
    */
-  extractProfileField(query) {
-    const fields = {
-      name: ['name'],
-      age: ['age'],
-      phone: ['phone', 'number'],
-      due_date: ['due date', 'due date'],
-      location: ['location', 'address'],
-    };
+  getProfileExtractionPrompt = () => {
+    return `
+You are a structured data extraction engine for BabyNest.
 
-    for (const [field, keywords] of Object.entries(fields)) {
-      for (const keyword of keywords) {
-        if (query.includes(keyword)) {
-          return field;
-        }
-      }
-    }
-    return null;
-  }
+Extract profile field values from the user's query.
+
+Return only a valid JSON object in this exact structure:
+
+{
+  "intent": "update_profile",
+  "data": {
+    "age": null,
+    "location": null,
+    "due_date": null,
+    "name": null,
+    "lmp": null,
+    "periodLength": null
+  },
+  "missing_fields": [],
+  "needs_clarification": false
+}
+
+Rules:
+- Extract only the profile fields explicitly requested or provided by the user.
+- age: Extract age as a number.
+- location: Extract the location as a string.
+- due_date: Extract the due date in YYYY-MM-DD format when clear.
+- lmp: Extract the last menstrual period date in YYYY-MM-DD format when clear.
+- periodLength: Extract menstrual cycle length in days as a number.
+- Set fields not mentioned in the query to null.
+- Never invent or guess values.
+- Return valid JSON only, without Markdown or explanations.
+`;
+  };
 
   /**
-   * Extract profile value from query
+   *
+   * @returns String
    */
-  extractProfileValue(query) {
-    // This would need more sophisticated parsing
-    // For now, return the query as the value
-    return query;
-  }
+  getDataExtractionPrompt = () => {
+    const currentDate = new Date().toISOString().slice(0, 10);
 
-  /**
-   * Extract data type from query
-   */
-  extractDataType(query) {
-    const types = {
-      appointments: [
-        'appointments',
-        'appointment',
-        'schedule',
-        'upcoming',
-        'next',
-        'when',
-      ],
-      weight: ['weight', 'weigh'],
-      symptoms: ['symptoms', 'symptom'],
-      medicine: ['medicine', 'medication'],
-      blood_pressure: ['blood pressure', 'bp'],
-      discharge: ['discharge', 'bleeding'],
-      tasks: ['tasks', 'reminders'],
-    };
+    return `
+You are a structured data extraction engine for BabyNest.
 
-    for (const [type, keywords] of Object.entries(types)) {
-      for (const keyword of keywords) {
-        if (query.includes(keyword)) {
-          return type;
-        }
-      }
-    }
-    return null;
-  }
+Extract the data type and optional filters from the user's query.
 
-  /**
-   * Extract note from query
-   */
-  extractNote(query) {
-    const noteMatch = query.match(/note\s+(.+)/);
-    return noteMatch ? noteMatch[1] : null;
-  }
+Return only a valid JSON object in this exact structure:
+
+{
+  "intent": "get_data",
+  "data": {
+    "type": null,
+    "week": null,
+    "date": null
+  },
+  "missing_fields": [],
+  "needs_clarification": false
+}
+
+Rules:
+- type: Must be one of these exact values:
+  "blood_pressure", "appointments", "weight", "symptoms",
+  "medicine", "discharge", "tasks".
+- Map user requests about blood pressure or BP readings to "blood_pressure".
+- Map appointment schedules or visits to "appointments".
+- Map weight records to "weight".
+- Map symptoms or symptom records to "symptoms".
+- Map medicines or medication records to "medicine".
+- Map vaginal discharge records to "discharge".
+- Map tasks or to-do lists to "tasks".
+- week: Extract the pregnancy week as a number if stated; otherwise null.
+- date: Extract the requested date in YYYY-MM-DD format if clear.
+  Current date: ${currentDate}.
+  Resolve relative dates such as "today" or "yesterday" using this date.
+- Use null for filters the user did not specify.
+- Never invent values.
+- If the requested data type is missing or ambiguous, add "type"
+  to missing_fields and set needs_clarification to true.
+- Return valid JSON only, without Markdown or explanations.
+`;
+  };
 
   /**
    * Check for missing required fields
@@ -1393,9 +1775,14 @@ class RAGService {
     console.log('🔍 DEBUG: Data to check:', data);
 
     const missing = [];
-    for (const field of intent.requiredFields) {
-      console.log(`🔍 DEBUG: Checking field '${field}':`, data[field]);
-      if (!data[field]) {
+    for (const field of intent.requiredFields || []) {
+      const value = data[field];
+
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === 'string' && value.trim() === '')
+      ) {
         missing.push(field);
       }
     }
@@ -1407,11 +1794,10 @@ class RAGService {
    * Generate follow-up questions for missing information
    */
   async generateFollowUpQuestions(intent, missingFields, partialData) {
-    let message = `🤖 I'd be happy to help you with that! I need a few more details:\n\n`;
+    let message = `I'd be happy to help you with that! I need a few more details:\n\n`;
 
     const fieldQuestions = {
-      title:
-        '• **What type of appointment** would you like to schedule? (e.g., "ultrasound", "checkup")',
+      title: `• **What type of ${intent.name}** would you like to schedule? (e.g., "ultrasound", "checkup")`,
       date: '• **What date** would you prefer? (e.g., "tomorrow", "next week", "October 14")',
       time: '• **What time** works for you? (e.g., "2pm", "morning")',
       location: '• **Where** should this be? (e.g., "City Hospital", "delhi")',
@@ -1478,52 +1864,54 @@ class RAGService {
     // Add contextual tip based on intent
     const contextualTips = {
       create_appointment:
-        '💡 **Tip**: You can provide all details at once! For example: "make appointment for ultrasound tomorrow at 2pm at City Hospital"',
+        '**Tip**: You can provide all details at once! For example: "make appointment for ultrasound tomorrow at 2pm at City Hospital"',
       log_weight:
-        '💡 **Tip**: You can provide all details at once! For example: "log weight 65kg for week 12 with note feeling good"',
+        '**Tip**: You can provide all details at once! For example: "log weight 65kg for week 12 with note feeling good"',
       log_symptoms:
-        '💡 **Tip**: You can provide all details at once! For example: "log symptom nausea this morning with note mild discomfort"',
+        '**Tip**: You can provide all details at once! For example: "log symptom nausea this morning with note mild discomfort"',
       log_blood_pressure:
-        '💡 **Tip**: You can provide all details at once! For example: "log blood pressure 120/80 this morning with note feeling normal"',
+        '**Tip**: You can provide all details at once! For example: "log blood pressure 120/80 this morning with note feeling normal"',
+      query_analytics:
+        '**Tip**: You can provide all details at once! For example: "show weight analytics for this month as line chart"',
       log_medicine:
-        '💡 **Tip**: You can provide all details at once! For example: "log medicine paracetamol 500mg twice daily starting today"',
+        '**Tip**: You can provide all details at once! For example: "log medicine paracetamol 500mg twice daily starting today"',
       log_discharge:
-        '💡 **Tip**: You can provide all details at once! For example: "log discharge normal this morning with note light flow"',
+        '**Tip**: You can provide all details at once! For example: "log discharge normal this morning with note light flow"',
       create_task:
-        '💡 **Tip**: You can provide all details at once! For example: "create task buy vitamins for next week with note urgent"',
+        '**Tip**: You can provide all details at once! For example: "create task buy vitamins for next week with note urgent"',
       update_appointment:
-        '💡 **Tip**: You can provide all details at once! For example: "update appointment tomorrow change time to 3pm"',
+        '**Tip**: You can provide all details at once! For example: "update appointment tomorrow change time to 3pm"',
       delete_appointment:
-        '💡 **Tip**: You can provide all details at once! For example: "delete appointment on December 19"',
+        '**Tip**: Use appointment screen to delete the appointment."',
       update_medicine:
-        '💡 **Tip**: You can provide all details at once! For example: "update paracetamol change dose to 1000mg twice daily"',
+        '**Tip**: You can provide all details at once! For example: "update paracetamol change dose to 1000mg twice daily"',
       delete_medicine:
-        '💡 **Tip**: You can provide all details at once! For example: "delete paracetamol from yesterday"',
+        '**Tip**: You can provide all details at once! For example: "delete paracetamol from yesterday"',
       update_blood_pressure:
-        '💡 **Tip**: You can provide all details at once! For example: "update blood pressure change reading to 110/70"',
+        '**Tip**: You can provide all details at once! For example: "update blood pressure change reading to 110/70"',
       delete_blood_pressure:
-        '💡 **Tip**: You can provide all details at once! For example: "delete blood pressure from this morning"',
+        '**Tip**: You can provide all details at once! For example: "delete blood pressure from this morning"',
       update_discharge:
-        '💡 **Tip**: You can provide all details at once! For example: "update discharge change to spotting this morning"',
+        '**Tip**: You can provide all details at once! For example: "update discharge change to spotting this morning"',
       delete_discharge:
-        '💡 **Tip**: You can provide all details at once! For example: "delete discharge from yesterday"',
+        '**Tip**: You can provide all details at once! For example: "delete discharge from yesterday"',
       update_symptoms:
-        '💡 **Tip**: You can provide all details at once! For example: "update symptoms change nausea to mild headache"',
+        '**Tip**: You can provide all details at once! For example: "update symptoms change nausea to mild headache"',
       delete_symptoms:
-        '💡 **Tip**: You can provide all details at once! For example: "delete symptoms from this morning"',
+        '**Tip**: You can provide all details at once! For example: "delete symptoms from this morning"',
       update_weight:
-        '💡 **Tip**: You can provide all details at once! For example: "update weight change to 66kg for week 12"',
+        '**Tip**: You can provide all details at once! For example: "update weight change to 66kg for week 12"',
       delete_weight:
-        '💡 **Tip**: You can provide all details at once! For example: "delete weight from yesterday"',
+        '**Tip**: You can provide all details at once! For example: "delete weight from yesterday"',
       get_data:
-        '💡 **Tip**: You can provide all details at once! For example: "show my appointments for next week"',
+        '**Tip**: You can provide all details at once! For example: "show my appointments for next week"',
       navigate:
-        '💡 **Tip**: You can provide all details at once! For example: "go to weight screen" or "navigate to appointments"',
+        '**Tip**: You can provide all details at once! For example: "go to weight screen" or "navigate to appointments"',
     };
 
     const tip =
       contextualTips[intent.action] ||
-      '💡 **Tip**: You can provide all details at once! For example: "make appointment for ultrasound tomorrow at 2pm at City Hospital"';
+      '**Tip**: You can provide all details at once! For example: "make appointment for ultrasound tomorrow at 2pm at City Hospital"';
     message += `\n${tip}`;
 
     return {
@@ -1542,6 +1930,8 @@ class RAGService {
   async executeAction(intent, data, userContext) {
     try {
       switch (intent.action) {
+        case 'queryAnalytics':
+          return await this.buildAnalyticsData(data, userContext);
         case 'createAppointment':
           return await this.createAppointment(data, userContext);
         case 'logWeight':
@@ -1774,6 +2164,284 @@ class RAGService {
   }
 
   /**
+   * Build analytics data based on user query
+   * @param {*} data
+   * @param {*} userContext
+   */
+  async buildAnalyticsData(data, userContext) {
+    try {
+      const metric = typeof data === 'string' ? data : data?.metric;
+
+      const userId = Number(userContext?.user_id ?? userContext?.id);
+
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return {
+          success: false,
+          message: 'Valid user ID is required',
+        };
+      }
+
+      let result;
+
+      switch (metric) {
+        case 'appointment_metric':
+          result = await this.getAppointmentAnalytics(userId, userContext);
+          break;
+
+        case 'task_metric':
+          result = await this.getTaskAnalytics(userId);
+          break;
+
+        case 'blood_pressure_metric':
+          result = await this.getBloodPressureAnalytics(userId);
+          break;
+
+        case 'discharge_metric':
+          result = await this.getDischargeAnalytics(userId);
+          break;
+
+        case 'weight_metric':
+          result = await this.getWeightAnalytics(userId);
+          break;
+
+        case 'medicine_metric':
+          result = await this.getMedicineAnalytics(userId);
+          break;
+
+        case 'symptom_metric':
+          result = await this.getSymptomAnalytics(userId);
+          break;
+
+        default:
+          return {
+            success: false,
+            message: `Unsupported analytics metric: ${metric}`,
+          };
+      }
+
+      return {
+        success: true,
+        metric,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Failed to create Analytics: ${error.message}`,
+      };
+    }
+  }
+
+  // Helper: get rows from SQLite
+  async getAnalyticsRows(sql, params) {
+    const db = await openDB();
+    const result = await db.execute(sql, params);
+    return result.rows?._array ?? [];
+  }
+
+  // Helper: count records by pregnancy week
+  groupCountByWeek(rows, getWeek) {
+    const counts = new Map();
+
+    for (const row of rows) {
+      const week = Number(getWeek(row));
+
+      if (!Number.isInteger(week) || week < 1) continue;
+
+      counts.set(week, (counts.get(week) ?? 0) + 1);
+    }
+
+    return [...counts.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([week, log]) => ({week, log}));
+  }
+
+  // 1. APPOINTMENTS
+  async getAppointmentAnalytics(userId, userContext) {
+    const rows = await this.getAnalyticsRows(
+      `SELECT appointment_date, appointment_status
+      FROM appointments
+      WHERE user_id = ?
+      ORDER BY appointment_date`,
+      [userId],
+    );
+
+    // Appointment table has no week_number.
+    // Derive pregnancy week from the user's LMP date.
+    // Update this property if your context uses another name.
+    let lmp = userContext?.context?.lmp ?? userContext?.profile?.lmp;
+
+    if (!lmp) {
+      return [];
+    }
+
+    const lmpTime = new Date(lmp).getTime();
+
+    if (!Number.isFinite(lmpTime)) return [];
+
+    return this.groupCountByWeek(
+      rows.map(row => {
+        const appointmentTime = new Date(row.appointment_date).getTime();
+
+        return {
+          ...row,
+          pregnancyWeek:
+            Math.floor(
+              (appointmentTime - lmpTime) / (7 * 24 * 60 * 60 * 1000),
+            ) + 1,
+        };
+      }),
+      row => row.pregnancyWeek,
+    );
+  }
+
+  // 2. TASKS
+  async getTaskAnalytics(userId) {
+    const rows = await this.getAnalyticsRows(
+      `SELECT starting_week, ending_week
+      FROM tasks
+      WHERE user_id = ?`,
+      [userId],
+    );
+
+    const counts = new Map();
+
+    for (const task of rows) {
+      const start = Number(task.starting_week);
+      const end = Number(task.ending_week);
+
+      if (!Number.isInteger(start) || start < 1) continue;
+
+      // Count a task in every week it spans.
+      // ending_week = 0 means it belongs to starting_week only.
+      const finalWeek = end >= start ? end : start;
+
+      for (let week = start; week <= finalWeek; week++) {
+        counts.set(week, (counts.get(week) ?? 0) + 1);
+      }
+    }
+
+    return [...counts.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([week, log]) => ({week, log}));
+  }
+
+  // 3. BLOOD PRESSURE
+  async getBloodPressureAnalytics(userId) {
+    const rows = await this.getAnalyticsRows(
+      `SELECT week_number, systolic, diastolic
+      FROM blood_pressure_logs
+      WHERE user_id = ?
+      ORDER BY week_number`,
+      [userId],
+    );
+
+    const grouped = new Map();
+
+    for (const row of rows) {
+      const week = Number(row.week_number);
+
+      if (!Number.isInteger(week) || week < 1) continue;
+
+      if (!grouped.has(week)) {
+        grouped.set(week, {
+          systolicTotal: 0,
+          diastolicTotal: 0,
+          count: 0,
+        });
+      }
+
+      const group = grouped.get(week);
+      group.systolicTotal += Number(row.systolic);
+      group.diastolicTotal += Number(row.diastolic);
+      group.count++;
+    }
+
+    return [...grouped.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([week, group]) => ({
+        week,
+        // Main graph value
+        log: Number((group.systolicTotal / group.count).toFixed(1)),
+        // Optional second graph line
+        systolic: Number((group.systolicTotal / group.count).toFixed(1)),
+        diastolic: Number((group.diastolicTotal / group.count).toFixed(1)),
+      }));
+  }
+
+  // 4. DISCHARGE
+  async getDischargeAnalytics(userId) {
+    const rows = await this.getAnalyticsRows(
+      `SELECT week_number
+      FROM discharge_logs
+      WHERE user_id = ?`,
+      [userId],
+    );
+
+    return this.groupCountByWeek(rows, row => row.week_number);
+  }
+
+  // 5. WEIGHT
+  async getWeightAnalytics(userId) {
+    const rows = await this.getAnalyticsRows(
+      `SELECT week_number, weight
+      FROM weekly_weight
+      WHERE user_id = ?
+      ORDER BY week_number`,
+      [userId],
+    );
+
+    const grouped = new Map();
+
+    for (const row of rows) {
+      const week = Number(row.week_number);
+      const weight = Number(row.weight);
+
+      if (!Number.isInteger(week) || week < 1 || !Number.isFinite(weight))
+        continue;
+
+      if (!grouped.has(week)) {
+        grouped.set(week, {total: 0, count: 0});
+      }
+
+      const group = grouped.get(week);
+      group.total += weight;
+      group.count++;
+    }
+
+    return [...grouped.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([week, group]) => ({
+        week,
+        log: Number((group.total / group.count).toFixed(2)),
+      }));
+  }
+
+  // 6. MEDICINE
+  async getMedicineAnalytics(userId) {
+    const rows = await this.getAnalyticsRows(
+      `SELECT week_number
+      FROM weekly_medicine
+      WHERE user_id = ? AND taken = 1`,
+      [userId],
+    );
+
+    return this.groupCountByWeek(rows, row => row.week_number);
+  }
+
+  // 7. SYMPTOMS
+  async getSymptomAnalytics(userId) {
+    const rows = await this.getAnalyticsRows(
+      `SELECT week_number
+      FROM weekly_symptoms
+      WHERE user_id = ?`,
+      [userId],
+    );
+
+    return this.groupCountByWeek(rows, row => row.week_number);
+  }
+
+  /**
    * Create appointment
    */
   async createAppointment(data, userContext) {
@@ -1806,11 +2474,15 @@ class RAGService {
           success: true,
           message: `📅 Appointment "${
             add_appointment_data.title || 'Appointment'
-          }" scheduled for ${add_appointment_data.date || 'TBD'} at ${add_appointment_data.time || 'TBD'}${
-            add_appointment_data.location ? ` at ${add_appointment_data.location}` : ''
+          }" scheduled for ${add_appointment_data.date || 'TBD'} at ${
+            add_appointment_data.time || 'TBD'
+          }${
+            add_appointment_data.location
+              ? ` at ${add_appointment_data.location}`
+              : ''
           }`,
           action: 'navigate',
-          screen: 'appointments',
+          screen: 'Calendar',
         };
       } else {
         throw new Error('Failed to create appointment');
@@ -1828,7 +2500,7 @@ class RAGService {
    */
   async logWeight(data, userContext) {
     try {
-      const user_id = await AsyncStorage.getItem("user_id");
+      const user_id = await AsyncStorage.getItem('user_id');
       const addWeight_res = await addWeight(user_id, {
         weight: data.weight,
         week_number: data.week_number || userContext.current_week || 12,
@@ -1842,7 +2514,7 @@ class RAGService {
             data.week_number || userContext.current_week || 12
           }${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
-          screen: 'weight',
+          screen: 'Weight',
         };
       } else {
         throw new Error(addWeight_res.error.message);
@@ -1860,7 +2532,7 @@ class RAGService {
    */
   async logSymptoms(data, userContext) {
     try {
-      const user_id = await AsyncStorage.getItem("user_id");
+      const user_id = await AsyncStorage.getItem('user_id');
       const addSymptom_res = await addSymptom(user_id, {
         symptom: data.symptom,
         week_number: data.week_number || userContext.current_week || 12,
@@ -1874,7 +2546,7 @@ class RAGService {
             data.week_number || userContext.current_week || 12
           }${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
-          screen: 'symptoms',
+          screen: 'Symptoms',
         };
       } else {
         throw new Error(addSymptom_res.error.message);
@@ -1910,7 +2582,7 @@ class RAGService {
             data.week_number || userContext.current_week || 12
           }${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
-          screen: 'bloodpressure',
+          screen: 'BloodPressure',
         };
       } else {
         throw new Error(
@@ -1939,7 +2611,6 @@ class RAGService {
         note: data.note || '',
       });
       if (!addMedicine_res.success) {
-        
       }
       if (addMedicine_res.success) {
         return {
@@ -1952,7 +2623,7 @@ class RAGService {
             data.note ? ` (Note: ${data.note})` : ''
           }`,
           action: 'navigate',
-          screen: 'medicine',
+          screen: 'Medicine',
         };
       } else {
         throw new Error(addMedicine_res.error.message);
@@ -1988,7 +2659,7 @@ class RAGService {
             data.note ? ` (Note: ${data.note})` : ''
           }`,
           action: 'navigate',
-          screen: 'discharge',
+          screen: 'Discharge',
         };
       } else {
         throw new Error(addDischargeLog_res.error.message);
@@ -2024,7 +2695,7 @@ class RAGService {
             data.week || userContext.current_week || 12
           } with ${data.priority || 'medium'} priority`,
           action: 'navigate',
-          screen: 'tasks',
+          screen: 'AllTasks',
         };
       } else {
         throw new Error(addTask_res.error.message);
@@ -2072,12 +2743,14 @@ class RAGService {
   async updateProfile(data, userContext) {
     try {
       const user_id = await AsyncStorage.getItem('user_id');
-      const updated_data_res = await updateProfile(user_id, data.value);
+      const updated_data_res = await updateProfile(user_id, data);
 
       if (updated_data_res.success) {
         return {
           success: true,
-          message: `👤 Profile updated successfully! ${data.field} set to ${data.value}`,
+          message: `👤 ${Object.values(data).map(
+            value => `${value} `,
+          )} updated successfully!`,
           action: 'navigate',
           screen: 'Profile',
         };
@@ -2521,25 +3194,11 @@ class RAGService {
    * Logout
    */
   async logout(data, userContext) {
-    try {
-      const user_id = await AsyncStorage.getItem('user_id');
-      const delete_user_res = await deleteProfile(user_id);
-
-      if (delete_user_res.success) {
-        return {
-          success: true,
-          message: `👋 Logging out... Goodbye!`,
-          action: 'logout',
-        };
-      }
-      throw new Error(delete_user_res.error.message);
-    } catch (error) {
-      return {
-        success: false,
-        message: error,
-        action: 'logout',
-      };
-    }
+    return {
+      success: true,
+      message: `👋 Logging out... Goodbye!`,
+      action: 'logout',
+    };
   }
 
   /**
@@ -2644,7 +3303,6 @@ class RAGService {
     }
   }
 
-
   /**
    * View weight logs
    */
@@ -2652,7 +3310,7 @@ class RAGService {
     try {
       const user_id = await AsyncStorage.getItem('user_id');
       const getAllWeights_res = await getAllWeights(user_id);
-      
+
       if (getAllWeights_res.success) {
         const logs = getAllWeights_res.data;
 
@@ -2726,7 +3384,7 @@ class RAGService {
    */
   async viewMedicineLogs(data, userContext) {
     try {
-      const user_id = await AsyncStorage.getItem("user_id");
+      const user_id = await AsyncStorage.getItem('user_id');
       const getAllMedicine_res = await getAllMedicine(user_id);
 
       if (getAllMedicine_res.success) {
@@ -3088,7 +3746,7 @@ class RAGService {
   async updateBloodPressure(data, userContext) {
     try {
       const user_id = await AsyncStorage.getItem('user_id');
-      const updateBPLog_res =await updateBPLog(user_id, data.id, {
+      const updateBPLog_res = await updateBPLog(user_id, data.id, {
         systolic: data.systolic,
         diastolic: data.diastolic,
         date: data.date,
@@ -3144,12 +3802,16 @@ class RAGService {
   async updateDischarge(data, userContext) {
     try {
       const user_id = await AsyncStorage.getItem('user_id');
-      const updateDischargeLog_res = await updateDischargeLog(user_id, data.id, {
-        discharge_type: data.discharge_type,
-        date: data.date,
-        time: data.time,
-        note: data.note,
-      });
+      const updateDischargeLog_res = await updateDischargeLog(
+        user_id,
+        data.id,
+        {
+          discharge_type: data.discharge_type,
+          date: data.date,
+          time: data.time,
+          note: data.note,
+        },
+      );
 
       if (updateDischargeLog_res.success) {
         return {
@@ -3299,7 +3961,6 @@ class RAGService {
       };
     }
   }
-
 }
 
 // Export singleton instance

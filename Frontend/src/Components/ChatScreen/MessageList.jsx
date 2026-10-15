@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import Markdown from "react-native-markdown-display";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import AnalyticsGraph from './AnalyticsGraph';
 
 export default function MessageList({ conversation, flatListRef, theme, footer, onScrollPositionChange, onCopyMessage }) {
   const markdownStyles = useMemo(() => ({
@@ -28,55 +29,109 @@ export default function MessageList({ conversation, flatListRef, theme, footer, 
       data={conversation}
       ListFooterComponent={footer}
       renderItem={({ item }) => {
-        const isUser = item.role === "user";
+        const isUser = item.role === 'user';
+
+        // Detect a structured analytics response
+        const isAnalytics =
+          !isUser &&
+          typeof item.content === 'object' &&
+          item.content !== null &&
+          item.content.success === true &&
+          typeof item.content.metric === 'string' &&
+          Array.isArray(item.content.data);
+
+        const copyContent =
+          typeof item.content === 'string'
+            ? item.content
+            : JSON.stringify(item.content, null, 2);
+
         return (
-          <View style={[styles.messageRow, { justifyContent: isUser ? 'flex-end' : 'flex-start' }]}>
+          <View
+            style={[
+              styles.messageRow,
+              {
+                justifyContent: isUser
+                  ? 'flex-end'
+                  : 'flex-start',
+              },
+            ]}
+          >
             {!isUser && (
-               <View style={styles.botAvatar}>
-                  <Icon name="smart-toy" size={20} color="rgb(218,79,122)" />
-               </View>
+              <View style={styles.botAvatar}>
+                <Icon
+                  name="smart-toy"
+                  size={20}
+                  color="rgb(218,79,122)"
+                />
+              </View>
             )}
-            <TouchableOpacity 
-                activeOpacity={0.8}
-                onLongPress={() => onCopyMessage?.(item.content)}
-                style={[
-                    isUser ? styles.userMessageContainer : styles.botMessageContainer,
-                    !isUser && styles.messageContent
-                ]}
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onLongPress={() => onCopyMessage?.(copyContent)}
+              style={[
+                isUser
+                  ? styles.userMessageContainer
+                  : styles.botMessageContainer,
+                !isUser && styles.messageContent,
+              ]}
             >
               {isUser ? (
-                <Text style={styles.userMessageText}>{item.content}</Text>
+                <Text style={styles.userMessageText}>
+                  {String(item.content ?? '')}
+                </Text>
+              ) : isAnalytics ? (
+                <AnalyticsGraph
+                  metric={item.content.metric}
+                  data={item.content.data}
+                />
               ) : (
                 <Markdown style={markdownStyles}>
-                  {item.content}
+                  {typeof item.content === 'string'
+                    ? item.content
+                    : ''}
                 </Markdown>
               )}
+
               {item.timestamp && (
-                  <Text style={[
-                      styles.timestampText, 
-                      { textAlign: isUser ? 'right' : 'left' }
-                  ]}>
-                      {item.timestamp}
-                  </Text>
+                <Text
+                  style={[
+                    styles.timestampText,
+                    {
+                      textAlign: isUser ? 'right' : 'left',
+                    },
+                  ]}
+                >
+                  {item.timestamp}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
         );
       }}
-      keyExtractor={(item) => item.id}
+      keyExtractor={item => item.id}
       contentContainerStyle={styles.chatArea}
       showsVerticalScrollIndicator={false}
       onScroll={({ nativeEvent }) => {
-        const { contentOffset, layoutMeasurement, contentSize } = nativeEvent;
-        const threshold = 50; 
-        const isNearBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - threshold;
-        
+        const {
+          contentOffset,
+          layoutMeasurement,
+          contentSize,
+        } = nativeEvent;
+
+        const threshold = 50;
+
+        const isNearBottom =
+          contentOffset.y + layoutMeasurement.height >=
+          contentSize.height - threshold;
+
         if (onScrollPositionChange) {
           onScrollPositionChange(!isNearBottom);
         }
       }}
       scrollEventThrottle={16}
     />
+
   );
 }
 

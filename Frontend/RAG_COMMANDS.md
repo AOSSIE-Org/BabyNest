@@ -54,65 +54,6 @@ The RAG (Retrieval-Augmented Generation) system can control your entire BabyNest
 
 ---
 
-## 😊 **MOOD TRACKING** ✨ NEW!
-
-### Log Mood
-```
-• "log my mood"
-• "I feel happy"
-• "feeling anxious"
-• "my mood is good"
-• "record mood"
-• "add mood entry"
-• "I am stressed"
-• "feeling calm today"
-• "I'm feeling very energetic"
-• "quite tired today"
-• "extremely frustrated"
-```
-
-### Smart Follow-ups
-```
-• "log mood" → Will ask for mood type
-  💡 Tip: "log mood happy with high intensity today feeling great"
-
-• "I feel" → Will ask for mood intensity
-  💡 Tip: "log mood happy with high intensity today feeling great"
-```
-
----
-
-## 😴 **SLEEP TRACKING** ✨ NEW!
-
-### Log Sleep
-```
-• "log sleep"
-• "I slept 8 hours"
-• "went to bed at 10pm"
-• "woke up at 6am"
-• "add sleep entry"
-• "record sleep"
-• "slept well"
-• "poor sleep last night"
-• "I slept 7.5 hours last night"
-• "bedtime was 11pm, woke up at 7am"
-• "excellent sleep quality"
-```
-
-### Smart Follow-ups
-```
-• "log sleep" → Will ask for duration
-  💡 Tip: "log sleep 8 hours from 10pm to 6am with excellent quality"
-
-• "I slept" → Will ask for quality and timing
-  💡 Tip: "log sleep 8 hours from 10pm to 6am with excellent quality"
-
-• "went to bed" → Will ask for wake time and quality
-  💡 Tip: "log sleep 8 hours from 10pm to 6am with excellent quality"
-```
-
----
-
 ## 📊 **ANALYTICS & REPORTS** ✨ NEW!
 
 ### Query Analytics
@@ -134,22 +75,6 @@ The RAG (Retrieval-Augmented Generation) system can control your entire BabyNest
 ```
 • "analytics" → Will ask what to analyze
 • "show stats" → Will ask for metric and timeframe
-```
-
----
-
-## ↩️ **UNDO ACTIONS** ✨ NEW!
-
-### Undo Last Action
-```
-• "undo last action"
-• "delete last entry"
-• "remove last weight"
-• "cancel last appointment"
-• "revert changes"
-• "undo my last log"
-• "undo last weight entry"
-• "cancel last mood log"
 ```
 
 ---
@@ -528,38 +453,6 @@ Delete Weight:
 • "remove weight log"
 ```
 
-### 😊 **Mood Management**
-```
-Update Mood:
-• "update mood"
-• "change mood entry"
-• "modify feeling record"
-• "edit mood log"
-• "update mood entry"
-
-Delete Mood:
-• "delete mood"
-• "remove mood entry"
-• "delete mood record"
-• "remove mood log"
-```
-
-### 😴 **Sleep Management**
-```
-Update Sleep:
-• "update sleep"
-• "change sleep entry"
-• "modify sleep record"
-• "edit sleep log"
-• "update bedtime"
-
-Delete Sleep:
-• "delete sleep"
-• "remove sleep entry"
-• "delete sleep record"
-• "remove sleep log"
-```
-
 ### Smart Follow-ups for CRUD Operations
 ```
 • "update medicine" → Will ask which medicine and what to update
@@ -666,7 +559,6 @@ With these commands, you can:
 - ✅ **Create and manage appointments** with smart date/time handling
 - ✅ **Track all health metrics** (weight, symptoms, BP, medicine, discharge, mood, sleep)
 - ✅ **Generate analytics and reports** with trend analysis and charts
-- ✅ **Undo any action** with smart action recognition
 - ✅ **Navigate to any screen** in the app
 - ✅ **Update your profile** information
 - ✅ **View and retrieve data** from any section
@@ -676,7 +568,4 @@ With these commands, you can:
 **The RAG system gives you complete voice/text control of your entire BabyNest app!** 🚀
 
 ## 🆕 **NEW FEATURES ADDED:**
-- 😊 **Mood Tracking** - Log emotions and feelings with intensity levels
-- 😴 **Sleep Tracking** - Record sleep duration, quality, bedtime, and wake times
 - 📊 **Analytics & Reports** - Get insights on weight trends, sleep patterns, mood distribution
-- ↩️ **Undo Actions** - Reverse any logged entry or action with smart recognition

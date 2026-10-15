@@ -502,6 +502,7 @@ export async function updateProfile(userId, data) {
         'INVALID_LMP_DATE',
       );
     }
+    dueDate = dueDate ?? data.dueDate;
 
     await db.execute(
       `

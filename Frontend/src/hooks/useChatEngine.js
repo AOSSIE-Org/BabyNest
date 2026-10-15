@@ -168,11 +168,11 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
         return;
       }
 
-      if (response) {
-        const botMessage = { 
-          id: generateID(), 
-          role: "assistant", 
-          content: response,
+      if (response || result.metric) {
+        const botMessage = {
+          id: generateID(),
+          role: "assistant",
+          content: result.metric ? result : response,
           timestamp: formatTime()
         };
         setConversation(prev => {

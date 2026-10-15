@@ -136,10 +136,7 @@ const DEFAULT_SYMPTOMS = [
 ];
 
 export function generateInitialSymptoms(userId, currentWeek) {
-  return DEFAULT_SYMPTOMS.filter(
-    symptom =>
-      currentWeek >= symptom.startWeek && currentWeek <= symptom.endWeek,
-  ).map(symptom => ({
+  return DEFAULT_SYMPTOMS.map(symptom => ({
     user_id: userId,
     week_number: currentWeek,
     symptom: symptom.symptom,

@@ -14,7 +14,7 @@ export default function ChatHeader({
       <TouchableOpacity style={{padding: 8}} onPress={() => navigation.goBack()}>
         <Icon name="arrow-back" size={24} color={"rgb(218,79,122)"}/>
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>BabyNest AI</Text>
+      <Text style={styles.headerTitle}>{useRAGMode ? "BabyNest Agent" : "BabyNest AI"}</Text>
       <TouchableOpacity 
         style={styles.headerButton}
         onPress={() => setUseRAGMode(!useRAGMode)}

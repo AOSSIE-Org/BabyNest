@@ -17,7 +17,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NotificationService from '../services/NotificationService';
 import { addAppointment, deleteAppointment, getAppointments, updateAppointment } from '../storage/appointments';
 
 const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];

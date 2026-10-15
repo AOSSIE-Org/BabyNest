@@ -31,6 +31,7 @@ export async function getAgentContext(userId) {
       const context = contextCache.get(parsedUserId);
 
       return success({
+        id: userId,
         context,
         timestamp: context.last_updated,
         current_week: context.current_week,
@@ -65,6 +66,7 @@ export async function getAgentContext(userId) {
 
     // 4. Return context
     return success({
+      id: userId,
       context,
       timestamp: context.last_updated,
       current_week: context.current_week,

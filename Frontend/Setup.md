@@ -1,97 +1,188 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# BabyNest — Android Setup Guide
 
-# Getting Started
+This guide explains how to set up, build, and run the BabyNest mobile application locally on Android.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Prerequisites
 
-## Step 1: Start Metro
+Before getting started, make sure you have installed and configured:
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+- **Node.js and npm** — to install dependencies and run the JavaScript tooling.
+- **JDK 17** — for the Android Gradle build.
+- **Android Studio** — including the Android SDK and platform tools.
+- **Android SDK Platform 35** — required by the current project configuration.
+- **Android SDK Build-Tools** — the version required by the project.
+- **Android device or emulator** — to run the application.
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+Follow the official [React Native environment setup guide](https://reactnative.dev/docs/set-up-your-environment) and select **React Native CLI → Android**.
 
-```sh
-# Using npm
+## Step 1: Clone the Repository
+
+Clone the BabyNest repository and navigate to its root directory.
+
+```bash
+git clone https://github.com/AOSSIE-Org/BabyNest
+cd BabyNest
+```
+
+## Step 2: Install Dependencies
+
+Install the JavaScript dependencies from the `Root` directory:
+
+```bash
+npm install
+```
+
+## Step 3: Configure Your Android Device
+
+You can run BabyNest on either a physical Android device or an emulator.
+
+### Option A: Physical Android Device
+
+1. Enable **Developer options** on your Android phone.
+2. Enable **USB debugging**.
+3. Connect your phone to your computer using a USB cable.
+4. Accept the USB debugging authorization prompt on your phone.
+5. Verify that your device is detected:
+
+```bash
+adb devices
+```
+
+Your device should appear with the status `device`.
+
+If it appears as `unauthorized`, unlock your phone and accept the debugging prompt.
+
+### Option B: Android Emulator
+
+1. Open Android Studio.
+2. Open **Device Manager**.
+3. Create or start an Android Virtual Device (AVD).
+4. Wait for the emulator to finish booting.
+5. Verify that it is detected:
+
+```bash
+adb devices
+```
+
+## Step 4: Start the Metro Development Server
+
+From the root directory, start Metro, the JavaScript bundler used by React Native:
+
+```bash
 npm start
-
-# OR using Yarn
-yarn start
 ```
 
-## Step 2: Build and run your app
+Keep this terminal running while developing and testing the application.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+## Step 5: Build and Run BabyNest on Android
 
-### Android
+Open a second terminal in the root directory and run:
 
-```sh
-# Using npm
+```bash
 npm run android
-
-# OR using Yarn
-yarn android
 ```
 
-### iOS
+This command builds the Android application, installs it on the connected device or running emulator, and launches it.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+### Alternative: Build Using Gradle
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+On Windows PowerShell, you can build the debug APK directly:
 
-```sh
-bundle install
+```powershell
+cd android
+.\gradlew.bat assembleDebug
 ```
 
-Then, and every time you update your native dependencies, run:
+On macOS or Linux:
 
-```sh
-bundle exec pod install
+```bash
+cd android
+./gradlew assembleDebug
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+The generated debug APK is normally located at:
 
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+To install the APK on a connected Android device:
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
 
-## Step 3: Modify your app
+Run the installation command from the `android` directory. Alternatively, run it from `root` using the full relative path:
 
-Now that you have successfully run the app, let's make changes!
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+## Step 6: Reload the Application During Development
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+BabyNest supports React Native Fast Refresh, which updates the application when you save changes to your JavaScript or TypeScript files.
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+If you need to reload the application manually:
 
-## Congratulations! :tada:
+- **Android:** Open the React Native Developer Menu using `Ctrl + M` on Windows/Linux, or shake the physical device if supported, then select **Reload**.
+- **Metro:** Press `r` in the Metro terminal to request a reload.
 
-You've successfully run and modified your React Native App. :partying_face:
+If you modify native Android code or native dependencies, rebuild the application when necessary.
 
-### Now what?
+## Step 7: Troubleshooting
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+### Device Not Detected
 
-# Troubleshooting
+Check the USB connection and USB debugging settings, then run:
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+```bash
+adb devices
+```
 
-# Learn More
+If necessary, restart the ADB server:
 
-To learn more about React Native, take a look at the following resources:
+```bash
+adb kill-server
+adb start-server
+adb devices
+```
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+### Android Build Fails
+
+Run the Gradle build directly to see more detailed error messages:
+
+```powershell
+cd android
+.\gradlew.bat assembleDebug --stacktrace
+```
+
+Check that your JDK, Android SDK, Gradle configuration, and native dependencies match the project requirements.
+
+### Metro or JavaScript Cache Issues
+
+Stop Metro and restart it with a cleared cache:
+
+```bash
+npm start -- --reset-cache
+```
+
+If a previous Android build is causing problems, clean the Gradle build and rebuild:
+
+```powershell
+cd android
+.\gradlew.bat clean
+.\gradlew.bat assembleDebug
+```
+
+Return to the `root` directory before running other npm commands.
+
+**Note:** Avoid deleting dependency folders or lockfiles as a first troubleshooting step. Try clearing the relevant cache and rebuilding before changing dependency versions.
+
+## Additional Resources
+
+- [React Native Documentation](https://reactnative.dev/docs/getting-started)
+- [React Native Android Environment Setup](https://reactnative.dev/docs/set-up-your-environment)
+- [Android Studio](https://developer.android.com/studio)
+- [Android Debug Bridge (ADB)](https://developer.android.com/tools/adb)
+
+Once these steps are complete, BabyNest should be ready to build and run on your Android device or emulator.

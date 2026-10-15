@@ -6,7 +6,7 @@ export default function EmptyState({ handleQuickReply, useRAGMode }) {
   const AGENT_TASKS = [
     { title: "Weight Tracking", subtitle: "Record progress", query: "Record my weight" },
     { title: "Medicine Tracking", subtitle: "Record pills", query: "Record medicine" },
-    { title: "Symptoms Tracking", subtitle: "Record health", query: "Record symptoms" },
+    { title: "Analyse Appointment", subtitle: "Graph appointment", query: "Build graph for appointment" },
     { title: "Visits", subtitle: "Next checkup", query: "When is my next appointment?" }
   ];
 
