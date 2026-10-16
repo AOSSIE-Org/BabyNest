@@ -1,4 +1,4 @@
-package com.babynest
+package org.aossie.babynest
 
 import android.app.Application
 import com.facebook.react.PackageList

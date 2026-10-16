@@ -1,4 +1,9 @@
 {
-  "name": "BabyNest",
-  "displayName": "BabyNest"
+  "name": "Baby Nest",
+  "displayName": "Baby Nest",
+  "extra": {
+    "eas": {
+      "projectId": "f8e16faa-6aa3-491b-9fce-9d922aeb7c1d" 
+    }
+  }
 }

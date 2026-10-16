@@ -1,4 +1,4 @@
-package com.babynest
+package org.aossie.babynest
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

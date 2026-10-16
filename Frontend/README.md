@@ -129,8 +129,6 @@ BabyNest/
 ├── .prettierrc.js
 ├── .watchmanconfig
 ├── __tests__/
-│   ├── App.test.tsx
-│   └── EmergencyCallingScreen.test.js
 ├── android/
 ├── ios/
 ├── src/
@@ -169,7 +167,7 @@ BabyNest/
 #### 1. Health Context Integration
 ```javascript
 // Context-aware conversation building
-  const {context, refreshContext, initializeContext,      isInitialized} = useAgentContext();
+  const {context, refreshContext, initializeContext, isInitialized} = useAgentContext();
 ```
 
 #### 2. Task Management
