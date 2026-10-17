@@ -36,7 +36,7 @@ Thank you for your interest in contributing to **BabyNest**! We appreciate your 
 
 ## Best Practices
 - **Code Quality**: Ensure code is readable, well-documented, and follows project conventions.
-- **Testing**: Test your changes locally before submitting a PR.
+- **Testing**: Test your changes locally before submitting a PR. And include unit tests if applicable.
 - **Security**: Avoid hardcoded credentials or sensitive information in commits.
 - **Communication**: Be responsive to feedback on PRs and make necessary changes promptly.
 
@@ -51,3 +51,6 @@ If you find a bug or have a feature request:
 - Clearly describe the problem and suggest possible solutions.
 
 We look forward to your contributions! 🚀
+
+## Discord Community
+Join our [Discord server](https://discord.com/channels/1022871757289422898/1339225155481763882) to discuss ideas, ask questions, and collaborate with other contributors.

@@ -1,0 +1,94 @@
+
+# Release Drafter configuration for BabyNest
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+change-title-escapes: '\<*_&'
+
+categories:
+  - title: '🚀 Features'
+    semver-increment: minor
+    labels:
+      - 'feature'
+      - 'feat'
+      - 'enhancement'
+
+  - title: '🐛 Bug Fixes'
+    semver-increment: patch
+    labels:
+      - 'bug'
+      - 'bugfix'
+      - 'fix'
+
+  - title: '⚡ Performance'
+    semver-increment: patch
+    labels:
+      - 'performance'
+      - 'perf'
+
+  - title: '📚 Documentation'
+    labels:
+      - 'documentation'
+      - 'docs'
+
+  - title: '🧪 Tests'
+    labels:
+      - 'test'
+      - 'tests'
+
+  - title: '🔧 Maintenance'
+    labels:
+      - 'chore'
+      - 'maintenance'
+      - 'dependencies'
+      - 'ci'
+      - 'build'
+      - 'refactor'
+
+  - title: '🔀 Other Changes'
+    semver-increment: patch
+    labels:
+      - '*'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking-change'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'feat'
+      - 'enhancement'
+  patch:
+    labels:
+      - 'patch'
+      - 'bug'
+      - 'bugfix'
+      - 'fix'
+  default: patch
+
+exclude-labels:
+  - 'skip-changelog'
+  - 'no-release'
+
+template: |
+  # BabyNest $RESOLVED_VERSION
+
+  Pregnancy tracking, personalized health insights, and an on-device AI assistant.
+
+  ## What's Changed
+
+  $CHANGES
+
+  ## Contributors
+
+  Thanks to all contributors who helped improve BabyNest!
+
+  $CONTRIBUTORS
+
+  ---
+  **Full Changelog**: $COMPARE_URL

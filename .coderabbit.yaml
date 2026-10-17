@@ -1,0 +1,91 @@
+
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "en-US"
+
+early_access: false
+
+tone_instructions: >-
+  Be concise, technically precise, and constructive.
+  Prioritize correctness, security, privacy, data integrity,
+  performance, and maintainability. Report actionable bugs
+  with clear explanations and fixes. Avoid speculative findings,
+  style nitpicks, and unnecessary refactoring suggestions.
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: true
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  commit_status: true
+  poem: false
+  collapse_walkthrough: true
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/build/**"
+    - "!**/dist/**"
+    - "!**/coverage/**"
+    - "!**/.gradle/**"
+    - "!**/Pods/**"
+    - "!**/*.lock"
+    - "!android/app/build/**"
+    - "!ios/Pods/**"
+
+  path_instructions:
+    - path: "**/*.{js,jsx,ts,tsx}"
+      instructions: |
+        Review React Native code for correctness, component lifecycle
+        issues, stale closures, unnecessary rerenders, memory leaks,
+        navigation bugs, accessibility, and error handling.
+        Follow existing project conventions and avoid unnecessary
+        dependencies or broad refactors.
+
+    - path: "**/*.{ts,tsx,js,jsx}"
+      instructions: |
+        Check AI assistant and local inference code for malformed
+        model outputs, unsafe parsing, invalid extraction results,
+        prompt injection risks, incorrect null handling, and
+        unhandled inference or model-loading failures.
+        Ensure user input and generated output are validated.
+        Never assume the model returns valid structured data.
+
+    - path: "**/*.{ts,tsx,js,jsx}"
+      instructions: |
+        For database and persistence logic, verify SQL parameterization,
+        transaction safety, schema migrations, foreign-key consistency,
+        data isolation between users, and correct create/read/update/delete
+        behavior. Ensure profile deletion cleans up associated records
+        without leaving inconsistent state. Never log sensitive data.
+
+    - path: "android/**"
+      instructions: |
+        Review Android changes for React Native compatibility,
+        Gradle and Kotlin compatibility, Android permissions,
+        secure configuration, release-build correctness, and
+        accidental exposure of secrets or debug settings.
+
+    - path: "ios/**"
+      instructions: |
+        Review iOS changes for React Native compatibility, deployment
+        target consistency, CocoaPods configuration, permissions,
+        secure configuration, and release-build correctness.
+
+    - path: "**/*.{test,spec}.{js,jsx,ts,tsx}"
+      instructions: |
+        Check that tests cover expected behavior, edge cases,
+        failure states, asynchronous operations, and regressions.
+        Ensure mocks reflect the actual React Native APIs and
+        do not hide production defects.
+
+chat:
+  auto_reply: true

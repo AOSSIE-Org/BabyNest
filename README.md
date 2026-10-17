@@ -1,7 +1,7 @@
 <!-- Organization Logo -->
 <div align="center" style="display: flex; align-items: center; justify-content: center; gap: 16px;">
   <img alt="AOSSIE" src="public/AOSSIE-logo.png" width="175">
-  <img src="public/BabyNest-icon.webp" width="185" style="margin: 0;" />
+  <img src="public/BabyNest-icon.svg" width="185" style="margin: 0;" />
 </div>
 
 &nbsp;
