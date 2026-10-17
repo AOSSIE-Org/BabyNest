@@ -1,13 +1,11 @@
-# BabyNest
-<div name="readme-top"></div>
-
 <!-- Organization Logo -->
 <div align="center" style="display: flex; align-items: center; justify-content: center; gap: 16px;">
   <img alt="AOSSIE" src="public/AOSSIE-logo.png" width="175">
-  <!-- <img src="public/cross.svg" width="30" style="margin: 0;" /> -->
+  <img src="public/BabyNest-icon.webp" width="185" style="margin: 0;" />
 </div>
 
 &nbsp;
+<h1 name="readme-top" style="text-align: center;">BabyNest</h1>
 
 <!-- Organization Name -->
 <div align="center">
@@ -32,118 +30,370 @@
 <img src="https://img.shields.io/discord/995968619034984528?style=flat&logo=discord&logoColor=white&logoSize=auto&label=Discord&labelColor=5865F2&color=57F287" alt="Discord Badge"/></a>
 &nbsp;&nbsp;
 
-## Table of Contents
+BabyNest is an **Offline React Native Privacy-Focused mobile application** for pregnancy tracking, health-record management, and AI-assisted support.
 
-1. [Overview](#overview)
-2. [Features](#features)
-3. [Tech Stack](#tech-stack)
-5. [Usage](#usage)
-6. [Components](#components)
-4. [Architecture](#architecture)
-7. [Contact](#contact)
+> **Medical disclaimer:** BabyNest is an organizational and informational tool, not a substitute for professional medical advice, diagnosis, treatment, or emergency care.
 
-## Overview
+## 🚀 Features
 
-**BabyNest** is a minimalist React Native application designed to support expecting parents by tracking prenatal medical appointments, providing country-specific healthcare requirement notifications, and delivering AI-powered personalized recommendations. This intelligent pregnancy planner ensures parents stay informed, organized, and stress-free throughout their journey.
+- **Offline AI-Powered Chat**: Local GGUF LLM with user context integration & RAG support
+- **Task Management**: View tasks & appointments by pregnancy week with priority sorting
+- **Health Tracking**: Weight, symptoms, medications, blood pressure
+- **Manage pregnancy** related tasks and appointments.
 
-## Features
+- Visualize pregnancy progress with a week-by-week timeline in graphical form.
+- Store structured app data in a local SQLite database.
 
-- **Automated Trimester Tracking**: Keeps track of medical appointments based on the pregnancy timeline.
-- **Country-Specific Notifications**: Alerts users about healthcare requirements specific to their region.
-- **Offline Access**: Provides essential pregnancy care guidelines without requiring internet access.
-- **AI-Powered Assistant**: Offers personalized recommendations, reminders, and scheduling assistance.
+## Prerequisites
 
-## Tech Stack
+For Android development, install:
 
-- **Frontend**: React Native
-- **Backend**: Flask (Python)
-- **AI & NLP**: Python, LangChain
-- **Database**: SQLite
+- Node.js and npm
+- JDK 17
+- Android Studio and Android SDK Platform 35
+- Android SDK Build-Tools 35.0.0
+- Android NDK `27.1.12297006`
+- An Android device with USB debugging enabled, or an Android emulator
 
-## Usage
+The current Android configuration specifies `minSdkVersion 24`, `compileSdkVersion 35`, `targetSdkVersion 34`, and Kotlin `2.0.21`. Check the Gradle files in your checkout if these values change.
 
-- Open the mobile app on an emulator or device.
-- Sign up and input the estimated due date to personalize your experience.
-- Get notified of upcoming medical appointments and tasks.
-- Access offline pregnancy care guidelines.
-- Interact with the AI assistant for advice and recommendations.
+See the official [React Native 0.77 environment setup guide](https://reactnative.dev/docs/0.77/set-up-your-environment) for environment configuration.
 
-## Components
+## 🛠️ Installation
 
-### Frontend
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/AOSSIE-Org/BabyNest.git
+   cd BabyNest
+   ```
 
-- Built using **React Native** for a seamless mobile experience.
-- Provides a clean and intuitive UI to track pregnancy milestones.
-- Supports offline mode for essential features.
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   pnpm install
+   ```
 
-### Backend
+3. **Environment Setup**
+   
+   Create a `.env` file in the Frontend directory:
+   ```env
+   # API Configuration
+   BASE_URL=http://localhost:5000
+   
+   # Model Configuration
+   MODEL_NAME="Qwen2-0.5B-Instruct"
+   HF_TO_GGUF="Qwen/Qwen2.5-0.5B-Instruct-GGUF"
+   GGUF_FILE="qwen2.5-0.5b-instruct-q4_k_m.gguf"
+   DOWNLOAD_URL=`https://huggingface.co/${HF_TO_GGUF[MODEL_NAME]}/resolve/main/${GGUF_FILE}`
+   ```
 
-- Developed using Flask\*\*(Python)\*\* for fast and efficient API interactions.
-- Handles appointment scheduling and task management.
-- Provides data syncing when the user is online.
+4. **Install React Native dependencies**
+   ```bash
+   npx react-native link
+   ```
+> Check the [Setup.md](./Setup.md) file for additional setup instructions for Android and iOS.
 
-### AI & NLP
+## 🤖 AI Model Setup
 
-- **LangChain** is used to power the AI assistant for personalized insights.
-- Supports natural language queries to search for symptoms, medications, and appointments.
+### Model Download
 
-### Database
+The app uses a local GGUF model for chat responses. The model will be automatically downloaded on first use.
 
-- Uses **SQLite** for local data storage to support offline functionality.
-- Stores user information, appointment schedules, and task lists.
+**Model Details:**
+- **Model**: Qwen2-0.5B-Instruct
+- **File**: qwen2.5-0.5b-instruct-q4_k_m.gguf
 
-# Architecture
+### Model Configuration
 
-This diagram illustrates the architecture of BabyNest.
+The model is configured in `src/model/model.jsx`:
+- **Context Window**: 32,768 tokens
+- **Generation limit**: 8,192 tokens
+- **Parameters**: 0.49 billion
+- **Model file size**: ~469 MiB
 
-```mermaid
-graph TD;
-    %% Frontend in React Native
-    subgraph Frontend["Frontend (React Native)"]
-        D[BabyNest App] -->|Uses| E[react-native-sqlite-storage]
-        D -->|Interacts with| F[Chatbot]
-    end
+## 📱 App Structure
 
-    %% Local Storage (SQLite)
-    subgraph Database["Local Database (SQLite)"]
-        B[SQLite] -->|Stores & Retrieves| C[Appointments, Tasks, Due Date, Location]
-    end
+This is the current directory structure for the Frontend app:
 
-    %% Backend in Flask
-    subgraph Backend["Main Backend (Flask)"]
-        A[API Routes] -->|Syncs Data| B
-        A -->|Provides Data to| D
-    end
-    
-    %% LLM Agents & AI Processing
-    subgraph AI["LLM Agents & AI Processing"]
-        G[Local llm give response] -->|Indexes Data| H[ChromaDB]
-    end
-
-    %% Connections Between Components
-    D -->|Reads & Writes Data| B
-    A -->|Can Query AI Offline| G
-    H -->|Provides Faster Query Results| F
+```text
+BabyNest/
+├── .bundle/
+│   └── config
+├── .env
+├── .env.example
+├── .eslintrc.js
+├── .gitignore
+├── .prettierrc.js
+├── .watchmanconfig
+├── __tests__/
+├── android/
+├── ios/
+├── src/
+│   ├── Components/
+│   ├── Screens/
+│   ├── assets/
+│   ├── context/
+│   ├── data/
+│   ├── database/
+│   ├── hooks/
+│   ├── model/
+│   ├── navigation/
+│   ├── services/
+│   ├── storage/
+│   ├── theme/
+│   └── utils/
+├── App.jsx
+├── Gemfile
+├── Gemfile.lock
+├── index.js
+├── jest.config.js
+├── metro.config.js
+├── package-lock.json
+├── package.json
+├── pnpm-lock.yaml
+├── react-native.config.js
+├── README.md
+├── RAG_COMMANDS.md
+├── Setup.md
+├── app.json
+└──  tsconfig.json
 ```
 
-## Contributing
+### Key Features
 
-We welcome contributions of all kinds! To contribute:
+#### 1. Health Context Integration
+```javascript
+// Context-aware conversation building
+  const {context, refreshContext, initializeContext, isInitialized} = useAgentContext();
+```
 
-1. Fork the repository and create your feature branch (`git checkout -b feature/AmazingFeature`).
-2. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-3. Run the development workflow commands to ensure code quality
-4. Push your branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request for review.
+#### 2. Task Management
+```javascript
+  const filteredTasks = tasks
+    .filter(task => {
+      // Filter by week
+      const weekMatch =
+        task.starting_week <= currentWeek && task.ending_week >= currentWeek;
 
-If you encounter bugs, need help, or have feature requests:
+      // Filter by status
+      if (filter === 'pending')
+        return weekMatch && task.task_status === 'pending';
+      if (filter === 'completed')
+        return weekMatch && task.task_status === 'completed';
+      return weekMatch;
+    })
+    .sort((a, b) => {
+      // Sort by priority first, then by starting week
+      const priorityOrder = {high: 3, medium: 2, low: 1};
+      const priorityDiff =
+        priorityOrder[b.task_priority] - priorityOrder[a.task_priority];
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.starting_week - b.starting_week;
+    });
+```
 
-- Please open an issue in this repository providing detailed information.
-- Describe the problem clearly and include any relevant logs or screenshots.
+#### 3. AI & RAG Chat Integration
+```javascript
+const textToSend = typeof content === 'string' ? content : userInput;
 
-We appreciate your feedback and contributions!
+    if (!textToSend?.trim()) return;
 
-## Contact
+    let finalMessage = textToSend.trim();
 
-For any inquiries or support, please reach out to us on [Discord](#).
+    if (isQuickReply && pendingQueryRef.current) {
+      finalMessage = `${pendingQueryRef.current}. ${finalMessage}`;
+    }
 
+    // Store this query as context for a possible follow-up.
+    pendingQueryRef.current = finalMessage;
+
+    setUserInput('');
+
+    // Message sending and core logic handled by hook
+    const result = await sendMessage(textToSend, useRAGMode, initializeContext);
+```
+
+## Running the App
+
+### Development
+
+1. **Start Metro bundler**
+   ```bash
+   npx react-native start
+   ```
+
+2. **Run on Android**
+   ```bash
+   npx react-native run-android
+   ```
+
+3. **Run on iOS**
+   ```bash
+   npx react-native run-ios
+   ```
+
+### Production
+
+1. **Build Android APK**
+   ```bash
+   cd android
+   ./gradlew assembleRelease
+   ```
+
+2. **Build iOS**
+   ```bash
+   cd ios
+   xcodebuild -workspace BabyNest.xcworkspace -scheme BabyNest -configuration Release
+   ```
+
+## 🔄 Data Flow
+
+### Flow diagram
+
+``` mermaid
+flowchart TD
+    U([User]) --> APP[BabyNest App]
+    APP --> CTX[Build / update shared app context]
+    CTX --> Q[Receive user query or UI action]
+
+    Q --> MODE{How should this request be handled?}
+
+    MODE -->|UI action / screen available| UI[App UI screen]
+    UI --> FH[In-app function handler]
+    FH --> ROUTE{Route to matching handler}
+    ROUTE --> PH[profileHandler.js]
+    ROUTE --> AH[appointmentHandler.js]
+    ROUTE --> AGH[agentHandler.js]
+    ROUTE --> BPH[BPHandler.js]
+
+    PH --> DB[(Local database inside APK)]
+    AH --> DB
+    AGH --> DB
+    BPH --> DB
+    DB --> CTXUP[Update / share app context]
+    CTXUP --> APP
+
+    MODE -->|RAG mode enabled| RAG[RAG service]
+    RAG --> MATCH{Query matches a defined intent?}
+    MATCH -->|Yes| EXTRACT[extractData: extract intent fields]
+    EXTRACT --> CHECK[checkMissingFields: validate required fields]
+    CHECK --> MISSING{Required fields missing?}
+    MISSING -->|Yes| FOLLOW[generateFollowUpQuestions]
+    FOLLOW --> ASK[Ask user for missing information]
+    ASK --> Q
+    MISSING -->|No| EXEC[executeAction: run matched action]
+    EXEC --> HANDLER[Call mapped in-app handler]
+    HANDLER --> DB
+
+    MATCH -->|No| FALLBACK[Fall back to AI mode]
+    MODE -->|AI mode enabled| LOCAL[Local language model]
+    FALLBACK --> LOCAL
+    LOCAL --> TEXT[Generate text response]
+    TEXT --> RESP[Return response to user]
+    RESP --> APP
+
+    style APP fill:#fff3d6,stroke:#d97706,color:#111827
+    style RAG fill:#fff3d6,stroke:#d97706,color:#111827
+    style LOCAL fill:#e0f2fe,stroke:#0284c7,color:#111827
+    style DB fill:#f3f4f6,stroke:#6b7280,color:#111827
+    style CTX fill:#dcfce7,stroke:#16a34a,color:#14532d
+    style CTXUP fill:#dcfce7,stroke:#16a34a,color:#14532d
+    style FALLBACK fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+```
+
+### Request-routing logic
+
+``` text
+Build/share app context
+        |
+        v
+Receive query or UI action
+        |
+        +-- User selects an available UI screen/action
+        |       -> In-app function handler
+        |       -> Matching feature handler
+        |       -> Local database, if required
+        |       -> Update/share context
+        |
+        +-- ragMode == true
+        |       -> RAG service searches for a defined intent
+        |       -> Intent found?
+        |            -> Yes: extract data
+        |            -> Check required fields
+        |            -> Missing fields: ask follow-up question and wait
+        |            -> All fields present: execute mapped action
+        |            -> No intent match: fall back to local AI mode
+        |
+        +-- aiMode == true
+                -> Local language model
+                -> Generate text response
+                -> Return response to the user
+```
+## 🧪 Testing
+
+### Run this cmd for Testing in root dir: -
+```bash
+npm test
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **Model Not Loading**
+   - Check internet connection for download
+   - Verify sufficient storage space
+   - Check `.env` file configuration
+
+3. **Context Not Loading**
+   - Check context agent initialization
+   - Verify database setup
+   - Check user profile exists
+
+### Debug Commands
+
+```bash
+# Check model status
+adb logcat | grep "Model"
+
+# Check API calls
+adb logcat | grep "fetch"
+
+# Check context loading
+adb logcat | grep "Context"
+```
+
+## 🔒 Security Considerations
+
+- **Local Model**: GGUF model runs locally, no data sent to external APIs
+- **Health Data**: Stored locally in SQLite database
+- **Context Privacy**: User health data only used for local AI responses
+- **Offline Capability**: Chat works without internet connection
+
+## 🚀 Performance Optimizations
+
+- **Model Caching**: GGUF model loaded once per session
+- **Context Caching**: User context cached with hash-based invalidation
+- **Lazy Loading**: Model loads only when ChatScreen is accessed
+- **Memory Management**: Automatic model cleanup on component unmount
+
+## 📈 Future Enhancements
+
+- [ ] Multi-user support
+- [ ] Real-time health monitoring
+- [ ] Advanced analytics dashboard
+- [ ] Integration with health devices
+- [ ] Better RAG services
+- [ ] Voice chat interface
+
+## 🤝 Contributing
+
+Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before submitting a change. Include clear reproduction steps with bug reports, and never include passwords, tokens, or private health information in issues or logs.
+
+## 📄 License
+
+See the repository's [`LICENSE.md`](./LICENSE.md) for the applicable license.
+
+## 📝 Copyright
+© 2026 AOSSIE-Org. All rights reserved. See [COPYRIGHT.md](./COPYRIGHT.md) for details on usage and warranty disclaimers.
