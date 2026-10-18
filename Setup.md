@@ -1,262 +1,188 @@
-# BabyNest Setup Guide
+# BabyNest — Android Setup Guide
 
-This guide provides step-by-step instructions to set up the BabyNest app for Android and iOS, addressing platform-specific dependencies and configurations.
+This guide explains how to set up, build, and run the BabyNest mobile application locally on Android.
 
 ## Prerequisites
 
-Ensure you have the following installed:
+Before getting started, make sure you have installed and configured:
 
-- _Node.js_ (Latest LTS version)
-- _React Native CLI_
-- _Python 3.8+_ (For Flask backend)
-- _SQLite_ (For local storage)
-- _ChromaDB_ (For vector search)
-- _Git_ (For version control)
+- **Node.js and npm** — to install dependencies and run the JavaScript tooling.
+- **JDK 17** — for the Android Gradle build.
+- **Android Studio** — including the Android SDK and platform tools.
+- **Android SDK Platform 35** — required by the current project configuration.
+- **Android SDK Build-Tools** — the version required by the project.
+- **Android device or emulator** — to run the application.
 
-## 1) Clone the Repository
+Follow the official [React Native environment setup guide](https://reactnative.dev/docs/set-up-your-environment) and select **React Native CLI → Android**.
 
-```sh
-git clone https://github.com/AOSSIE-Org/BabyNest.git
+## Step 1: Clone the Repository
+
+Clone the BabyNest repository and navigate to its root directory.
+
+```bash
+git clone https://github.com/AOSSIE-Org/BabyNest
 cd BabyNest
 ```
 
----
+## Step 2: Install Dependencies
 
-## Android Setup
+Install the JavaScript dependencies from the `Root` directory:
 
-### 2) Install Dependencies
-
-```sh
-cd Frontend
+```bash
 npm install
 ```
 
-### 3) Set Up Android Development Environment
+## Step 3: Configure Your Android Device
 
-- Install _Android Studio_ and ensure the latest SDK versions are installed.
-- Set up an Android Virtual Device (AVD) or connect a physical device.
-- Ensure ANDROID_HOME is set in your environment variables.
-  Install dependencies:
-  ```sh
-  npx react-native doctor
-  ```
-- If needed, install missing dependencies.
+You can run BabyNest on either a physical Android device or an emulator.
 
-### 4. Configure SQLite
+### Option A: Physical Android Device
 
-BabyNest uses SQLite for local storage:
-Ensure react-native-sqlite-storage is installed:
+1. Enable **Developer options** on your Android phone.
+2. Enable **USB debugging**.
+3. Connect your phone to your computer using a USB cable.
+4. Accept the USB debugging authorization prompt on your phone.
+5. Verify that your device is detected:
 
-```sh
-npm install react-native-sqlite-storage
+```bash
+adb devices
 ```
 
-Link dependencies (if necessary):
+Your device should appear with the status `device`.
 
-```sh
-npx pod-install
+If it appears as `unauthorized`, unlock your phone and accept the debugging prompt.
+
+### Option B: Android Emulator
+
+1. Open Android Studio.
+2. Open **Device Manager**.
+3. Create or start an Android Virtual Device (AVD).
+4. Wait for the emulator to finish booting.
+5. Verify that it is detected:
+
+```bash
+adb devices
 ```
 
-### 5) Run the App on Android
+## Step 4: Start the Metro Development Server
 
-```sh
-npx react-native start
-npx react-native run-android
+From the root directory, start Metro, the JavaScript bundler used by React Native:
+
+```bash
+npm start
 ```
 
----
+Keep this terminal running while developing and testing the application.
 
-## iOS Setup
+## Step 5: Build and Run BabyNest on Android
 
-### 2) Install Dependencies
+Open a second terminal in the root directory and run:
 
-```sh
-cd Frontend
-npm install
+```bash
+npm run android
 ```
 
-### 3) Set Up iOS Development Environment
+This command builds the Android application, installs it on the connected device or running emulator, and launches it.
 
-- Install _Xcode_ from the Mac App Store.
-  Install _CocoaPods_ (if not installed):
-  ```sh
-  sudo gem install cocoapods
-  ```
+### Alternative: Build Using Gradle
 
-Install pods:
+On Windows PowerShell, you can build the debug APK directly:
 
-```sh
-cd ios
-pod install
-cd ..
+```powershell
+cd android
+.\gradlew.bat assembleDebug
 ```
 
-- Set up a simulator or use a physical device.
+On macOS or Linux:
 
-### 4. Configure SQLite
-
-BabyNest uses SQLite for local storage:
-Ensure react-native-sqlite-storage is installed:
-
-```sh
-npm install react-native-sqlite-storage
+```bash
+cd android
+./gradlew assembleDebug
 ```
 
-Link dependencies:
+The generated debug APK is normally located at:
 
-```sh
-npx pod-install
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### 5) Run the App on iOS
+To install the APK on a connected Android device:
 
-```sh
-npx react-native start
-npx react-native run-ios
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
----
+Run the installation command from the `android` directory. Alternatively, run it from `root` using the full relative path:
 
-## Backend Setup (Offline Flask API)
-
-BabyNest includes an offline backend using Flask
-
-### 6) Install Python Dependencies
-
-```sh
-cd Backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### 7) Run the Backend Locally
+## Step 6: Reload the Application During Development
 
-```sh
-cd Backend
+BabyNest supports React Native Fast Refresh, which updates the application when you save changes to your JavaScript or TypeScript files.
+
+If you need to reload the application manually:
+
+- **Android:** Open the React Native Developer Menu using `Ctrl + M` on Windows/Linux, or shake the physical device if supported, then select **Reload**.
+- **Metro:** Press `r` in the Metro terminal to request a reload.
+
+If you modify native Android code or native dependencies, rebuild the application when necessary.
+
+## Step 7: Troubleshooting
+
+### Device Not Detected
+
+Check the USB connection and USB debugging settings, then run:
+
+```bash
+adb devices
 ```
 
-**For Development Mode:**
+If necessary, restart the ADB server:
 
-```sh
-python app.py --env development
+```bash
+adb kill-server
+adb start-server
+adb devices
 ```
 
-This will start the API locally in development mode. In development mode, error messages are more detailed and verbose, making it easier to debug issues during development.
+### Android Build Fails
 
-**For Production Mode:**
+Run the Gradle build directly to see more detailed error messages:
 
-```sh
-python app.py --env production
+```powershell
+cd android
+.\gradlew.bat assembleDebug --stacktrace
 ```
 
-This will start the API in production mode. In production mode, error messages are more general and details are minimized for security purposes.
+Check that your JDK, Android SDK, Gradle configuration, and native dependencies match the project requirements.
 
----
+### Metro or JavaScript Cache Issues
 
-## Handling Vector Search (ChromaDB)
+Stop Metro and restart it with a cleared cache:
 
-BabyNest uses ChromaDB for offline vector search.
-
-### 1) Install ChromaDB
-
-```sh
-pip install chromadb
+```bash
+npm start -- --reset-cache
 ```
 
-### 2) Run ChromaDB
+If a previous Android build is causing problems, clean the Gradle build and rebuild:
 
-```sh
-python -m chromadb
+```powershell
+cd android
+.\gradlew.bat clean
+.\gradlew.bat assembleDebug
 ```
 
-This starts the local vector database.
+Return to the `root` directory before running other npm commands.
 
----
+**Note:** Avoid deleting dependency folders or lockfiles as a first troubleshooting step. Try clearing the relevant cache and rebuilding before changing dependency versions.
 
-## Troubleshooting
+## Additional Resources
 
-### Android Issues
+- [React Native Documentation](https://reactnative.dev/docs/getting-started)
+- [React Native Android Environment Setup](https://reactnative.dev/docs/set-up-your-environment)
+- [Android Studio](https://developer.android.com/studio)
+- [Android Debug Bridge (ADB)](https://developer.android.com/tools/adb)
 
-- If run-android fails, ensure:
-  - Emulator or physical device is connected.
-  - adb devices lists a device.
-  - npx react-native start is running.
-- If you encounter a Java heap space error, increase heap size:
-  ```sh
-  export NODE_OPTIONS=--max_old_space_size=4096
-  ```
-- If build fails with Gradle errors, try:
-  ```sh
-  cd android
-  ./gradlew clean
-  cd ..
-  ```
-
-### iOS Issues
-
-- Try uninstalling any app in ios simulator and close the terminal and run all the commands again as mentioned here.
-
-- If the issues still persist and build fails, try:
-  ```sh
-  cd ios
-  pod install --verbose
-  cd ..
-  ```
-- Ensure Xcode command-line tools are installed:
-  ```sh
-  sudo xcode-select --install
-  ```
-- If the Metro bundler crashes, clear the cache:
-  ```sh
-  npx react-native start --reset-cache
-  ```
-- If CocoaPods fails with dependency issues, try:
-  ```sh
-  cd ios
-  pod repo update
-  pod install --verbose
-  cd ..
-  ```
-- If you encounter Podfile.lock conflicts, remove and reinstall pods:
-  ```sh
-  cd ios
-  rm -rf Pods Podfile.lock
-  pod install
-  cd ..
-  ```
-- If linking issues occur, ensure dependencies are correctly linked:
-  ```sh
-  npx react-native link
-  ```
-
-### Backend Issues
-
-- If Flask doesn’t start, check dependencies:
-  ```sh
-  cd Backend
-  python3 -m venv .venv
-  source .venv/bin/activate
-  pip install -r requirements.txt
-  ```
-- Ensure Python version is 3.8+.
-- If Flask crashes with Address already in use, free the port:
-  ```sh
-  lsof -i :5000
-  kill -9 <PID>
-  ```
-
-### Database Issues
-
-- If SQLite doesn’t initialize, ensure:
-  - The database file exists in the correct directory.
-  - Correct permissions are set:
-    ```sh
-    chmod 777 database.db
-    ```
-
----
-
-## Conclusion
-
-Once both the frontend and backend are running, BabyNest will be fully functional. For any issues, check logs and ensure dependencies are correctly installed.
+Once these steps are complete, BabyNest should be ready to build and run on your Android device or emulator.

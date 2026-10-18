@@ -1,0 +1,30 @@
+
+# Dependencies
+node_modules/
+
+# Git history
+.git/
+
+# Android native project (iOS build only)
+android/
+
+# Build outputs and caches
+.expo/
+.expo-shared/
+dist/
+build/
+coverage/
+.gradle/
+ios/Pods/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local model files (only if downloaded during the build)
+*.gguf
+
+# Logs
+npm-debug.log*
+yarn-debug.log*

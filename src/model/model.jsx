@@ -1,0 +1,347 @@
+import { Alert } from "react-native";
+import { initLlama, releaseAllLlama } from "llama.rn";
+import RNFS from "react-native-fs";
+import axios from "axios";
+import DeviceInfo from "react-native-device-info";
+import {MODEL_NAME, HF_TO_GGUF} from "@env";
+
+let context = null;
+
+const MAX_CACHE_SIZE = 100;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const responseCache = new Map();
+
+const setCache = (key, value) => {
+  // Enforce size limit
+  if (responseCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = responseCache.keys().next().value;
+    responseCache.delete(firstKey);
+  }
+  responseCache.set(key, {value, timestamp: Date.now()});
+};
+
+const getCache = key => {
+  const entry = responseCache.get(key);
+  if (!entry) return null;
+
+  // Check expiration
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    responseCache.delete(key);
+    return null;
+  }
+  return entry.value;
+};
+
+export const fetchAvailableGGUFs = async () => {
+  try {
+    const repoPath = HF_TO_GGUF;
+    if (!repoPath)
+      throw new Error(`No repository mapping found for ${MODEL_NAME}`);
+
+    const response = await axios.get(
+      `https://huggingface.co/api/models/${repoPath}`,
+    );
+    if (!response.data?.siblings)
+      throw new Error('Invalid API response format');
+
+    return response.data.siblings
+      .filter(file => file.rfilename.endsWith('.gguf'))
+      .map(file => file.rfilename);
+  } catch (error) {
+    Alert.alert('Error', error.message || 'Failed to fetch .gguf files');
+    return [];
+  }
+};
+
+export const checkMemoryBeforeLoading = async modelPath => {
+  const stats = await RNFS.stat(modelPath);
+  const fileSizeMB = stats.size / (1024 * 1024);
+  const availableMemoryMB =
+    (await DeviceInfo.getFreeDiskStorage()) / (1024 * 1024);
+
+  if (fileSizeMB > availableMemoryMB * 0.8) {
+    Alert.alert('Low Memory', 'The model may be too large to load!');
+    return false;
+  }
+
+  if (fileSizeMB < 100) {
+    Alert.alert(
+      'Corrupted Model',
+      'The model may be corrupted. Please download again.',
+    );
+    return false;
+  }
+  return true;
+};
+
+export const downloadModel = async (fileName, onProgress) => {
+  const downloadUrl = `https://huggingface.co/${HF_TO_GGUF}/resolve/main/${fileName}`;
+  const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+
+  if (await RNFS.exists(destPath)) {
+    const loaded = await loadModel(fileName);
+    if (!loaded) return null;
+    return destPath;
+  }
+
+  try {
+    await RNFS.downloadFile({
+      fromUrl: downloadUrl,
+      toFile: destPath,
+      progress: res => {
+        if (res.contentLength > 0)
+          onProgress(res.bytesWritten / res.contentLength);
+      },
+      background: true,
+      discretionary: true,
+    }).promise;
+
+    if (!(await RNFS.exists(destPath)))
+      throw new Error('Download failed. File does not exist.');
+    const loaded = await loadModel(fileName);
+    if (!loaded) return null;
+    return destPath;
+  } catch (error) {
+    Alert.alert('Error', error.message || 'Failed to download model.');
+    return null;
+  }
+};
+
+export const loadModel = async modelName => {
+  try {
+    const destPath = `${RNFS.DocumentDirectoryPath}/${modelName}`;
+    if (!(await RNFS.exists(destPath))) {
+      Alert.alert('Error', `Model file not found at ${destPath}`);
+      return false;
+    }
+
+    if (context) {
+      await releaseAllLlama();
+      context = null;
+    }
+
+    if (!(await checkMemoryBeforeLoading(destPath))) return false;
+
+    context = await initLlama({
+      model: destPath,
+      n_ctx: 4096,
+      n_gpu_layers: 0, // Disabled GPU layers to fix emulator lag/hang
+      n_threads: 2, // Reduced threads for emulator stability
+    });
+    if (__DEV__) console.log('Model context initialized.');
+    return true;
+  } catch (error) {
+    Alert.alert(
+      'Error Loading Model',
+      error.message || 'An unknown error occurred.',
+    );
+    return false;
+  }
+};
+
+export const unloadModel = async () => {
+  try {
+    if (context) {
+      if (__DEV__) console.log('Releasing model context...');
+      await releaseAllLlama();
+      context = null;
+      if (__DEV__) console.log('Model context released.');
+    }
+  } catch (error) {
+    console.error('Failed to release model context:', error);
+  }
+};
+
+export const generateResponse = async conversation => {
+  if (!Array.isArray(conversation)) {
+    console.warn(
+      'generateResponse: conversation is not an array',
+      conversation,
+    );
+    return null;
+  }
+
+  const lastMessage = conversation.filter(msg => msg?.role === 'user').pop();
+  const cacheKey = lastMessage?.content?.trim();
+
+  if (cacheKey) {
+    const cachedResponse = getCache(cacheKey);
+    if (cachedResponse) {
+      console.log('Returning cached response for:', cacheKey);
+      return cachedResponse;
+    }
+  }
+
+  const stopWords = [
+    '</s>',
+    '<|end|>',
+    'user:',
+    'assistant:',
+    '<|im_end|>',
+    '<|eot_id|>',
+    '<|end▁of▁sentence|>',
+  ];
+
+  try {
+    // Check if conversation already has a system message
+    const hasSystemMessage = conversation.some(msg => msg.role === 'system');
+
+    let messagesToSend = conversation;
+
+    // If no system message exists, add a default pregnancy assistant prompt
+    if (!hasSystemMessage) {
+      const defaultSystemMessage = {
+        role: 'system',
+        content:
+          'You are a highly specialized AI assistant focused on pregnancy-related topics. ' +
+          'Your expertise includes maternal health, fetal development, prenatal care, and pregnancy well-being. ' +
+          '- Provide responses that are concise, clear, and easy to understand. ' +
+          '- Maintain a warm, empathetic, and supportive tone to reassure users. ' +
+          '- Prioritize factual, evidence-based information while keeping answers short. ' +
+          '- If a question is outside pregnancy-related topics, gently redirect the user to relevant discussions. ' +
+          '- Avoid unnecessary details, deliver crisp, to-the-point answers with care and compassion.',
+      };
+      messagesToSend = [defaultSystemMessage, ...conversation];
+    }
+
+    if (__DEV__) console.log('Starting inference...');
+    const startTime = Date.now();
+    const result = await context.completion({
+      messages: messagesToSend,
+      n_predict: 256, // Reduced from 500 for faster felt response
+      stop: stopWords,
+    });
+    if (__DEV__) {
+      const endTime = Date.now();
+      console.log(`⚡ Inference Time: ${endTime - startTime}ms`);
+    }
+
+    const response = result?.text?.trim();
+
+    // Cache the successful response
+    if (response && cacheKey) {
+      setCache(cacheKey, response);
+    }
+
+    return response;
+  } catch (error) {
+    Alert.alert(
+      'Error During Inference',
+      error.message || 'An unknown error occurred.',
+    );
+    return null;
+  }
+};
+
+export const generateRAGResponse = async (userQuery, systemPrompt) => {
+  if (typeof userQuery !== 'string' || !userQuery.trim()) {
+    console.warn('generateRAGResponse: user query must be a non-empty string');
+    return null;
+  }
+
+  if (!context) {
+    if (!MODEL_NAME || !HF_TO_GGUF) {
+      throw new Error('MODEL_NAME or HF_TO_GGUF is not configured.');
+    }
+
+    const modelPath = `${RNFS.DocumentDirectoryPath}/${MODEL_NAME}`;
+    const modelExists = await RNFS.exists(modelPath);
+
+    if (modelExists) {
+      // Model is already downloaded; initialize it.
+      const loaded = await loadModel(MODEL_NAME);
+
+      if (!loaded) {
+        throw new Error('Failed to load the downloaded model.');
+      }
+    } else {
+      // 2. Verify that the configured model exists on Hugging Face.
+      const availableModels = await fetchAvailableGGUFs();
+      console.log("avaul model",availableModels)
+      console.log("avaul model", MODEL_NAME);
+
+      if (!availableModels.includes(MODEL_NAME)) {
+        throw new Error(
+          `Model file "${MODEL_NAME}" was not found in ${HF_TO_GGUF}.`,
+        );
+      }
+
+      // 3. Download the model and load it.
+      const downloadedPath = await downloadModel(MODEL_NAME);
+
+      if (!downloadedPath || !context) {
+        throw new Error('Model download or initialization failed.');
+      }
+    }
+  }
+
+  // 4. Ensure the model is ready before inference.
+  if (!context) {
+    throw new Error('Model context is unavailable.');
+  }
+  const query = userQuery.trim();
+
+  try {
+    const messagesToSend = [
+      {role: 'system', content: systemPrompt},
+      {role: 'user', content: query},
+    ];
+
+    const result = await context.completion({
+      messages: messagesToSend,
+      n_predict: 256,
+      temperature: 0,
+      stop: [
+        '</s>',
+        '<|end|>',
+        '<|im_end|>',
+        '<|eot_id|>',
+        '<|end▁of▁sentence|>',
+      ],
+    });
+
+    const rawResponse = result?.text?.trim();
+
+    if (!rawResponse) {
+      console.warn('Model returned an empty response');
+      return null;
+    }
+
+    // Handle accidental Markdown code fences.
+    const cleanedResponse = rawResponse
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/, '')
+      .trim();
+
+    let extracted;
+
+    try {
+      extracted = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      // Recover if the model adds text around the JSON object.
+      const start = cleanedResponse.indexOf('{');
+      const end = cleanedResponse.lastIndexOf('}');
+
+      if (start === -1 || end <= start) {
+        throw new Error('Model did not return a valid JSON object');
+      }
+
+      extracted = JSON.parse(cleanedResponse.slice(start, end + 1));
+    }
+
+    // Basic output validation.
+    if (!extracted || typeof extracted !== 'object') {
+      throw new Error('Model returned an object with an invalid schema');
+    }
+
+    if (__DEV__) {
+      console.log('Extracted intent:', extracted.intent);
+      console.log('Extracted data:', extracted.data);
+    }
+
+    return extracted;
+  } catch (error) {
+    console.error('Query extraction failed:', error.message);
+    return null;
+  }
+};
