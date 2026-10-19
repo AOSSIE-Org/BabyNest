@@ -3,7 +3,7 @@ name: Automatic PR Labels
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, edited, ready_for_review, closed]
+    types: [opened, reopened, synchronize, edited, ready_for_review]
 
 permissions:
   contents: read
