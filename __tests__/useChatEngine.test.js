@@ -9,7 +9,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useChatEngine } from '../src/hooks/useChatEngine';
 import { generateResponse } from '../src/model/model';
 import { conversationContext } from '../src/services/ConversationContext';
-import { ragService } from '../src/services/RAGService';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),

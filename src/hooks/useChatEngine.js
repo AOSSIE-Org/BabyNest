@@ -11,9 +11,11 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const cancellationRef = useRef(0);
   const conversationRef = useRef([]);
 
-  // Keep ref synchronized with conversation state
+  // Keep ref synchronized without letting stale render frames overwrite newer state
   useEffect(() => {
-    conversationRef.current = conversation;
+    if (conversation && conversation.length > conversationRef.current.length) {
+      conversationRef.current = conversation;
+    }
   }, [conversation]);
 
   // Load chats on mount
