@@ -1,0 +1,388 @@
+
+name: Automatic PR Labels
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited, ready_for_review, closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  label-pr:
+    name: Create and apply PR labels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create labels and classify PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const prNumber = pr.number;
+
+            // 1. All labels managed by this workflow.
+            const labels = [
+              // Release Drafter: features
+              { name: 'feature', color: '0e8a16', description: 'New functionality' },
+              { name: 'feat', color: '0e8a16', description: 'New feature (conventional commit)' },
+              { name: 'enhancement', color: 'a2eeef', description: 'Improvement or feature request' },
+
+              // Release Drafter: bugs
+              { name: 'bug', color: 'd73a4a', description: 'Bug fix or defect' },
+              { name: 'bugfix', color: 'd73a4a', description: 'Bug fix' },
+              { name: 'fix', color: 'd73a4a', description: 'Fix (conventional commit)' },
+
+              // Release Drafter: performance
+              { name: 'performance', color: 'fbca04', description: 'Performance improvement' },
+              { name: 'perf', color: 'fbca04', description: 'Performance (conventional commit)' },
+
+              // Release Drafter: documentation
+              { name: 'documentation', color: '0075ca', description: 'Documentation updates' },
+              { name: 'docs', color: '0075ca', description: 'Documentation (conventional commit)' },
+
+              // Release Drafter: tests
+              { name: 'test', color: 'bfd4f2', description: 'Test changes' },
+              { name: 'tests', color: 'bfd4f2', description: 'Test changes' },
+
+              // Release Drafter: maintenance
+              { name: 'chore', color: 'ededed', description: 'Routine maintenance' },
+              { name: 'maintenance', color: 'ededed', description: 'Maintenance tasks' },
+              { name: 'dependencies', color: 'e4e669', description: 'Dependency updates' },
+              { name: 'ci', color: '0052cc', description: 'Continuous integration changes' },
+              { name: 'build', color: 'c2e0c6', description: 'Build system changes' },
+              { name: 'refactor', color: 'd4c5f9', description: 'Code restructuring without intended behavior changes' },
+
+              // Changed-file labels
+              { name: 'frontend', color: '7057ff', description: 'Frontend or React Native UI changes' },
+              { name: 'backend', color: 'c5def5', description: 'Backend changes' },
+              { name: 'javascript', color: 'f0e040', description: 'JavaScript or TypeScript changes' },
+              { name: 'python', color: 'ffe066', description: 'Python changes' },
+              { name: 'configuration', color: 'f9d0c4', description: 'Configuration changes' },
+              { name: 'github-actions', color: '0052cc', description: 'GitHub Actions changes' },
+              { name: 'ci-cd', color: '00c0ef', description: 'CI/CD changes' },
+              { name: 'docker', color: '0db7ed', description: 'Docker changes' },
+
+              // Other useful labels
+              { name: 'no-issue-linked', color: 'd93f0b', description: 'No explicit issue-closing reference found' },
+              { name: 'size/XS', color: '3cbf00', description: '10 or fewer changed lines' },
+              { name: 'size/S', color: '5d9801', description: '11–50 changed lines' },
+              { name: 'size/M', color: 'ffd700', description: '51–200 changed lines' },
+              { name: 'size/L', color: 'ff8c00', description: '201–500 changed lines' },
+              { name: 'size/XL', color: 'e11d48', description: 'More than 500 changed lines' }
+            ];
+
+            // Create missing labels or update existing ones.
+            for (const label of labels) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner,
+                  repo,
+                  name: label.name
+                });
+
+                await github.rest.issues.updateLabel({
+                  owner,
+                  repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  ...label
+                });
+              }
+            }
+
+            const existing = await github.paginate(
+              github.rest.issues.listLabelsOnIssue,
+              { owner, repo, issue_number: prNumber }
+            );
+
+            const currentLabels = new Set(existing.map(label => label.name));
+
+            // 2. Classify PR purpose from its title.
+            // Explicit labels already added by a maintainer take priority.
+            const title = pr.title || '';
+            const body = pr.body || '';
+            const titleMatch = title.match(
+              /^\s*(feat(?:ure)?|enhancement|fix|bugfix|bug|perf(?:ormance)?|docs?|test|chore|maintenance|dependencies|ci|build|refactor)(?:\([^)]*\))?(!)?:/i
+            );
+
+            const typeGroups = [
+              ['feature', 'feat', 'enhancement'],
+              ['bug', 'bugfix', 'fix'],
+              ['performance', 'perf'],
+              ['documentation', 'docs'],
+              ['test', 'tests'],
+              ['chore', 'maintenance', 'dependencies', 'ci', 'build', 'refactor']
+            ];
+
+            const managedTypes = new Set(typeGroups.flat());
+
+            let typeLabels = [...currentLabels].filter(
+              label => managedTypes.has(label)
+            );
+
+            if (typeLabels.length === 0) {
+              let type = titleMatch?.[1]?.toLowerCase() || '';
+
+              if (type === 'feature') type = 'feat';
+              if (type === 'enhancement') type = 'enhancement';
+              if (type === 'bug' || type === 'bugfix') type = 'fix';
+              if (type === 'performance') type = 'perf';
+              if (type === 'doc' || type === 'docs') type = 'docs';
+              if (type === 'test') type = 'test';
+
+              // Fallback when the PR title has no conventional prefix.
+              if (!type) {
+                const text = `${title}\n${body}`.toLowerCase();
+
+                if (/\b(documentation|readme|docs)\b/.test(text)) {
+                  type = 'docs';
+                } else if (/\b(performance|optimi[sz]|faster|slowdown)\b/.test(text)) {
+                  type = 'perf';
+                } else if (/\b(bug|crash|regression|broken|doesn't work|not working)\b/.test(text)) {
+                  type = 'fix';
+                } else if (/\b(test|tests|jest|vitest)\b/.test(text)) {
+                  type = 'test';
+                } else if (/\b(dependenc|package update|upgrade package)\b/.test(text)) {
+                  type = 'dependencies';
+                } else if (/\b(ci\/cd|github actions|workflow|pipeline)\b/.test(text)) {
+                  type = 'ci';
+                } else if (/\b(refactor|restructur|cleanup|clean up)\b/.test(text)) {
+                  type = 'refactor';
+                } else if (/\b(build|gradle|bundling)\b/.test(text)) {
+                  type = 'build';
+                } else if (/\b(feature|implement|add|introduc|support)\b/.test(text)) {
+                  type = 'feat';
+                } else {
+                  type = 'chore';
+                }
+              }
+
+              typeLabels = [type];
+            }
+
+            // Breaking-change title marker: feat!: ...
+            // Also recognize explicit breaking-change mentions.
+            if (
+              titleMatch?.[2] ||
+              /\bBREAKING CHANGE:/i.test(body)
+            ) {
+              await ensureLabel('breaking-change');
+              currentLabels.add('breaking-change');
+            }
+
+            // 3. Detect changed files.
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              { owner, repo, pull_number: prNumber, per_page: 100 }
+            );
+
+            const paths = files.map(file => file.filename);
+            const fileLabels = new Set();
+
+            for (const path of paths) {
+              const p = path.toLowerCase();
+              const base = p.split('/').pop();
+
+              if (
+                /\.(md|mdx|rst|txt)$/.test(p) ||
+                /^(readme|contributing|changelog|license)/i.test(base)
+              ) fileLabels.add('documentation');
+
+              if (
+                /\.(js|jsx|ts|tsx|json)$/.test(p) &&
+                !p.includes('package-lock.json')
+              ) fileLabels.add('javascript');
+
+              if (/\.(js|jsx|ts|tsx|css|scss|html)$/.test(p)) {
+                fileLabels.add('frontend');
+              }
+
+              if (/\.(py|java|go|rb|php|rs)$/.test(p)) {
+                fileLabels.add('backend');
+              }
+
+              if (/\.py$/.test(p)) fileLabels.add('python');
+
+              if (
+                /(^|\/)(test|tests|__tests__)(\/|$)/.test(p) ||
+                /\.(test|spec)\.[^.]+$/.test(p) ||
+                /_test\.[^.]+$/.test(p)
+              ) fileLabels.add('tests');
+
+              if (
+                p.startsWith('.github/workflows/') ||
+                p.startsWith('.github/actions/')
+              ) {
+                fileLabels.add('github-actions');
+                fileLabels.add('ci-cd');
+              }
+
+              if (
+                /(^|\/)(package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|requirements[^/]*\.txt|pyproject\.toml|poetry\.lock|cargo\.toml|cargo\.lock|gemfile|go\.mod|pom\.xml)$/.test(p)
+              ) fileLabels.add('dependencies');
+
+              if (
+                /(^|\/)(\.github\/|\.gitlab-ci|jenkinsfile|\.circleci\/)/.test(p)
+              ) fileLabels.add('ci-cd');
+
+              if (
+                /(^|\/)(dockerfile|docker-compose[^/]*|\.dockerignore)$/.test(p)
+              ) fileLabels.add('docker');
+
+              if (
+                /\.(yml|yaml|toml|ini|config|properties)$/.test(p) ||
+                /(^|\/)(\.eslintrc|\.prettierrc|babel\.config|metro\.config|tsconfig)/.test(p)
+              ) fileLabels.add('configuration');
+
+              if (
+                /(^|\/)(android|ios|gradle|\.husky)(\/|$)/.test(p) ||
+                /(^|\/)(build\.gradle|settings\.gradle|gradle\.properties|podfile)$/.test(p)
+              ) fileLabels.add('build');
+            }
+
+            // Do not automatically add a release type from file paths.
+            // A PR can change tests or docs while fixing a bug.
+
+            // 4. Calculate size label from additions + deletions.
+            const details = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+
+            const total = details.data.additions + details.data.deletions;
+            const size = total <= 10 ? 'size/XS'
+              : total <= 50 ? 'size/S'
+              : total <= 200 ? 'size/M'
+              : total <= 500 ? 'size/L'
+              : 'size/XL';
+
+            // 5. Find only explicit issue-closing references.
+            const issuePattern =
+              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:#(\d+)|(?:[\w.-]+\/[\w.-]+)#(\d+))/gi;
+
+            const issueNumbers = new Set();
+            let match;
+
+            while ((match = issuePattern.exec(body)) !== null) {
+              // Only same-repository references are handled here.
+              if (match[1]) issueNumbers.add(Number(match[1]));
+            }
+
+            const additions = new Set([
+              ...typeLabels,
+              ...fileLabels,
+              size
+            ]);
+
+            if (issueNumbers.size === 0) {
+              additions.add('no-issue-linked');
+            } else {
+              additions.delete('no-issue-linked');
+            }
+
+            // 6. Remove stale labels managed by this workflow.
+            // Preserve unrelated labels manually applied by maintainers.
+            const managedNames = new Set([
+              ...labels.map(label => label.name),
+              'breaking-change'
+            ]);
+
+            const stale = [...currentLabels].filter(label => {
+              if (!managedNames.has(label)) return false;
+
+              if (label.startsWith('size/')) return label !== size;
+              if (label === 'no-issue-linked') {
+                return issueNumbers.size > 0;
+              }
+
+              if (managedTypes.has(label)) {
+                return !typeLabels.includes(label);
+              }
+
+              return fileLabels.has(label) === false &&
+                ['frontend', 'backend', 'javascript', 'python',
+                 'configuration', 'github-actions', 'ci-cd',
+                 'docker', 'tests', 'documentation', 'dependencies',
+                 'build'].includes(label);
+            });
+
+            for (const name of stale) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  name
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+
+            // Only add labels that exist; all managed labels were created above.
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: prNumber,
+              labels: [...additions]
+            });
+
+            // Copy existing labels from explicitly linked issues.
+            for (const issueNumber of issueNumbers) {
+              try {
+                const linkedIssue = await github.rest.issues.get({
+                  owner,
+                  repo,
+                  issue_number: issueNumber
+                });
+
+                if (linkedIssue.data.pull_request) continue;
+
+                const linkedLabels = linkedIssue.data.labels
+                  .map(label => label.name)
+                  .filter(name => !managedNames.has(name));
+
+                if (linkedLabels.length) {
+                  await github.rest.issues.addLabels({
+                    owner,
+                    repo,
+                    issue_number: prNumber,
+                    labels: linkedLabels
+                  });
+                }
+              } catch (error) {
+                core.warning(
+                  `Could not read linked issue #${issueNumber}: ${error.message}`
+                );
+              }
+            }
+
+            core.info(`PR #${prNumber}: ${[...additions].join(', ')}`);
+
+            async function ensureLabel(name) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+
+                await github.rest.issues.createLabel({
+                  owner, repo, name,
+                  color: 'b60205',
+                  description: 'Introduces a breaking change'
+                });
+              }
+            }
