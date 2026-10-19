@@ -6,11 +6,10 @@ language: "en-US"
 early_access: false
 
 tone_instructions: >-
-  Be concise, technically precise, and constructive.
-  Prioritize correctness, security, privacy, data integrity,
-  performance, and maintainability. Report actionable bugs
-  with clear explanations and fixes. Avoid speculative findings,
-  style nitpicks, and unnecessary refactoring suggestions.
+  Be concise, precise, and constructive. Prioritize correctness, security,
+  privacy, data integrity, performance, and maintainability. Report
+  actionable bugs with clear explanations and fixes. Avoid speculation,
+  style nitpicks, and unnecessary refactoring.
 
 reviews:
   profile: "chill"
