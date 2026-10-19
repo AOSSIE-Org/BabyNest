@@ -10,12 +10,17 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const cancellationRef = useRef(0);
   const conversationRef = useRef([]);
+  const hydrationRevisionRef = useRef(0);
 
   // Load chats on mount
   useEffect(() => {
     const loadChats = async () => {
+      const hydrationRevision = hydrationRevisionRef.current;
       try {
         const storedChats = await AsyncStorage.getItem('chat_history');
+        if (hydrationRevision !== hydrationRevisionRef.current) {
+          return;
+        }
         if (storedChats) {
           const parsedChats = JSON.parse(storedChats);
           if (Array.isArray(parsedChats)) {
@@ -48,6 +53,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const generateID = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const clearConversation = useCallback(async () => {
+    hydrationRevisionRef.current += 1;
     cancellationRef.current += 1; // Block pending responses
     conversationRef.current = [];
     setConversation([]);
@@ -78,6 +84,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       content: text,
       timestamp: formatTime()
     };
+    hydrationRevisionRef.current += 1;
     const cancellationId = cancellationRef.current;
     
     // Add message to conversation context immediately

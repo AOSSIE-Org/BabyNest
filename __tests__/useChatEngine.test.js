@@ -160,4 +160,55 @@ describe('useChatEngine', () => {
     expect(conversationContext.clearConversationHistory).toHaveBeenCalled();
     expect(AsyncStorage.setItem).toHaveBeenCalledWith('chat_history', '[]');
   });
+
+  it('discards stale hydration when sendMessage is called before storage read resolves', async () => {
+    let resolveStorage;
+    const storagePromise = new Promise(resolve => {
+      resolveStorage = resolve;
+    });
+    AsyncStorage.getItem.mockReturnValueOnce(storagePromise);
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <TestHook onInstance={inst => (engineInstance = inst)} />
+      );
+    });
+
+    await act(async () => {
+      await engineInstance.sendMessage('Immediate message', false);
+    });
+
+    const oldHistory = [{ id: 'old-1', role: 'user', content: 'Old history' }];
+    await act(async () => {
+      resolveStorage(JSON.stringify(oldHistory));
+    });
+
+    expect(engineInstance.conversation.some(m => m.content === 'Immediate message')).toBe(true);
+    expect(engineInstance.conversation.some(m => m.content === 'Old history')).toBe(false);
+  });
+
+  it('discards stale hydration when clearConversation is called before storage read resolves', async () => {
+    let resolveStorage;
+    const storagePromise = new Promise(resolve => {
+      resolveStorage = resolve;
+    });
+    AsyncStorage.getItem.mockReturnValueOnce(storagePromise);
+
+    await act(async () => {
+      ReactTestRenderer.create(
+        <TestHook onInstance={inst => (engineInstance = inst)} />
+      );
+    });
+
+    await act(async () => {
+      await engineInstance.clearConversation();
+    });
+
+    const oldHistory = [{ id: 'old-1', role: 'user', content: 'Old history' }];
+    await act(async () => {
+      resolveStorage(JSON.stringify(oldHistory));
+    });
+
+    expect(engineInstance.conversation).toEqual([]);
+  });
 });
