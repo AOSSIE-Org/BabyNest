@@ -9,6 +9,12 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [conversation, setConversation] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const cancellationRef = useRef(0);
+  const conversationRef = useRef([]);
+
+  // Keep ref synchronized with conversation state
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
 
   // Load chats on mount
   useEffect(() => {
@@ -18,6 +24,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
         if (storedChats) {
           const parsedChats = JSON.parse(storedChats);
           if (Array.isArray(parsedChats)) {
+            conversationRef.current = parsedChats;
             setConversation(parsedChats);
             // Hydrate context
             parsedChats.forEach(msg => {
@@ -47,6 +54,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
 
   const clearConversation = useCallback(async () => {
     cancellationRef.current += 1; // Block pending responses
+    conversationRef.current = [];
     setConversation([]);
     conversationContext.clearConversationHistory();
     await saveChats([]);
@@ -81,21 +89,16 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     conversationContext.addMessage('user', text);
     setIsGenerating(true);
 
-    // We use functional update to ensure we always have the latest state, 
-    // even if clearConversation was called just before this.
-    setConversation(prev => {
-      const newHistory = [...prev, userMessage];
-      saveChats(newHistory);
-      return newHistory;
-    });
+    // Synchronously track in ref and functional state to avoid stale closure during rapid dispatch
+    const updatedConversationForModel = [...conversationRef.current, userMessage];
+    conversationRef.current = updatedConversationForModel;
+
+    setConversation(prev => [...prev, userMessage]);
+    saveChats(updatedConversationForModel);
 
     try {
       let response = null;
       let result = null;
-
-      // Prepare the history for the model. 
-      // Important: We use the most recent history available in this render cycle plus the new message.
-      const updatedConversationForModel = [...conversation, userMessage];
 
       conversationContext.setUserContext(context);
 
@@ -175,11 +178,10 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
           content: result.metric ? result : response,
           timestamp: formatTime()
         };
-        setConversation(prev => {
-          const newHistory = [...prev, botMessage];
-          saveChats(newHistory);
-          return newHistory;
-        });
+        const updatedWithBot = [...conversationRef.current, botMessage];
+        conversationRef.current = updatedWithBot;
+        setConversation(prev => [...prev, botMessage]);
+        saveChats(updatedWithBot);
         conversationContext.addMessage('assistant', response);
       }
 
@@ -191,7 +193,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [isInitialized, context, saveChats, conversation]); // conversation added as dependency to avoid stale closure
+  }, [isInitialized, context, saveChats]);
 
   return {
     conversation,
