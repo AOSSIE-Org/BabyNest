@@ -102,18 +102,43 @@ describe('useChatEngine', () => {
       );
     });
 
+    const { sendMessage } = engineInstance;
     await act(async () => {
-      await engineInstance.sendMessage('First message', false);
-    });
-
-    await act(async () => {
-      await engineInstance.sendMessage('Second message', false);
+      await Promise.all([
+        sendMessage('First message', false),
+        sendMessage('Second message', false),
+      ]);
     });
 
     expect(generateResponse).toHaveBeenCalledTimes(2);
     const secondCallHistory = generateResponse.mock.calls[1][0];
     expect(secondCallHistory.some(m => m.content === 'First message')).toBe(true);
     expect(secondCallHistory.some(m => m.content === 'Second message')).toBe(true);
+  });
+
+  it('prevents stale conversation history restoration after clearConversation', async () => {
+    await act(async () => {
+      ReactTestRenderer.create(
+        <TestHook onInstance={inst => (engineInstance = inst)} />
+      );
+    });
+
+    await act(async () => {
+      await engineInstance.sendMessage('Message before clear', false);
+    });
+
+    await act(async () => {
+      await engineInstance.clearConversation();
+    });
+
+    await act(async () => {
+      await engineInstance.sendMessage('Message after clear', false);
+    });
+
+    expect(generateResponse).toHaveBeenCalledTimes(2);
+    const afterClearHistory = generateResponse.mock.calls[1][0];
+    expect(afterClearHistory.length).toBe(1);
+    expect(afterClearHistory[0].content).toBe('Message after clear');
   });
 
   it('clears conversation and storage on clearConversation', async () => {

@@ -11,13 +11,6 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const cancellationRef = useRef(0);
   const conversationRef = useRef([]);
 
-  // Keep ref synchronized without letting stale render frames overwrite newer state
-  useEffect(() => {
-    if (conversation && conversation.length > conversationRef.current.length) {
-      conversationRef.current = conversation;
-    }
-  }, [conversation]);
-
   // Load chats on mount
   useEffect(() => {
     const loadChats = async () => {
