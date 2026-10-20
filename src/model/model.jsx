@@ -77,6 +77,7 @@ export const checkMemoryBeforeLoading = async modelPath => {
 export const downloadModel = async (fileName, onProgress) => {
   const downloadUrl = `https://huggingface.co/${HF_TO_GGUF}/resolve/main/${fileName}`;
   const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+  console.log('downloadUrl and destPath ', downloadUrl, destPath);
 
   if (await RNFS.exists(destPath)) {
     const loaded = await loadModel(fileName);
