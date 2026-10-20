@@ -384,6 +384,7 @@ const TimelineScreen = ({navigation}) => {
                             ...newAppointment,
                             title: item.title,
                             content: item.description,
+                            task_id: selectedTask.id,
                           });
 
                           setModalVisible(true);

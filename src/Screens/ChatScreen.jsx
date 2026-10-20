@@ -101,7 +101,8 @@ export default function ChatScreen() {
       if (isDownloading) return; // Prevention suggested in review
       dispatch({type: 'START_INIT'});
       dispatch({type: 'SET_DOWNLOADING', payload: true});
-      dispatch({type: 'SET_PROGRESS', payload: 0});
+      dispatch({ type: 'SET_PROGRESS', payload: 0 });
+      console.log("GGUF_FILE from env", GGUF_FILE);
 
       const success = await downloadModel(GGUF_FILE, p => {
         dispatch({type: 'SET_PROGRESS', payload: p});

@@ -285,7 +285,8 @@ export async function moveTaskToAppointment(userId, taskId, data) {
     ];
 
     const missing = required.filter(
-      field => data?.[field] === undefined || data?.[field] === null,
+      field => data?.[field] === undefined || data?.[field] === null ||
+        (typeof data?.[field] === 'string' && data?.[field].trim() === '')
     );
 
     if (missing.length > 0) {
