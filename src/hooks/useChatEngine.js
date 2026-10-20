@@ -95,7 +95,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     const updatedConversationForModel = [...conversationRef.current, userMessage];
     conversationRef.current = updatedConversationForModel;
 
-    setConversation(prev => [...prev, userMessage]);
+    setConversation(updatedConversationForModel);
     saveChats(updatedConversationForModel);
 
     try {
@@ -182,7 +182,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
         };
         const updatedWithBot = [...conversationRef.current, botMessage];
         conversationRef.current = updatedWithBot;
-        setConversation(prev => [...prev, botMessage]);
+        setConversation(updatedWithBot);
         saveChats(updatedWithBot);
         conversationContext.addMessage('assistant', response);
       }
