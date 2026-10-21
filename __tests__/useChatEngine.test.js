@@ -161,7 +161,7 @@ describe('useChatEngine', () => {
     expect(AsyncStorage.setItem).toHaveBeenCalledWith('chat_history', '[]');
   });
 
-  it('discards stale hydration when sendMessage is called before storage read resolves', async () => {
+  it('merges stored history when sendMessage is called before storage read resolves', async () => {
     let resolveStorage;
     const storagePromise = new Promise(resolve => {
       resolveStorage = resolve;
@@ -183,8 +183,25 @@ describe('useChatEngine', () => {
       resolveStorage(JSON.stringify(oldHistory));
     });
 
-    expect(engineInstance.conversation.some(m => m.content === 'Immediate message')).toBe(true);
-    expect(engineInstance.conversation.some(m => m.content === 'Old history')).toBe(false);
+    expect(engineInstance.conversation.map(m => m.content)).toEqual([
+      'Old history',
+      'Immediate message',
+      'Mock AI response',
+    ]);
+    expect(conversationContext.clearConversationHistory).toHaveBeenCalledTimes(1);
+    expect(conversationContext.addMessage.mock.calls.slice(-3)).toEqual([
+      ['user', 'Old history'],
+      ['user', 'Immediate message'],
+      ['assistant', 'Mock AI response'],
+    ]);
+    const persistedHistory = JSON.parse(
+      AsyncStorage.setItem.mock.calls[AsyncStorage.setItem.mock.calls.length - 1][1],
+    );
+    expect(persistedHistory.map(m => m.content)).toEqual([
+      'Old history',
+      'Immediate message',
+      'Mock AI response',
+    ]);
   });
 
   it('discards stale hydration when clearConversation is called before storage read resolves', async () => {

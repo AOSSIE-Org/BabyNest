@@ -10,36 +10,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const cancellationRef = useRef(0);
   const conversationRef = useRef([]);
-  const hydrationRevisionRef = useRef(0);
-
-  // Load chats on mount
-  useEffect(() => {
-    const loadChats = async () => {
-      const hydrationRevision = hydrationRevisionRef.current;
-      try {
-        const storedChats = await AsyncStorage.getItem('chat_history');
-        if (hydrationRevision !== hydrationRevisionRef.current) {
-          return;
-        }
-        if (storedChats) {
-          const parsedChats = JSON.parse(storedChats);
-          if (Array.isArray(parsedChats)) {
-            conversationRef.current = parsedChats;
-            setConversation(parsedChats);
-            // Hydrate context
-            parsedChats.forEach(msg => {
-              if (msg?.role && msg?.content) {
-                conversationContext.addMessage(msg.role, msg.content);
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load chats", error);
-      }
-    };
-    loadChats();
-  }, []);
+  const clearRevisionRef = useRef(0);
 
   // Sync to storage
   const saveChats = useCallback(async (newConversation) => {
@@ -50,10 +21,44 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     }
   }, []);
 
+  // Load chats on mount
+  useEffect(() => {
+    const loadChats = async () => {
+      const clearRevision = clearRevisionRef.current;
+      try {
+        const storedChats = await AsyncStorage.getItem('chat_history');
+        if (clearRevision !== clearRevisionRef.current) {
+          return;
+        }
+        if (storedChats) {
+          const parsedChats = JSON.parse(storedChats);
+          if (Array.isArray(parsedChats)) {
+            const pendingChats = conversationRef.current;
+            const mergedChats = [...parsedChats, ...pendingChats];
+            conversationRef.current = mergedChats;
+            setConversation(mergedChats);
+            conversationContext.clearConversationHistory();
+            mergedChats.forEach(msg => {
+              if (msg?.role && msg?.content) {
+                conversationContext.addMessage(msg.role, msg.content);
+              }
+            });
+            if (pendingChats.length > 0) {
+              saveChats(mergedChats);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load chats", error);
+      }
+    };
+    loadChats();
+  }, [saveChats]);
+
   const generateID = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const clearConversation = useCallback(async () => {
-    hydrationRevisionRef.current += 1;
+    clearRevisionRef.current += 1;
     cancellationRef.current += 1; // Block pending responses
     conversationRef.current = [];
     setConversation([]);
@@ -84,7 +89,6 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       content: text,
       timestamp: formatTime()
     };
-    hydrationRevisionRef.current += 1;
     const cancellationId = cancellationRef.current;
     
     // Add message to conversation context immediately
