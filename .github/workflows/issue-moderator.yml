@@ -1,0 +1,63 @@
+name: "Issue AI Moderator (Close & Lock)"
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  moderate:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      models: read # Grants free access to GitHub Models
+    steps:
+      - name: Run AI Moderator
+        id: moderator
+        uses: github/ai-moderator@v1
+        with:
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+          ai-label: "ai-slop"
+          spam-label: "spam"
+
+      # Fetch updated issue details to check if the moderator just applied a label
+      - name: Check Labels and Auto-Close
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const labels = issue.labels.map(l => l.name);
+            const isSpam = labels.includes('ai-slop') || labels.includes('spam');
+
+            if (isSpam) {
+              console.log(`Flagged content found on issue #${context.issue.number}. Closing and locking.`);
+              
+              // 1. Comment on the issue explaining why it's closed
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: "🤖 This issue has been automatically closed and locked because it was flagged as automated AI-generated slop or spam. If this is an error, please reach out to a maintainer."
+              });
+
+              // 2. Close the issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+
+              // 3. Lock the conversation to prevent bot comment spamming
+              await github.rest.issues.lock({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                lock_reason: 'spam'
+              });
+            }
