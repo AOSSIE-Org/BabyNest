@@ -6,7 +6,7 @@
 
 import {clearAllAgentContexts, getAgentContext} from '../src/storage/agent';
 import {addBPLog, deleteBPLog, updateBPLog} from '../src/storage/bloodPressure';
-import {updateProfile} from '../src/storage/profile';
+import {deleteProfile, updateProfile} from '../src/storage/profile';
 
 const USER_ID = 1;
 
@@ -59,8 +59,12 @@ const mockDb = {
       Object.assign(mockProfile, {dueDate, user_location, lmp});
       return {rowsAffected: 1};
     }
+    if (sql.includes('DELETE FROM profile')) {
+      mockProfile = null;
+      return {rowsAffected: 1};
+    }
     if (sql.includes('FROM profile')) {
-      return rows([mockProfile]);
+      return rows(mockProfile ? [mockProfile] : []);
     }
     return rows([]);
   }),
@@ -176,5 +180,14 @@ describe('assistant context refresh', () => {
     const after = await getAgentContext(USER_ID);
     expect(after.data.profile.due_date).toBe(mockProfile.dueDate);
     expect(after.data.profile.due_date).not.toBe('2026-12-06');
+  });
+
+  it('does not return a deleted profile', async () => {
+    await getAgentContext(USER_ID);
+
+    const response = await deleteProfile(USER_ID);
+
+    expect(response.success).toBe(true);
+    expect((await getAgentContext(USER_ID)).success).toBe(false);
   });
 });
