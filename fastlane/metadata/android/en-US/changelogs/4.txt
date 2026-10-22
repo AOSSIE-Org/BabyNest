@@ -1,0 +1,6 @@
+Initial release of BabyNest.
+- Offline AI chat powered by a local GGUF LLM with user context and RAG support.
+- Task and appointment management with pregnancy-week and priority sorting.
+- Health tracking for weight, symptoms, medications, and blood pressure.
+- Week-by-week pregnancy progress visualization.
+- Local SQLite storage for structured app data.
