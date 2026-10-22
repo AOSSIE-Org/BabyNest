@@ -1,5 +1,6 @@
 import {openDB} from '../database';
 import {success, failure} from '../utils/serviceResponse';
+import {clearAgentContext} from './agent';
 import {
   calculatePregnancyWeek,
   generateInitialMedicineData,
@@ -422,6 +423,8 @@ export async function deleteProfile(userId) {
 
       await db.execute('COMMIT');
 
+      clearAgentContext(parsedUserId);
+
       return success({
         status: 'success',
         message: 'Profile deleted successfully',
@@ -530,6 +533,8 @@ export async function updateProfile(userId, data) {
         parsedUserId,
       ],
     );
+
+    clearAgentContext(parsedUserId);
 
     return success({
       status: 'success',
