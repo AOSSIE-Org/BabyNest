@@ -1,19 +1,8 @@
 <!-- Organization Logo -->
-<div align="center" style="display: flex; align-items: center; justify-content: center; gap: 16px;">
-  <img alt="AOSSIE" src="public/AOSSIE-logo.png" width="175">
-  <img src="public/BabyNest-icon.svg" width="185" style="margin: 0;" />
-</div>
+
+<img alt="AOSSIE" src="public/banner.png" width="100%" height="auto" style="display: block; margin-left: auto; margin-right: auto;" />
 
 &nbsp;
-<h1 name="readme-top" style="text-align: center;">BabyNest</h1>
-
-<!-- Organization Name -->
-<div align="center">
-
-
-<!-- Correct deployed url to be added -->
-
-</div>
 
 <!-- Organization/Project Social Handles -->
 <p align="center">
