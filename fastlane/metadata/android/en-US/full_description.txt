@@ -1,0 +1,15 @@
+BabyNest is a pregnancy tracking application designed to help
+expectant parents organize pregnancy-related information and
+daily activities.
+
+Features:
+- Task Management: View tasks & appointments by pregnancy week with priority sorting
+- Health Tracking: Weight, symptoms, medications, blood pressure
+- Manage pregnancy related tasks and appointments.
+- Visualize pregnancy progress with a week-by-week timeline in graphical form.
+- Store structured app data in a local SQLite database.
+- Access an AI assistant powered by a local language model
+
+BabyNest uses local data storage for supported app information.
+Review the app's privacy policy and settings for details about
+data storage, model downloads and network access.
