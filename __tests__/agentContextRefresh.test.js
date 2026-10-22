@@ -12,6 +12,7 @@ const USER_ID = 1;
 
 let mockProfile;
 let mockBPLogs;
+let mockPauseAfterBPRead;
 
 const rows = items => ({rows: {_array: items}});
 
@@ -46,11 +47,12 @@ const mockDb = {
     }
     if (sql.includes('FROM blood_pressure_logs')) {
       // Looking up one entry passes [id, userId], listing passes [userId].
-      return rows(
-        params.length > 1
-          ? mockBPLogs.filter(log => log.id === params[0])
-          : mockBPLogs,
-      );
+      if (params.length > 1) {
+        return rows(mockBPLogs.filter(log => log.id === params[0]));
+      }
+      const snapshot = [...mockBPLogs];
+      await mockPauseAfterBPRead?.();
+      return rows(snapshot);
     }
     if (sql.includes('UPDATE profile')) {
       const [dueDate, user_location, lmp] = params;
@@ -70,6 +72,7 @@ jest.mock('../src/database', () => ({
 
 beforeEach(() => {
   clearAllAgentContexts();
+  mockPauseAfterBPRead = undefined;
   mockProfile = {
     id: USER_ID,
     user_name: 'Asha',
@@ -136,6 +139,31 @@ describe('assistant context refresh', () => {
 
     expect(response.success).toBe(true);
     expect(await getRecentBloodPressure()).toEqual([]);
+  });
+
+  it('does not cache a context that was built while the data changed', async () => {
+    let readStarted;
+    const bpReadStarted = new Promise(resolve => (readStarted = resolve));
+    let finishRead;
+    mockPauseAfterBPRead = () => {
+      mockPauseAfterBPRead = undefined;
+      readStarted();
+      return new Promise(resolve => (finishRead = resolve));
+    };
+
+    // The build reads the old readings, then a new one is saved before it finishes.
+    const inFlight = getAgentContext(USER_ID);
+    await bpReadStarted;
+    await addBPLog(USER_ID, {
+      week_number: 31,
+      systolic: 142,
+      diastolic: 95,
+      time: '10:30',
+    });
+    finishRead();
+    await inFlight;
+
+    expect(await getRecentBloodPressure()).toHaveLength(2);
   });
 
   it('uses the new due date after the profile is updated', async () => {
