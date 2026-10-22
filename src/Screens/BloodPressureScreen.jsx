@@ -20,6 +20,7 @@ import {
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BloodPressureScreen() {
   const [week, setWeek] = useState('');
@@ -31,6 +32,7 @@ export default function BloodPressureScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showEditTimePicker, setShowEditTimePicker] = useState(false);
+  const insets = useSafeAreaInsets();
 
   //Edit Modal State
   const [editVisible, setEditVisible] = useState(false);
@@ -191,7 +193,13 @@ export default function BloodPressureScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top,
+        },
+      ]}>
       <HeaderWithBack title="Blood Pressure Tracker" />
       <ScrollView
         contentContainerStyle={styles.content}

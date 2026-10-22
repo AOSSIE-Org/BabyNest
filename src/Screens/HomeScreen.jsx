@@ -20,6 +20,7 @@ import {getProfile} from '../storage/profile';
 import {getAppointments} from '../storage/appointments';
 import {getTasks} from '../storage/tasks';
 import TaskDetailsModal from '../Components/TaskDetailsModal';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 export default function HomeScreen({navigation}) {
   const [dueDate, setDueDate] = useState('');
@@ -34,6 +35,7 @@ export default function HomeScreen({navigation}) {
   const [taskDetailsVisible, setTaskDetailsVisible] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [user_id, setUserId] = useState(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const getUserId = async () => {
@@ -161,163 +163,169 @@ export default function HomeScreen({navigation}) {
     .sort((a, b) => a.week_number - b.week_number);
 
   const filteredTasks = allTasks
-    .filter(task => task.task_status === "pending")
+    .filter(task => task.task_status === 'pending')
     .filter(task => parseInt(task.starting_week) >= currentWeek)
     .sort((a, b) => parseInt(a.starting_week) - parseInt(b.starting_week))
     .slice(0, 3);
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF5F8" />
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={openDrawer}>
-            <Icon name="menu" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.appName}>BabyNest</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-            <Image
-              source={
-                profileImage
-                  ? {uri: profileImage}
-                  : require('../assets/Avatar.jpeg')
-              }
-              style={styles.profileImage}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Baby Info */}
-        <View style={styles.babyInfoContainer}>
-          <Image
-            source={require('../assets/Baby.jpeg')}
-            style={styles.babyImage}
-          />
-          <View style={styles.babyInfo}>
-            <Text style={styles.weekText}>Week {currentWeek}</Text>
-            <Text style={styles.babySize}>
-              {currentWeek >= 4 && 'Size of '}
-              {currentBabySize}
-            </Text>
-            <Text style={styles.dueDate}>
-              Due:{' '}
-              {dueDate
-                ? new Date(dueDate).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })
-                : 'Not available'}
-            </Text>
+      <View
+        style={{
+          flex: 1,
+          paddingTop: insets.top,
+        }}>
+        {' '}
+        <StatusBar barStyle="dark-content" backgroundColor="#FFF5F8" />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={openDrawer}>
+              <Icon name="menu" size={24} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.appName}>BabyNest</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+              <Image
+                source={
+                  profileImage
+                    ? {uri: profileImage}
+                    : require('../assets/Avatar.jpeg')
+                }
+                style={styles.profileImage}
+              />
+            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Timeline */}
-        <View style={styles.timelineContainer}>
-          <Text style={styles.sectionTitle}>Pregnancy Timeline</Text>
-          <ScrollView
-            horizontal
-            ref={weekScrollRef}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.timelineScroll}>
-            {Array.from({length: 40}, (_, i) => i + 1).map(week => (
-              <TouchableOpacity
-                key={week}
-                style={[
-                  styles.weekBubble,
-                  currentWeek === week && styles.activeWeekBubble,
-                ]}
-                onPress={() => handleWeekSelect(week)}>
-                <Text
+          {/* Baby Info */}
+          <View style={styles.babyInfoContainer}>
+            <Image
+              source={require('../assets/Baby.jpeg')}
+              style={styles.babyImage}
+            />
+            <View style={styles.babyInfo}>
+              <Text style={styles.weekText}>Week {currentWeek}</Text>
+              <Text style={styles.babySize}>
+                {currentWeek >= 4 && 'Size of '}
+                {currentBabySize}
+              </Text>
+              <Text style={styles.dueDate}>
+                Due:{' '}
+                {dueDate
+                  ? new Date(dueDate).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })
+                  : 'Not available'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Timeline */}
+          <View style={styles.timelineContainer}>
+            <Text style={styles.sectionTitle}>Pregnancy Timeline</Text>
+            <ScrollView
+              horizontal
+              ref={weekScrollRef}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.timelineScroll}>
+              {Array.from({length: 40}, (_, i) => i + 1).map(week => (
+                <TouchableOpacity
+                  key={week}
                   style={[
-                    styles.weekNumber,
-                    currentWeek === week && styles.activeWeekNumber,
-                  ]}>
-                  {week}
-                </Text>
+                    styles.weekBubble,
+                    currentWeek === week && styles.activeWeekBubble,
+                  ]}
+                  onPress={() => handleWeekSelect(week)}>
+                  <Text
+                    style={[
+                      styles.weekNumber,
+                      currentWeek === week && styles.activeWeekNumber,
+                    ]}>
+                    {week}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Appointments */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+            {filteredAppointments.map((appt, idx) => (
+              <Pressable
+                key={idx}
+                style={styles.card}
+                onPress={() =>
+                  navigation.jumpTo('Calendar', {
+                    appointment_date: appt.appointment_date,
+                    appointment_time: appt.appointment_time,
+                  })
+                }>
+                <Icon name="calendar" size={20} color="rgb(218,79,122)" />
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{appt.title}</Text>
+                  <Text>
+                    {appt.appointment_date} at {appt.appointment_time}
+                  </Text>
+                  <Text>{appt.appointment_location}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Tasks */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>This Week's Tasks</Text>
+            {filteredTasks.map((task, idx) => (
+              <TouchableOpacity
+                key={idx}
+                activeOpacity={0.75}
+                onPress={() => {
+                  setSelectedTaskId(task.id);
+                  setTaskDetailsVisible(true);
+                }}>
+                <View style={styles.card}>
+                  <Icon
+                    name="checkmark-circle-outline"
+                    size={20}
+                    color="rgb(218,79,122)"
+                  />
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardTitle}>{task.title}</Text>
+                    <Text>
+                      {task.starting_week === task.ending_week
+                        ? `Week ${task.starting_week}`
+                        : `Weeks ${task.starting_week}-${task.ending_week}`}
+                    </Text>
+                  </View>
+                </View>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-        </View>
+          </View>
 
-        {/* Appointments */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
-          {filteredAppointments.map((appt, idx) => (
-            <Pressable
-              key={idx}
-              style={styles.card}
-              onPress={() =>
-                navigation.jumpTo('Calendar', {
-                  appointment_date: appt.appointment_date,
-                  appointment_time: appt.appointment_time,
-                })
-              }>
-              <Icon name="calendar" size={20} color="rgb(218,79,122)" />
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{appt.title}</Text>
-                <Text>
-                  {appt.appointment_date} at {appt.appointment_time}
-                </Text>
-                <Text>{appt.appointment_location}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+          {/* Floating Button */}
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={() => navigation.jumpTo('Chat')}>
+            <MaterialIcons name="smart-toy" size={24} color="#fff" />
+          </TouchableOpacity>
 
-        {/* Tasks */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>This Week's Tasks</Text>
-          {filteredTasks.map((task, idx) => (
-            <TouchableOpacity
-              key={idx}
-              activeOpacity={0.75}
-              onPress={() => {
-                setSelectedTaskId(task.id);
-                setTaskDetailsVisible(true);
-              }}>
-              <View style={styles.card}>
-                <Icon
-                  name="checkmark-circle-outline"
-                  size={20}
-                  color="rgb(218,79,122)"
-                />
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>{task.title}</Text>
-                  <Text>
-                    {task.starting_week === task.ending_week
-                      ? `Week ${task.starting_week}`
-                      : `Weeks ${task.starting_week}-${task.ending_week}`}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Floating Button */}
-        <TouchableOpacity
-          style={styles.floatingButton}
-          onPress={() => navigation.jumpTo('Chat')}>
-          <MaterialIcons name="smart-toy" size={24} color="#fff" />
-        </TouchableOpacity>
-
-        <TaskDetailsModal
-          visible={taskDetailsVisible}
-          userId={user_id}
-          taskId={selectedTaskId}
-          onClose={() => {
-            setTaskDetailsVisible(false);
-            setSelectedTaskId(null);
-          }}
-        />
-      </ScrollView>
+          <TaskDetailsModal
+            visible={taskDetailsVisible}
+            userId={user_id}
+            taskId={selectedTaskId}
+            onClose={() => {
+              setTaskDetailsVisible(false);
+              setSelectedTaskId(null);
+            }}
+          />
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -330,6 +338,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
+    paddingTop:0,
   },
   appName: {
     fontSize: 24,

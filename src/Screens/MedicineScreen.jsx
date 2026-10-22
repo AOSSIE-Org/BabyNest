@@ -21,6 +21,7 @@ import {
 } from '../storage/medicine';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function MedicineScreen() {
   const [week, setWeek] = useState('');
@@ -36,6 +37,7 @@ export default function MedicineScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showEditTimePicker, setShowEditTimePicker] = useState(false);
   const [user_id, setUser_id] = useState(null);
+  const insets = useSafeAreaInsets();
 
   const fetchMedicineHistory = async user_id => {
     try {
@@ -227,7 +229,7 @@ export default function MedicineScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <HeaderWithBack title="Medicine Tracker" />
 
       <ScrollView

@@ -26,6 +26,7 @@ import {
   updateTask,
 } from '../storage/tasks';
 import AddTaskModal from '../Components/AddTaskModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 if (
   Platform.OS === 'android' &&
@@ -54,6 +55,7 @@ const TimelineScreen = ({navigation}) => {
   const [refreshing, setRefreshing] = useState(false);
   const [user_id, setUser_id] = useState(null);
   const [addTaskVisible, setAddTaskVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const setUserId = async () => {
     const userId = await AsyncStorage.getItem('user_id');
@@ -232,7 +234,9 @@ const TimelineScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {
+        paddingTop: insets.top,
+      }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>

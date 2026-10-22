@@ -15,6 +15,7 @@ import {deleteTask, getTasks, updateTask} from '../storage/tasks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import {Button, TextInput} from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AllTasksScreen({navigation, route}) {
   const [tasks, setTasks] = useState([]);
@@ -24,6 +25,7 @@ export default function AllTasksScreen({navigation, route}) {
   const [user_id, setUser_id] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
   const [editVisible, setEditVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const fetchTasks = async userId => {
     try {
@@ -420,7 +422,7 @@ export default function AllTasksScreen({navigation, route}) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>

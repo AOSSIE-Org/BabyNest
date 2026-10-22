@@ -19,6 +19,7 @@ import {
 } from '../storage/discharge';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DischargeScreen() {
   const [week, setWeek] = useState('');
@@ -29,6 +30,7 @@ export default function DischargeScreen() {
   const [history, setHistory] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [user_id, setUser_id] = useState(null);
+  const insets = useSafeAreaInsets();
 
   const [editVisible, setEditVisible] = useState(false);
   const [editData, setEditData] = useState(null);
@@ -231,7 +233,7 @@ export default function DischargeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <HeaderWithBack title="Discharge Tracker" />
       <ScrollView
         contentContainerStyle={styles.content}
