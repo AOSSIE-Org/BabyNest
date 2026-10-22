@@ -63,21 +63,7 @@ See the official [React Native 0.77 environment setup guide](https://reactnative
    pnpm install
    ```
 
-3. **Environment Setup**
-   
-   Create a `.env` file in the Frontend directory:
-   ```env
-   # API Configuration
-   BASE_URL=http://localhost:5000
-   
-   # Model Configuration
-   MODEL_NAME="Qwen2-0.5B-Instruct"
-   HF_TO_GGUF="Qwen/Qwen2.5-0.5B-Instruct-GGUF"
-   GGUF_FILE="qwen2.5-0.5b-instruct-q4_k_m.gguf"
-   DOWNLOAD_URL=`https://huggingface.co/${HF_TO_GGUF[MODEL_NAME]}/resolve/main/${GGUF_FILE}`
-   ```
-
-4. **Install React Native dependencies**
+3. **Install React Native dependencies**
    ```bash
    npx react-native link
    ```
