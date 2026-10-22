@@ -18,6 +18,7 @@ import {
 } from '../storage/symptoms';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SymptomsScreen() {
   const [week, setWeek] = useState('');
@@ -25,6 +26,7 @@ export default function SymptomsScreen() {
   const [note, setNote] = useState('');
   const [history, setHistory] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const [editVisible, setEditVisible] = useState(false);
   const [editData, setEditData] = useState(null);
@@ -205,7 +207,9 @@ export default function SymptomsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container,{
+        paddingTop: insets.top,
+     }]}>
       <HeaderWithBack title="Symptoms Tracker" />
       <ScrollView
         contentContainerStyle={styles.content}

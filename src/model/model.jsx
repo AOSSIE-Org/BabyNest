@@ -3,7 +3,7 @@ import { initLlama, releaseAllLlama } from "llama.rn";
 import RNFS from "react-native-fs";
 import axios from "axios";
 import DeviceInfo from "react-native-device-info";
-import {MODEL_NAME, HF_TO_GGUF} from "@env";
+import { MODEL_NAME, HF_TO_GGUF } from "../data/modelConfig";
 
 let context = null;
 
@@ -54,56 +54,120 @@ export const fetchAvailableGGUFs = async () => {
 };
 
 export const checkMemoryBeforeLoading = async modelPath => {
-  const stats = await RNFS.stat(modelPath);
-  const fileSizeMB = stats.size / (1024 * 1024);
-  const availableMemoryMB =
-    (await DeviceInfo.getFreeDiskStorage()) / (1024 * 1024);
+  try {
+    const stats = await RNFS.stat(modelPath);
+    const fileSizeMB = Number(stats.size) / (1024 * 1024);
 
-  if (fileSizeMB > availableMemoryMB * 0.8) {
-    Alert.alert('Low Memory', 'The model may be too large to load!');
-    return false;
-  }
+    if (!Number.isFinite(fileSizeMB) || fileSizeMB <= 0) {
+      Alert.alert('Invalid model file', 'The model file is empty or invalid. Please download it again.');
+      return false;
+    }
 
-  if (fileSizeMB < 100) {
-    Alert.alert(
-      'Corrupted Model',
-      'The model may be corrupted. Please download again.',
-    );
-    return false;
+    // Check RAM, not free disk storage. Loading a GGUF model requires RAM
+    // in addition to the on-disk model size, so use a conservative estimate.
+    const totalMemoryBytes = await DeviceInfo.getTotalMemory();
+    const usedMemoryBytes = await DeviceInfo.getUsedMemory();
+    const totalMemoryMB = Number(totalMemoryBytes) / (1024 * 1024);
+    const usedMemoryMB = Number(usedMemoryBytes) / (1024 * 1024);
+    const estimatedAvailableRAMMB = totalMemoryMB - usedMemoryMB;
+
+    if (
+      Number.isFinite(estimatedAvailableRAMMB) &&
+      estimatedAvailableRAMMB > 0 &&
+      fileSizeMB * 1.5 > estimatedAvailableRAMMB
+    ) {
+      Alert.alert(
+        'Not enough memory',
+        `This model is about ${Math.round(fileSizeMB)} MB, but the device may not have enough available RAM to load it safely. Close other apps or use a smaller GGUF model.`,
+      );
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    // If the device memory API is unavailable, don't fail solely because of
+    // the estimate. The native model loader can still fail, so callers must
+    // catch and report that failure.
+    console.warn('Could not estimate memory before loading model:', error?.message);
+    return true;
   }
-  return true;
 };
 
 export const downloadModel = async (fileName, onProgress) => {
-  const downloadUrl = `https://huggingface.co/${HF_TO_GGUF}/resolve/main/${fileName}`;
-  const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
-  console.log('downloadUrl and destPath ', downloadUrl, destPath);
-
-  if (await RNFS.exists(destPath)) {
-    const loaded = await loadModel(fileName);
-    if (!loaded) return null;
-    return destPath;
+  if (!HF_TO_GGUF || !fileName) {
+    Alert.alert('Model configuration error', 'The model repository or filename is missing.');
+    return null;
   }
 
+  const downloadUrl = `https://huggingface.co/${HF_TO_GGUF}/resolve/main/${encodeURIComponent(fileName)}`;
+  const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+  const tempPath = `${destPath}.download`;
+
   try {
-    await RNFS.downloadFile({
+    // Reuse only a non-empty file. loadModel performs the actual initialization.
+    if (await RNFS.exists(destPath)) {
+      const existing = await RNFS.stat(destPath);
+      if (Number(existing.size) > 0) {
+        const loaded = await loadModel(fileName);
+        return loaded ? destPath : null;
+      }
+      await RNFS.unlink(destPath);
+    }
+
+    // Remove a previous interrupted download.
+    if (await RNFS.exists(tempPath)) {
+      await RNFS.unlink(tempPath);
+    }
+
+    const download = await RNFS.downloadFile({
       fromUrl: downloadUrl,
-      toFile: destPath,
+      toFile: tempPath,
       progress: res => {
-        if (res.contentLength > 0)
+        if (
+          typeof onProgress === 'function' &&
+          res.contentLength > 0
+        ) {
           onProgress(res.bytesWritten / res.contentLength);
+        }
       },
-      background: true,
-      discretionary: true,
+      background: false,
+      discretionary: false,
     }).promise;
 
-    if (!(await RNFS.exists(destPath)))
-      throw new Error('Download failed. File does not exist.');
+    if (download.statusCode < 200 || download.statusCode >= 300) {
+      throw new Error(`Model download failed (HTTP ${download.statusCode}). Check your internet connection and model URL.`);
+    }
+
+    if (!(await RNFS.exists(tempPath))) {
+      throw new Error('Download failed: the downloaded file was not created.');
+    }
+
+    const downloadedStats = await RNFS.stat(tempPath);
+    if (!Number(downloadedStats.size)) {
+      throw new Error('The downloaded model is empty. Please try again.');
+    }
+
+    // Only move into the final location after the download completes.
+    await RNFS.moveFile(tempPath, destPath);
+
     const loaded = await loadModel(fileName);
-    if (!loaded) return null;
+    if (!loaded) {
+      // Keep the downloaded file so the user can retry loading later.
+      return null;
+    }
+
     return destPath;
   } catch (error) {
-    Alert.alert('Error', error.message || 'Failed to download model.');
+    try {
+      if (await RNFS.exists(tempPath)) await RNFS.unlink(tempPath);
+    } catch (cleanupError) {
+      console.warn('Could not clean up partial model download:', cleanupError?.message);
+    }
+    console.error('Model download/load failed:', error);
+    Alert.alert(
+      'Unable to prepare AI model',
+      error?.message || 'The model could not be downloaded or loaded. Please try again.',
+    );
     return null;
   }
 };
@@ -240,51 +304,44 @@ export const generateRAGResponse = async (userQuery, systemPrompt) => {
     return null;
   }
 
-  if (!context) {
-    if (!MODEL_NAME || !HF_TO_GGUF) {
-      throw new Error('MODEL_NAME or HF_TO_GGUF is not configured.');
-    }
-
-    const modelPath = `${RNFS.DocumentDirectoryPath}/${MODEL_NAME}`;
-    const modelExists = await RNFS.exists(modelPath);
-
-    if (modelExists) {
-      // Model is already downloaded; initialize it.
-      const loaded = await loadModel(MODEL_NAME);
-
-      if (!loaded) {
-        throw new Error('Failed to load the downloaded model.');
-      }
-    } else {
-      // 2. Verify that the configured model exists on Hugging Face.
-      const availableModels = await fetchAvailableGGUFs();
-      console.log("avaul model",availableModels)
-      console.log("avaul model", MODEL_NAME);
-
-      if (!availableModels.includes(MODEL_NAME)) {
-        throw new Error(
-          `Model file "${MODEL_NAME}" was not found in ${HF_TO_GGUF}.`,
-        );
-      }
-
-      // 3. Download the model and load it.
-      const downloadedPath = await downloadModel(MODEL_NAME);
-
-      if (!downloadedPath || !context) {
-        throw new Error('Model download or initialization failed.');
-      }
-    }
-  }
-
-  // 4. Ensure the model is ready before inference.
-  if (!context) {
-    throw new Error('Model context is unavailable.');
-  }
-  const query = userQuery.trim();
-
   try {
+    if (!context) {
+      if (!MODEL_NAME || !HF_TO_GGUF) {
+        throw new Error('AI model configuration is missing. Please check MODEL_NAME and HF_TO_GGUF in your environment configuration.');
+      }
+
+      const modelPath = `${RNFS.DocumentDirectoryPath}/${MODEL_NAME}`;
+      const modelExists = await RNFS.exists(modelPath);
+
+      if (modelExists) {
+        const loaded = await loadModel(MODEL_NAME);
+        if (!loaded) {
+          throw new Error('The downloaded AI model could not be loaded. Your device may not have enough memory, or the model file may be invalid.');
+        }
+      } else {
+        const availableModels = await fetchAvailableGGUFs();
+
+        if (!availableModels.includes(MODEL_NAME)) {
+          throw new Error(
+            `Model file "${MODEL_NAME}" was not found in the Hugging Face repository "${HF_TO_GGUF}".`,
+          );
+        }
+
+        // No progress callback is required; downloadModel now handles it safely.
+        const downloadedPath = await downloadModel(MODEL_NAME);
+        if (!downloadedPath || !context) {
+          throw new Error('The AI model could not be downloaded or initialized. Check your connection and try again.');
+        }
+      }
+    }
+
+    if (!context) {
+      throw new Error('The AI model is not ready yet. Please retry in a moment.');
+    }
+
+    const query = userQuery.trim();
     const messagesToSend = [
-      {role: 'system', content: systemPrompt},
+      {role: 'system', content: systemPrompt || 'Extract the requested information and return valid JSON only.'},
       {role: 'user', content: query},
     ];
 
@@ -302,37 +359,29 @@ export const generateRAGResponse = async (userQuery, systemPrompt) => {
     });
 
     const rawResponse = result?.text?.trim();
-
     if (!rawResponse) {
-      console.warn('Model returned an empty response');
-      return null;
+      throw new Error('The AI model returned an empty response. Please try again.');
     }
 
-    // Handle accidental Markdown code fences.
     const cleanedResponse = rawResponse
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/, '')
+      .replace(/^```(?:json)?\\s*/i, '')
+      .replace(/\\s*```$/, '')
       .trim();
 
     let extracted;
-
     try {
       extracted = JSON.parse(cleanedResponse);
     } catch (parseError) {
-      // Recover if the model adds text around the JSON object.
       const start = cleanedResponse.indexOf('{');
       const end = cleanedResponse.lastIndexOf('}');
-
       if (start === -1 || end <= start) {
-        throw new Error('Model did not return a valid JSON object');
+        throw new Error('The AI model did not return valid JSON. Please try again.');
       }
-
       extracted = JSON.parse(cleanedResponse.slice(start, end + 1));
     }
 
-    // Basic output validation.
-    if (!extracted || typeof extracted !== 'object') {
-      throw new Error('Model returned an object with an invalid schema');
+    if (!extracted || typeof extracted !== 'object' || Array.isArray(extracted)) {
+      throw new Error('The AI model returned data in an unexpected format.');
     }
 
     if (__DEV__) {
@@ -342,7 +391,11 @@ export const generateRAGResponse = async (userQuery, systemPrompt) => {
 
     return extracted;
   } catch (error) {
-    console.error('Query extraction failed:', error.message);
+    console.error('generateRAGResponse failed:', error);
+    Alert.alert(
+      'BabyNest AI unavailable',
+      error?.message || 'The AI assistant could not start. Please try again.',
+    );
     return null;
   }
 };

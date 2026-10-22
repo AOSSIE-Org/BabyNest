@@ -17,13 +17,13 @@ import {
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import HeaderWithBack from '../Components/HeaderWithBack';
-import {BASE_URL} from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Picker} from '@react-native-picker/picker';
 import {countries} from '../data/countries';
 import Toast from 'react-native-toast-message';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {getProfile, updateProfile} from '../storage/profile';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ProfileField = ({label, value}) => {
   return (
@@ -74,6 +74,7 @@ export default function ProfileScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editProfileData, setEditProfileData] = useState(profileData);
   const [profileImage, setProfileImage] = useState(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     fetchProfileData();
@@ -281,7 +282,9 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container,{
+        paddingTop: insets.top,
+     }]}>
       <HeaderWithBack title="Profile" />
 
       {loading ? (

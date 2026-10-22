@@ -9,8 +9,7 @@ import {
   Easing,
 } from 'react-native';
 import { DrawerContext } from '../context/DrawerContext';
-import { useNavigation, CommonActions, useNavigationState } from '@react-navigation/native';
-import { BASE_URL } from '@env';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';

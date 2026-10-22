@@ -109,8 +109,6 @@ This is the current directory structure for the Frontend app:
 BabyNest/
 ├── .bundle/
 │   └── config
-├── .env
-├── .env.example
 ├── .eslintrc.js
 ├── .gitignore
 ├── .prettierrc.js

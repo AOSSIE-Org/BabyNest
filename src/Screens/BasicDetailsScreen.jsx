@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,14 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { countries } from '../data/countries';
-import { Calendar } from 'react-native-calendars';
+import {useNavigation} from '@react-navigation/native';
+import {countries} from '../data/countries';
+import {Calendar} from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createProfile } from '../storage/profile';
+import {createProfile} from '../storage/profile';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 export default function BasicDetailsScreen() {
   const navigation = useNavigation();
@@ -32,12 +34,13 @@ export default function BasicDetailsScreen() {
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const filteredCountries = useMemo(() => {
     return countries.filter(country =>
-      country.toLowerCase().includes(searchQuery.toLowerCase())
+      country.toLowerCase().includes(searchQuery.toLowerCase()),
     );
-  }, [searchQuery])
+  }, [searchQuery]);
 
   const handleContinue = async () => {
     let newErrors = {};
@@ -83,20 +86,22 @@ export default function BasicDetailsScreen() {
         periodLength: Number(periodLength),
         age: Number(age),
         weight: Number(weight),
-      })
+      });
 
-    if (!data.success) {
-      setErrors({ form: data.error.message });
-    } else {
-      setErrors({});
-      // Store user_id in AsyncStorage
-      await AsyncStorage.setItem('user_id', String(data.data.userId));
-      // Navigate to DueDate screen with the due date
-      navigation.replace('DueDate', { dueDate: data.data.dueDate });
-    }
-  } catch (error) {
+      if (!data.success) {
+        setErrors({form: data.error.message});
+      } else {
+        setErrors({});
+        // Store user_id in AsyncStorage
+        await AsyncStorage.setItem('user_id', String(data.data.userId));
+        // Navigate to DueDate screen with the due date
+        navigation.replace('DueDate', {dueDate: data.data.dueDate});
+      }
+    } catch (error) {
       console.error('Profile submission failed:', error);
-      setErrors({ form: 'Failed to submit. Please check your connection and try again.' });
+      setErrors({
+        form: 'Failed to submit. Please check your connection and try again.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -106,163 +111,183 @@ export default function BasicDetailsScreen() {
     setCountry(selectedCountry);
     setShowCountryModal(false);
     setSearchQuery('');
-    setErrors(prev => ({ ...prev, country: '' }));
+    setErrors(prev => ({...prev, country: ''}));
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled">
-        <View style={styles.container}>
-          <Text style={styles.title}>Enter Your Details</Text>
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        keyboardVerticalOffset={0}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContainer,
+            {paddingBottom: 24 + insets.bottom},
+          ]}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={false}>
+          <View style={styles.container}>
+            <Text style={styles.title}>Enter Your Details</Text>
 
-          {/* Country */}
-          <Text style={styles.title1}>Select Country</Text>
-          <TouchableOpacity
-            style={[styles.input, errors.country ? styles.errorBorder : null]}
-            onPress={() => setShowCountryModal(true)}>
-            <View style={styles.inputContainer}>
-              <Text style={country ? styles.inputText : styles.placeholderText}>
-                {country || 'Select Your Country'}
-              </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
-            </View>
-          </TouchableOpacity>
-          {errors.country ? (
-            <Text style={styles.errorText}>{errors.country}</Text>
-          ) : null}
-
-          <Modal
-            visible={showCountryModal}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setShowCountryModal(false)}>
-            <SafeAreaView style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select a Country</Text>
-
-
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search country..."
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-
-                <FlatList
-                  data={filteredCountries}
-                  keyExtractor={item => item}
-                  keyboardShouldPersistTaps="handled"
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.countryItem}
-                      onPress={() => handleSelectCountry(item)}>
-                      <Text style={styles.countryText}>{item}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
-
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => {
-                    setShowCountryModal(false);
-                    setSearchQuery('');
-                  }}>
-                  <Text style={styles.closeButtonText}>Cancel</Text>
-                </TouchableOpacity>
+            {/* Country */}
+            <Text style={styles.title1}>Select Country</Text>
+            <TouchableOpacity
+              style={[styles.input, errors.country ? styles.errorBorder : null]}
+              onPress={() => setShowCountryModal(true)}>
+              <View style={styles.inputContainer}>
+                <Text
+                  style={country ? styles.inputText : styles.placeholderText}>
+                  {country || 'Select Your Country'}
+                </Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
               </View>
-            </SafeAreaView>
-          </Modal>
+            </TouchableOpacity>
+            {errors.country ? (
+              <Text style={styles.errorText}>{errors.country}</Text>
+            ) : null}
 
-          {/* Inputs */}
-          <Text style={styles.title1}>Last Menstrual Period</Text>
-          <View style={styles.calendarContainer}>
-            <Calendar
-              current={lmpDate || today}
-              maxDate={today}
-              onDayPress={day => setLmpDate(day.dateString)}
-              markedDates={lmpDate ? {
-                [lmpDate]: { selected: true, selectedColor: '#ff4081' },
-              } : {}}
-              theme={{
-                todayTextColor: '#ff4081',
-                arrowColor: '#ff4081',
-              }}
+            <Modal
+              visible={showCountryModal}
+              animationType="slide"
+              transparent={true}
+              onRequestClose={() => setShowCountryModal(false)}>
+              <SafeAreaView style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Select a Country</Text>
+
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search country..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+
+                  <FlatList
+                    data={filteredCountries}
+                    keyExtractor={item => item}
+                    keyboardShouldPersistTaps="handled"
+                    renderItem={({item}) => (
+                      <TouchableOpacity
+                        style={styles.countryItem}
+                        onPress={() => handleSelectCountry(item)}>
+                        <Text style={styles.countryText}>{item}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => {
+                      setShowCountryModal(false);
+                      setSearchQuery('');
+                    }}>
+                    <Text style={styles.closeButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </SafeAreaView>
+            </Modal>
+
+            {/* Inputs */}
+            <Text style={styles.title1}>Last Menstrual Period</Text>
+            <View style={styles.calendarContainer}>
+              <Calendar
+                current={lmpDate || today}
+                maxDate={today}
+                onDayPress={day => setLmpDate(day.dateString)}
+                markedDates={
+                  lmpDate
+                    ? {
+                        [lmpDate]: {selected: true, selectedColor: '#ff4081'},
+                      }
+                    : {}
+                }
+                theme={{
+                  todayTextColor: '#ff4081',
+                  arrowColor: '#ff4081',
+                }}
+              />
+            </View>
+            {errors.lmpDate ? (
+              <Text style={styles.errorText}>{errors.lmpDate}</Text>
+            ) : null}
+
+            <Text style={styles.title1}>Cycle Length (days)</Text>
+            <TextInput
+              placeholder="28"
+              keyboardType="numeric"
+              value={cycleLength}
+              onChangeText={setCycleLength}
+              style={[
+                styles.input,
+                errors.cycleLength ? styles.errorBorder : null,
+              ]}
             />
+            {errors.cycleLength ? (
+              <Text style={styles.errorText}>{errors.cycleLength}</Text>
+            ) : null}
+
+            <Text style={styles.title1}>Period Length (days)</Text>
+            <TextInput
+              placeholder="5"
+              keyboardType="numeric"
+              value={periodLength}
+              onChangeText={setPeriodLength}
+              style={[
+                styles.input,
+                errors.periodLength ? styles.errorBorder : null,
+              ]}
+            />
+            {errors.periodLength ? (
+              <Text style={styles.errorText}>{errors.periodLength}</Text>
+            ) : null}
+
+            <Text style={styles.title1}>Age</Text>
+            <TextInput
+              placeholder="30"
+              keyboardType="numeric"
+              value={age}
+              onChangeText={setAge}
+              style={[styles.input, errors.age ? styles.errorBorder : null]}
+            />
+            {errors.age ? (
+              <Text style={styles.errorText}>{errors.age}</Text>
+            ) : null}
+
+            <Text style={styles.title1}>Weight (kg)</Text>
+            <TextInput
+              placeholder="65"
+              keyboardType="numeric"
+              value={weight}
+              onChangeText={setWeight}
+              style={[styles.input, errors.weight ? styles.errorBorder : null]}
+            />
+            {errors.weight ? (
+              <Text style={styles.errorText}>{errors.weight}</Text>
+            ) : null}
+
+            {errors.form ? (
+              <Text style={styles.errorText}>{errors.form}</Text>
+            ) : null}
+
+            <Text style={styles.disclaimer}>
+              We are collecting this information solely to provide accurate
+              AI-generated insights based on your pregnancy duration.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleContinue}
+              disabled={isLoading}>
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Continue</Text>
+              )}
+            </TouchableOpacity>
           </View>
-          {errors.lmpDate ? (
-            <Text style={styles.errorText}>{errors.lmpDate}</Text>
-          ) : null}
-
-          <Text style={styles.title1}>Cycle Length (days)</Text>
-          <TextInput
-            placeholder="28"
-            keyboardType="numeric"
-            value={cycleLength}
-            onChangeText={setCycleLength}
-            style={[styles.input, errors.cycleLength ? styles.errorBorder : null]}
-          />
-          {errors.cycleLength ? (
-            <Text style={styles.errorText}>{errors.cycleLength}</Text>
-          ) : null}
-
-          <Text style={styles.title1}>Period Length (days)</Text>
-          <TextInput
-            placeholder="5"
-            keyboardType="numeric"
-            value={periodLength}
-            onChangeText={setPeriodLength}
-            style={[
-              styles.input,
-              errors.periodLength ? styles.errorBorder : null,
-            ]}
-          />
-          {errors.periodLength ? (
-            <Text style={styles.errorText}>{errors.periodLength}</Text>
-          ) : null}
-
-          <Text style={styles.title1}>Age</Text>
-          <TextInput
-            placeholder="30"
-            keyboardType="numeric"
-            value={age}
-            onChangeText={setAge}
-            style={[styles.input, errors.age ? styles.errorBorder : null]}
-          />
-          {errors.age ? <Text style={styles.errorText}>{errors.age}</Text> : null}
-
-          <Text style={styles.title1}>Weight (kg)</Text>
-          <TextInput
-            placeholder="65"
-            keyboardType="numeric"
-            value={weight}
-            onChangeText={setWeight}
-            style={[styles.input, errors.weight ? styles.errorBorder : null]}
-          />
-          {errors.weight ? (
-            <Text style={styles.errorText}>{errors.weight}</Text>
-          ) : null}
-
-          {errors.form ? (
-            <Text style={styles.errorText}>{errors.form}</Text>
-          ) : null}
-
-          <Text style={styles.disclaimer}>
-            We are collecting this information solely to provide accurate
-            AI-generated insights based on your pregnancy duration.
-          </Text>
-
-          <TouchableOpacity style={styles.button} onPress={handleContinue}
-            disabled={isLoading}>
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Continue</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

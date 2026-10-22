@@ -6,11 +6,12 @@ import {
   Alert,
   SafeAreaView,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {useNavigation, CommonActions} from '@react-navigation/native';
 import {downloadModel, unloadModel} from '../model/model';
-import {GGUF_FILE} from '@env';
 import {useTheme} from '../theme/ThemeContext';
 import {useAgentContext} from '../context/AgentContext';
 import {conversationContext} from '../services/ConversationContext';
@@ -25,6 +26,8 @@ import QuickReplies from '../Components/ChatScreen/QuickReplies';
 import TypingIndicator from '../Components/ChatScreen/TypingIndicator';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {deleteProfile} from '../storage/profile';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {GGUF_FILE} from '../data/modelConfig';
 
 // Reducer for model state
 const initialModelState = {
@@ -73,6 +76,7 @@ export default function ChatScreen() {
   const [useRAGMode, setUseRAGMode] = useState(true);
   const pendingQueryRef = useRef(null);
   const flatListRef = useRef(null);
+  const insets = useSafeAreaInsets();
 
   const {
     conversation,
@@ -101,8 +105,8 @@ export default function ChatScreen() {
       if (isDownloading) return; // Prevention suggested in review
       dispatch({type: 'START_INIT'});
       dispatch({type: 'SET_DOWNLOADING', payload: true});
-      dispatch({ type: 'SET_PROGRESS', payload: 0 });
-      console.log("GGUF_FILE from env", GGUF_FILE);
+      dispatch({type: 'SET_PROGRESS', payload: 0});
+      console.log('GGUF_FILE from env', GGUF_FILE);
 
       const success = await downloadModel(GGUF_FILE, p => {
         dispatch({type: 'SET_PROGRESS', payload: p});
@@ -296,9 +300,6 @@ export default function ChatScreen() {
 
       pressure_reading: ['120/80', '110/70', 'Enter reading'],
 
-      // Discharge
-      type: ['Normal', 'Spotting', 'Bleeding', 'Heavy'],
-
       color: ['Clear', 'White', 'Yellow', 'Brown'],
 
       bleeding: ['Yes', 'No'],
@@ -343,62 +344,74 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ChatHeader
-        navigation={navigation}
-        useRAGMode={useRAGMode}
-        setUseRAGMode={setUseRAGMode}
-        clearConversation={clearConversation}
-        conversationLength={conversation.length}
-      />
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        keyboardVerticalOffset={0}>
+        <View
+          style={{
+            flex: 1,
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+          }}>
+          <ChatHeader
+            navigation={navigation}
+            useRAGMode={useRAGMode}
+            setUseRAGMode={setUseRAGMode}
+            clearConversation={clearConversation}
+            conversationLength={conversation.length}
+          />
 
-      {conversation.length === 0 ? (
-        <EmptyState
-          handleQuickReply={handleQuickReply}
-          useRAGMode={useRAGMode}
-        />
-      ) : (
-        <MessageList
-          conversation={conversation}
-          flatListRef={flatListRef}
-          theme={theme}
-          onScrollPositionChange={setShowScrollToBottom}
-          onCopyMessage={handleCopyMessage}
-          footer={
-            isGenerating ? (
-              <View style={styles.typingContainer}>
-                <TypingIndicator />
-              </View>
-            ) : null
-          }
-        />
-      )}
+          {conversation.length === 0 ? (
+            <EmptyState
+              handleQuickReply={handleQuickReply}
+              useRAGMode={useRAGMode}
+            />
+          ) : (
+            <MessageList
+              conversation={conversation}
+              flatListRef={flatListRef}
+              theme={theme}
+              onScrollPositionChange={setShowScrollToBottom}
+              onCopyMessage={handleCopyMessage}
+              footer={
+                isGenerating ? (
+                  <View style={styles.typingContainer}>
+                    <TypingIndicator />
+                  </View>
+                ) : null
+              }
+            />
+          )}
 
-      {showScrollToBottom && conversation.length > 0 && (
-        <TouchableOpacity
-          style={styles.scrollToBottomButton}
-          onPress={scrollToBottom}>
-          <Icon name="keyboard-arrow-down" size={30} color="#333" />
-        </TouchableOpacity>
-      )}
+          {showScrollToBottom && conversation.length > 0 && (
+            <TouchableOpacity
+              style={styles.scrollToBottomButton}
+              onPress={scrollToBottom}>
+              <Icon name="keyboard-arrow-down" size={30} color="#333" />
+            </TouchableOpacity>
+          )}
 
-      {conversationContext.hasPendingFollowUp() && !isGenerating && (
-        <QuickReplies
-          replies={getQuickReplies()}
-          handleQuickReply={handleQuickReply}
-        />
-      )}
+          {conversationContext.hasPendingFollowUp() && !isGenerating && (
+            <QuickReplies
+              replies={getQuickReplies()}
+              handleQuickReply={handleQuickReply}
+            />
+          )}
 
-      <ChatInput
-        userInput={userInput}
-        setUserInput={handleInputChange}
-        handleSendMessage={handleSendMessage}
-        isGenerating={isGenerating}
-        isModelReady={isModelReady}
-        useRAGMode={useRAGMode}
-        handlePaste={handlePaste}
-        modelError={modelError}
-        onRetryModel={initModel}
-      />
+          <ChatInput
+            userInput={userInput}
+            setUserInput={handleInputChange}
+            handleSendMessage={handleSendMessage}
+            isGenerating={isGenerating}
+            isModelReady={isModelReady}
+            useRAGMode={useRAGMode}
+            handlePaste={handlePaste}
+            modelError={modelError}
+            onRetryModel={initModel}
+          />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
