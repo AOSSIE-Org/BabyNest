@@ -1,9 +1,12 @@
 {
   "name": "BabyNest",
   "displayName": "BabyNest",
+  "ios": {
+    "bundleIdentifier": "babynest.aossie.org"
+  },
   "extra": {
     "eas": {
-      "projectId": "f8e16faa-6aa3-491b-9fce-9d922aeb7c1d" 
+      "projectId": "f8e16faa-6aa3-491b-9fce-9d922aeb7c1d"
     }
   }
 }
