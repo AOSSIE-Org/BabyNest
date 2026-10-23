@@ -82,7 +82,7 @@ android {
         applicationId "org.aossie.babynest"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
+        versionCode 5
         versionName "1.0"
     }
     signingConfigs {
