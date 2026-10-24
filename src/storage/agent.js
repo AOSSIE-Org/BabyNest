@@ -6,6 +6,10 @@ import GUIDELINES from '../data/guidelines.json';
 // Nothing is written to disk.
 const contextCache = new Map();
 
+// Goes up every time the cache is cleared, so a context that was being built
+// while the data changed is returned but not stored.
+let cacheGeneration = 0;
+
 /**
  * Get agent context for a user.
  *
@@ -55,14 +59,17 @@ export async function getAgentContext(userId) {
     }
 
     // 2. Build context from SQLite
+    const generation = cacheGeneration;
     const context = await buildContext(parsedUserId);
 
     if (!context) {
       return failure('No context available', 'CONTEXT_NOT_FOUND');
     }
 
-    // 3. Save ONLY in memory
-    contextCache.set(parsedUserId, context);
+    // 3. Save ONLY in memory, unless the cache was cleared during the build
+    if (generation === cacheGeneration) {
+      contextCache.set(parsedUserId, context);
+    }
 
     // 4. Return context
     return success({
@@ -318,6 +325,7 @@ export function clearAgentContext(userId) {
   const parsedUserId = Number(userId);
 
   contextCache.delete(parsedUserId);
+  cacheGeneration += 1;
 }
 
 /**
@@ -325,6 +333,7 @@ export function clearAgentContext(userId) {
  */
 export function clearAllAgentContexts() {
   contextCache.clear();
+  cacheGeneration += 1;
   return true;
 }
 
