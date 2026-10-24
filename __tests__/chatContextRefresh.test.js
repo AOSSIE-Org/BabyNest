@@ -14,6 +14,7 @@ import {addBPLog} from '../src/storage/bloodPressure';
 const USER_ID = 1;
 
 let mockBPLogs;
+let mockProfileReadFails;
 
 const rows = items => ({rows: {_array: items}});
 
@@ -36,6 +37,9 @@ const mockDb = {
       return rows([...mockBPLogs]);
     }
     if (sql.includes('FROM profile')) {
+      if (mockProfileReadFails) {
+        throw new Error('fixture read failure');
+      }
       return rows([
         {
           id: USER_ID,
@@ -100,6 +104,7 @@ function ChatHarness() {
 beforeEach(() => {
   clearAllAgentContexts();
   ragService.processQuery.mockClear();
+  mockProfileReadFails = false;
   mockBPLogs = [
     {
       id: 1,
@@ -116,7 +121,7 @@ beforeEach(() => {
 const bloodPressureSentWithQuery = call =>
   ragService.processQuery.mock.calls[call][1].recent_data.blood_pressure;
 
-it('uses a blood pressure log added while the chat stayed open', async () => {
+async function openChat() {
   await act(async () => {
     create(
       <AgentProvider>
@@ -128,6 +133,10 @@ it('uses a blood pressure log added while the chat stayed open', async () => {
   await act(async () => {
     await chat.initializeContext();
   });
+}
+
+it('uses a blood pressure log added while the chat stayed open', async () => {
+  await openChat();
   await act(async () => {
     await chat.sendMessage(
       'how is my blood pressure?',
@@ -152,4 +161,50 @@ it('uses a blood pressure log added while the chat stayed open', async () => {
   expect(bloodPressureSentWithQuery(1)).toContainEqual(
     expect.objectContaining({systolic: 142, diastolic: 95}),
   );
+});
+
+it('does not send the older context when the latest one fails to load', async () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  await openChat();
+  await addBPLog(USER_ID, {
+    week_number: 31,
+    systolic: 142,
+    diastolic: 95,
+    time: '10:30',
+  });
+  mockProfileReadFails = true;
+
+  await act(async () => {
+    await chat.sendMessage(
+      'how is my blood pressure?',
+      true,
+      chat.initializeContext,
+    );
+  });
+
+  expect(ragService.processQuery).toHaveBeenCalledTimes(1);
+  expect(ragService.processQuery.mock.calls[0][1]).toBeNull();
+  console.error.mockRestore();
+});
+
+it('drops a message when the chat is cleared while its context loads', async () => {
+  await openChat();
+  let finishLoading;
+  const slowInitializeContext = () =>
+    new Promise(resolve => (finishLoading = resolve));
+
+  let sending;
+  await act(async () => {
+    sending = chat.sendMessage('hello', true, slowInitializeContext);
+  });
+  await act(async () => {
+    await chat.clearConversation();
+  });
+  await act(async () => {
+    finishLoading(null);
+    await sending;
+  });
+
+  expect(ragService.processQuery).not.toHaveBeenCalled();
+  expect(chat.conversation).toEqual([]);
 });

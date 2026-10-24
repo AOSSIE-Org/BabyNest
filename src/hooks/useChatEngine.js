@@ -55,14 +55,22 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const sendMessage = useCallback(async (text, useRAGMode, initializeContext) => {
     if (!text || !text.trim()) return;
 
+    const cancellationId = cancellationRef.current;
+
     // Load the context for every message, since the data may have changed on
     // another screen while the chat stayed open. It comes from an in-memory
-    // cache that is cleared on every change, so this is cheap.
-    let latestContext = context;
+    // cache that is cleared on every change, so this is cheap. If it can't be
+    // loaded, send no context rather than the older one.
+    let latestContext = null;
     try {
-      latestContext = (await initializeContext()) ?? context;
+      latestContext = await initializeContext();
     } catch (error) {
       console.warn('Failed to load context:', error);
+    }
+
+    // Don't send the message if the conversation was cleared meanwhile.
+    if (cancellationId !== cancellationRef.current) {
+      return;
     }
 
     const formatTime = () => {
@@ -76,8 +84,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       content: text,
       timestamp: formatTime()
     };
-    const cancellationId = cancellationRef.current;
-    
+
     // Add message to conversation context immediately
     conversationContext.addMessage('user', text);
     setIsGenerating(true);
@@ -192,7 +199,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [context, saveChats, conversation]); // conversation added as dependency to avoid stale closure
+  }, [saveChats, conversation]); // conversation added as dependency to avoid stale closure
 
   return {
     conversation,
