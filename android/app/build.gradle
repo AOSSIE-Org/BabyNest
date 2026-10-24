@@ -93,10 +93,21 @@ android {
             keyPassword 'android'
         }
         release {
-        storeFile file(BABYNEST_UPLOAD_STORE_FILE)
-        storePassword BABYNEST_UPLOAD_STORE_PASSWORD
-        keyAlias BABYNEST_UPLOAD_KEY_ALIAS
-        keyPassword BABYNEST_UPLOAD_KEY_PASSWORD
+            // Use production credentials only when explicitly provided.
+            def uploadStoreFile = project.findProperty("BABYNEST_UPLOAD_STORE_FILE")
+            def uploadStorePassword = project.findProperty("BABYNEST_UPLOAD_STORE_PASSWORD")
+            def uploadKeyAlias = project.findProperty("BABYNEST_UPLOAD_KEY_ALIAS")
+            def uploadKeyPassword = project.findProperty("BABYNEST_UPLOAD_KEY_PASSWORD")
+
+            if (uploadStoreFile &&
+                uploadStorePassword &&
+                uploadKeyAlias &&
+                uploadKeyPassword) {
+                storeFile file(uploadStoreFile)
+                storePassword uploadStorePassword
+                keyAlias uploadKeyAlias
+                keyPassword uploadKeyPassword
+            }
         }
     }
     buildTypes {
@@ -104,9 +115,17 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
+            // Use the production key when configured; otherwise use
+            // the standard debug key for CI-generated APKs.
             signingConfig signingConfigs.release
+
+            if (!project.findProperty("BABYNEST_UPLOAD_STORE_FILE") ||
+                !project.findProperty("BABYNEST_UPLOAD_STORE_PASSWORD") ||
+                !project.findProperty("BABYNEST_UPLOAD_KEY_ALIAS") ||
+                !project.findProperty("BABYNEST_UPLOAD_KEY_PASSWORD")) {
+                signingConfig signingConfigs.debug
+            }
+
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
