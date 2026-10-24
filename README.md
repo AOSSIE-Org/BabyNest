@@ -18,6 +18,13 @@
 <a href="https://discord.gg/hjUhu33uAn">
 <img src="https://img.shields.io/discord/995968619034984528?style=flat&logo=discord&logoColor=white&logoSize=auto&label=Discord&labelColor=5865F2&color=57F287" alt="Discord Badge"/></a>
 &nbsp;&nbsp;
+</p>
+
+<div align="center">
+
+[![Install BabyNest on Android](https://img.shields.io/badge/Download-BabyNest%20for%20Android-3DDC84?logo=android&logoColor=white&style=for-the-badge)](https://github.com/AOSSIE-Org/BabyNest/releases/download/latest/app-release.apk)
+</div>
+&nbsp;&nbsp;
 
 BabyNest is an **Offline React Native Privacy-Focused mobile application** for pregnancy tracking, health-record management, and AI-assisted support.
 
