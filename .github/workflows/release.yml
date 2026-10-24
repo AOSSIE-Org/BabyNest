@@ -61,7 +61,7 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=v1.0.1" >> "$GITHUB_OUTPUT"
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish APK to GitHub Release
@@ -69,9 +69,11 @@ jobs:
         with:
           tag_name: ${{ steps.release_tag.outputs.tag }}
           name: BabyNest ${{ steps.release_tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.release_tag.outputs.tag == 'latest' }}
+          make_latest: ${{ steps.release_tag.outputs.tag != 'latest' }}
           fail_on_unmatched_files: true
           files: |
             android/app/build/outputs/apk/release/app-release.apk
