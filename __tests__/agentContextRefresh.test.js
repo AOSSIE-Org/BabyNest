@@ -165,8 +165,10 @@ describe('assistant context refresh', () => {
       time: '10:30',
     });
     finishRead();
-    await inFlight;
+    const response = await inFlight;
 
+    // The build that saw the old readings is redone, not returned or cached.
+    expect(response.data.recent_data.blood_pressure).toHaveLength(2);
     expect(await getRecentBloodPressure()).toHaveLength(2);
   });
 

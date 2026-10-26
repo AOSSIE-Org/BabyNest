@@ -60,10 +60,10 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     // Load the context for every message, since the data may have changed on
     // another screen while the chat stayed open. It comes from an in-memory
     // cache that is cleared on every change, so this is cheap. If it can't be
-    // loaded, send no context rather than the older one.
-    let latestContext = null;
+    // loaded, send an empty context rather than the older one.
+    let latestContext = {};
     try {
-      latestContext = await initializeContext();
+      latestContext = (await initializeContext()) ?? {};
     } catch (error) {
       console.warn('Failed to load context:', error);
     }

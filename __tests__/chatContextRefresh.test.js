@@ -183,7 +183,7 @@ it('does not send the older context when the latest one fails to load', async ()
   });
 
   expect(ragService.processQuery).toHaveBeenCalledTimes(1);
-  expect(ragService.processQuery.mock.calls[0][1]).toBeNull();
+  expect(ragService.processQuery.mock.calls[0][1]).toEqual({});
   console.error.mockRestore();
 });
 

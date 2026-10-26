@@ -62,14 +62,17 @@ export async function getAgentContext(userId) {
     const generation = cacheGeneration;
     const context = await buildContext(parsedUserId);
 
+    // The data changed while the context was being built, so build it again.
+    if (generation !== cacheGeneration) {
+      return getAgentContext(userId);
+    }
+
     if (!context) {
       return failure('No context available', 'CONTEXT_NOT_FOUND');
     }
 
-    // 3. Save ONLY in memory, unless the cache was cleared during the build
-    if (generation === cacheGeneration) {
-      contextCache.set(parsedUserId, context);
-    }
+    // 3. Save ONLY in memory
+    contextCache.set(parsedUserId, context);
 
     // 4. Return context
     return success({
