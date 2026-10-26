@@ -20,9 +20,11 @@
 &nbsp;&nbsp;
 </p>
 
-<div align="center">
+<div align="center" style="display: flex; justify-content: center; align-items: center; gap: 10px;">
 
-[![Install BabyNest on Android](https://img.shields.io/badge/Download-BabyNest%20for%20Android-3DDC84?logo=android&logoColor=white&style=for-the-badge)](https://github.com/AOSSIE-Org/BabyNest/releases/download/latest/app-release.apk)
+[![Get it on Google Play](https://img.shields.io/badge/Google%20Play-Get%20it%20on%20Google%20Play-414141?logo=googleplay&logoColor=white&style=for-the-badge)](https://play.google.com/store/apps/details?id=org.aossie.babynest)
+
+[![Download APK](https://img.shields.io/badge/GitHub-Download%20APK-181717?logo=github&logoColor=white&style=for-the-badge)](https://github.com/AOSSIE-Org/BabyNest/releases/download/latest/app-release.apk)
 </div>
 &nbsp;&nbsp;
 
