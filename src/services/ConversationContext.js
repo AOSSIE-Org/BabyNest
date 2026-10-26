@@ -345,12 +345,14 @@ class ConversationContext {
    */
   async handleAppointmentUpdate(selectedAppointment, updateData, ragService) {
     try {
+      const user_id = await AsyncStorage.getItem('user_id');
       const updatePayload = {
         title: updateData.title || selectedAppointment.title,
         appointment_date: updateData.date ? ragService.convertToDate(updateData.date) : selectedAppointment.appointment_date,
         appointment_time: updateData.time ? ragService.convertToTime(updateData.time) : selectedAppointment.appointment_time,
         appointment_location: updateData.location || selectedAppointment.appointment_location,
-        content: updateData.note || selectedAppointment.content
+        content: updateData.note || selectedAppointment.content,
+        user_id: user_id || selectedAppointment.user_id,
       };
       
       const update_appointment_res = await updateAppointment(selectedAppointment.id, updatePayload);
