@@ -9,30 +9,8 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [conversation, setConversation] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const cancellationRef = useRef(0);
-
-  // Load chats on mount
-  useEffect(() => {
-    const loadChats = async () => {
-      try {
-        const storedChats = await AsyncStorage.getItem('chat_history');
-        if (storedChats) {
-          const parsedChats = JSON.parse(storedChats);
-          if (Array.isArray(parsedChats)) {
-            setConversation(parsedChats);
-            // Hydrate context
-            parsedChats.forEach(msg => {
-              if (msg?.role && msg?.content) {
-                conversationContext.addMessage(msg.role, msg.content);
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load chats", error);
-      }
-    };
-    loadChats();
-  }, []);
+  const conversationRef = useRef([]);
+  const clearRevisionRef = useRef(0);
 
   // Sync to storage
   const saveChats = useCallback(async (newConversation) => {
@@ -43,10 +21,46 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     }
   }, []);
 
+  // Load chats on mount
+  useEffect(() => {
+    const loadChats = async () => {
+      const clearRevision = clearRevisionRef.current;
+      try {
+        const storedChats = await AsyncStorage.getItem('chat_history');
+        if (clearRevision !== clearRevisionRef.current) {
+          return;
+        }
+        if (storedChats) {
+          const parsedChats = JSON.parse(storedChats);
+          if (Array.isArray(parsedChats)) {
+            const pendingChats = conversationRef.current;
+            const mergedChats = [...parsedChats, ...pendingChats];
+            conversationRef.current = mergedChats;
+            setConversation(mergedChats);
+            conversationContext.clearConversationHistory();
+            mergedChats.forEach(msg => {
+              if (msg?.role && msg?.content) {
+                conversationContext.addMessage(msg.role, msg.content);
+              }
+            });
+            if (pendingChats.length > 0) {
+              saveChats(mergedChats);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load chats", error);
+      }
+    };
+    loadChats();
+  }, [saveChats]);
+
   const generateID = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const clearConversation = useCallback(async () => {
+    clearRevisionRef.current += 1;
     cancellationRef.current += 1; // Block pending responses
+    conversationRef.current = [];
     setConversation([]);
     conversationContext.clearConversationHistory();
     await saveChats([]);
@@ -81,21 +95,16 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     conversationContext.addMessage('user', text);
     setIsGenerating(true);
 
-    // We use functional update to ensure we always have the latest state, 
-    // even if clearConversation was called just before this.
-    setConversation(prev => {
-      const newHistory = [...prev, userMessage];
-      saveChats(newHistory);
-      return newHistory;
-    });
+    // Synchronously track in ref and functional state to avoid stale closure during rapid dispatch
+    const updatedConversationForModel = [...conversationRef.current, userMessage];
+    conversationRef.current = updatedConversationForModel;
+
+    setConversation(updatedConversationForModel);
+    saveChats(updatedConversationForModel);
 
     try {
       let response = null;
       let result = null;
-
-      // Prepare the history for the model. 
-      // Important: We use the most recent history available in this render cycle plus the new message.
-      const updatedConversationForModel = [...conversation, userMessage];
 
       conversationContext.setUserContext(context);
 
@@ -175,11 +184,10 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
           content: result.metric ? result : response,
           timestamp: formatTime()
         };
-        setConversation(prev => {
-          const newHistory = [...prev, botMessage];
-          saveChats(newHistory);
-          return newHistory;
-        });
+        const updatedWithBot = [...conversationRef.current, botMessage];
+        conversationRef.current = updatedWithBot;
+        setConversation(updatedWithBot);
+        saveChats(updatedWithBot);
         conversationContext.addMessage('assistant', response);
       }
 
@@ -191,7 +199,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [isInitialized, context, saveChats, conversation]); // conversation added as dependency to avoid stale closure
+  }, [isInitialized, context, saveChats]);
 
   return {
     conversation,
