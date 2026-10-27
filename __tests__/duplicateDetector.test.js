@@ -88,6 +88,28 @@ describe('duplicate detector ranking', () => {
     expect(matches[0].score).toBe(1);
   });
 
+  test('does not shortcut single-token exact titles', () => {
+    const current = {
+      title: 'Error',
+      body: 'Completely unrelated content.',
+    };
+    const candidate = {
+      number: 4,
+      title: 'Error',
+      body: 'Separate material entirely.',
+    };
+
+    expect(rankCandidates(current, [candidate], baseOptions)).toEqual([]);
+
+    const [match] = rankCandidates(current, [candidate], {
+      ...baseOptions,
+      threshold: 0,
+      minSharedTokens: 0,
+    });
+
+    expect(match.score).toBeLessThan(1);
+  });
+
   test('detects a near-duplicate title and body', () => {
     const current = {
       title: 'BUG: App crashes when opening the AI chat',
@@ -197,6 +219,14 @@ describe('duplicate detector GitHub helpers', () => {
           listForRepo: jest.fn().mockResolvedValue({
             data: [
               {
+                number: 13,
+                title: 'Newer issue',
+                body: 'Newer body',
+                labels: [],
+                user: { type: 'User' },
+                created_at: now,
+              },
+              {
                 number: 10,
                 title: 'Current issue',
                 body: 'Current body',
@@ -205,23 +235,7 @@ describe('duplicate detector GitHub helpers', () => {
                 created_at: now,
               },
               {
-                number: 11,
-                title: 'Spam issue',
-                body: 'Spam body',
-                labels: [{ name: 'spam' }],
-                user: { type: 'User' },
-                created_at: now,
-              },
-              {
-                number: 12,
-                title: 'Bot issue',
-                body: 'Bot body',
-                labels: [],
-                user: { type: 'Bot' },
-                created_at: now,
-              },
-              {
-                number: 13,
+                number: 9,
                 title: 'Valid issue',
                 body: 'Valid body',
                 labels: [],
@@ -229,7 +243,23 @@ describe('duplicate detector GitHub helpers', () => {
                 created_at: now,
               },
               {
-                number: 14,
+                number: 8,
+                title: 'Spam issue',
+                body: 'Spam body',
+                labels: [{ name: 'spam' }],
+                user: { type: 'User' },
+                created_at: now,
+              },
+              {
+                number: 7,
+                title: 'Bot issue',
+                body: 'Bot body',
+                labels: [],
+                user: { type: 'Bot' },
+                created_at: now,
+              },
+              {
+                number: 2,
                 title: 'Old issue',
                 body: 'Old body',
                 labels: [],
@@ -249,7 +279,7 @@ describe('duplicate detector GitHub helpers', () => {
       currentNumber: 10,
     });
 
-    expect(candidates.map(candidate => candidate.number)).toEqual([13]);
+    expect(candidates.map(candidate => candidate.number)).toEqual([9]);
   });
 
   test('finds an existing bot comment by marker', async () => {
@@ -328,7 +358,7 @@ describe('duplicate detector workflow behavior', () => {
         issues: {
           get: jest.fn().mockResolvedValue({
             data: {
-              number: 1,
+              number: 2,
               title: 'Add dark mode',
               body: 'Support a dark theme in settings.',
               labels: [],
@@ -338,7 +368,7 @@ describe('duplicate detector workflow behavior', () => {
           listForRepo: jest.fn().mockResolvedValue({
             data: [
               {
-                number: 2,
+                number: 1,
                 title: 'Fix notification scheduling',
                 body: 'Reminders are not delivered on Android.',
                 labels: [],
@@ -360,7 +390,7 @@ describe('duplicate detector workflow behavior', () => {
       github,
       context: {
         repo: { owner: 'owner', repo: 'repo' },
-        payload: { issue: { number: 1 } },
+        payload: { issue: { number: 2 } },
       },
       core,
     });
@@ -376,7 +406,7 @@ describe('duplicate detector workflow behavior', () => {
         issues: {
           get: jest.fn().mockResolvedValue({
             data: {
-              number: 1,
+              number: 2,
               title: 'BUG: Add dark mode',
               body: 'Support a dark theme in settings.',
               labels: [],
@@ -386,7 +416,7 @@ describe('duplicate detector workflow behavior', () => {
           listForRepo: jest.fn().mockResolvedValue({
             data: [
               {
-                number: 2,
+                number: 1,
                 title: 'FEATURE REQUEST: Add dark mode',
                 body: 'Add a dark theme.',
                 labels: [],
@@ -412,21 +442,21 @@ describe('duplicate detector workflow behavior', () => {
       github,
       context: {
         repo: { owner: 'owner', repo: 'repo' },
-        payload: { issue: { number: 1 } },
+        payload: { issue: { number: 2 } },
       },
       core,
     });
 
     expect(github.rest.issues.addLabels).toHaveBeenCalledWith(
       expect.objectContaining({
-        issue_number: 1,
+        issue_number: 2,
         labels: ['possible-duplicate'],
       })
     );
     expect(github.rest.issues.createComment).toHaveBeenCalled();
     expect(
       github.rest.issues.createComment.mock.calls[0][0].body
-    ).toContain('#2');
+    ).toContain('#1');
     expect(core.warning).not.toHaveBeenCalled();
   });
 });

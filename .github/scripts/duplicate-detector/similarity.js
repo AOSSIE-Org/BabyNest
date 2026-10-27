@@ -361,7 +361,7 @@ function rankCandidates(current, candidates, options = {}) {
       Math.max(2, Math.floor(smallerTokenCount / 2))
     );
     const exactTitle =
-      Boolean(currentDocument.title) &&
+      currentDocument.titleTokens.length >= 2 &&
       currentDocument.title === candidateDocument.title;
 
     let score;

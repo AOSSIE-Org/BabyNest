@@ -84,7 +84,7 @@ async function fetchCandidates({ github, owner, repo, currentNumber }) {
         break;
       }
 
-      if (item.number === currentNumber) {
+      if (item.number >= currentNumber) {
         continue;
       }
 
