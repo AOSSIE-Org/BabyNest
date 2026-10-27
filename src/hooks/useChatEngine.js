@@ -9,6 +9,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [conversation, setConversation] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const cancellationRef = useRef(0);
+  const sendingRef = useRef(false);
 
   // Load chats on mount
   useEffect(() => {
@@ -52,9 +53,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     await saveChats([]);
   }, [saveChats]);
 
-  const sendMessage = useCallback(async (text, useRAGMode, initializeContext) => {
-    if (!text || !text.trim()) return;
-
+  const sendMessageNow = useCallback(async (text, useRAGMode, initializeContext) => {
     const cancellationId = cancellationRef.current;
 
     // Load the context for every message, since the data may have changed on
@@ -87,7 +86,6 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
 
     // Add message to conversation context immediately
     conversationContext.addMessage('user', text);
-    setIsGenerating(true);
 
     // We use functional update to ensure we always have the latest state, 
     // even if clearConversation was called just before this.
@@ -196,10 +194,23 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     } catch (error) {
       Alert.alert("Error", "Failed to generate response: " + error.message);
       console.error(error);
-    } finally {
-      setIsGenerating(false);
     }
   }, [saveChats, conversation]); // conversation added as dependency to avoid stale closure
+
+  // Send one message at a time. The busy flag is set before the context
+  // loads, so a second tap while it loads doesn't start a second send.
+  const sendMessage = useCallback(async (text, useRAGMode, initializeContext) => {
+    if (!text || !text.trim() || sendingRef.current) return;
+
+    sendingRef.current = true;
+    setIsGenerating(true);
+    try {
+      return await sendMessageNow(text, useRAGMode, initializeContext);
+    } finally {
+      sendingRef.current = false;
+      setIsGenerating(false);
+    }
+  }, [sendMessageNow]);
 
   return {
     conversation,

@@ -208,3 +208,33 @@ it('drops a message when the chat is cleared while its context loads', async () 
   expect(ragService.processQuery).not.toHaveBeenCalled();
   expect(chat.conversation).toEqual([]);
 });
+
+it('sends one message at a time while the context loads', async () => {
+  await openChat();
+  let finishLoading;
+  const slowInitializeContext = () =>
+    new Promise(resolve => (finishLoading = resolve));
+
+  let first;
+  let second;
+  await act(async () => {
+    first = chat.sendMessage('first', true, slowInitializeContext);
+  });
+  expect(chat.isGenerating).toBe(true);
+  await act(async () => {
+    second = chat.sendMessage('second', true, slowInitializeContext);
+  });
+  await act(async () => {
+    finishLoading(null);
+    await Promise.all([first, second]);
+  });
+
+  expect(ragService.processQuery).toHaveBeenCalledTimes(1);
+  expect(ragService.processQuery.mock.calls[0][0]).toBe('first');
+  expect(chat.isGenerating).toBe(false);
+
+  await act(async () => {
+    await chat.sendMessage('third', true, chat.initializeContext);
+  });
+  expect(ragService.processQuery).toHaveBeenCalledTimes(2);
+});
