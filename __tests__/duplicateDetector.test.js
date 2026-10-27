@@ -400,6 +400,62 @@ describe('duplicate detector workflow behavior', () => {
     expect(core.warning).not.toHaveBeenCalled();
   });
 
+  test('cleans up stale results when no candidates remain', async () => {
+    const github = {
+      rest: {
+        issues: {
+          get: jest.fn().mockResolvedValue({
+            data: {
+              number: 2,
+              title: 'Add dark mode',
+              body: 'Support a dark theme in settings.',
+              labels: [{ name: 'possible-duplicate' }],
+              user: { type: 'User' },
+            },
+          }),
+          listForRepo: jest.fn().mockResolvedValue({ data: [] }),
+          updateComment: jest.fn().mockResolvedValue({}),
+          removeLabel: jest.fn().mockResolvedValue({}),
+          createComment: jest.fn(),
+          addLabels: jest.fn(),
+        },
+      },
+      paginate: jest.fn().mockResolvedValue([
+        {
+          id: 99,
+          body: `${detect.MARKER}\nOld duplicate results`,
+          user: { login: 'github-actions[bot]' },
+        },
+      ]),
+    };
+    const core = { info: jest.fn(), warning: jest.fn() };
+
+    await detect({
+      github,
+      context: {
+        repo: { owner: 'owner', repo: 'repo' },
+        payload: { issue: { number: 2 } },
+      },
+      core,
+    });
+
+    expect(github.rest.issues.updateComment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        comment_id: 99,
+        body: expect.stringContaining('No likely duplicates were found'),
+      })
+    );
+    expect(github.rest.issues.removeLabel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issue_number: 2,
+        name: 'possible-duplicate',
+      })
+    );
+    expect(github.rest.issues.createComment).not.toHaveBeenCalled();
+    expect(github.rest.issues.addLabels).not.toHaveBeenCalled();
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
   test('adds the label and comments when a duplicate is found', async () => {
     const github = {
       rest: {

@@ -270,11 +270,6 @@ async function run({ github, context, core }) {
       currentNumber: target.number,
     });
 
-    if (!candidates.length) {
-      core.info(`No candidates found for #${target.number}`);
-      return;
-    }
-
     const matches = rankCandidates(
       { title: target.item.title, body: target.item.body },
       candidates,
