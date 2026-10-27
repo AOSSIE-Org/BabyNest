@@ -83,7 +83,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 5
-        versionName "1.0"
+        // play still have the old version (1.0)
+        versionName "1.0.1"
     }
     signingConfigs {
         debug {
