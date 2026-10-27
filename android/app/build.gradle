@@ -82,7 +82,7 @@ android {
         applicationId "org.aossie.babynest"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
+        versionCode 6
         // play still have the old version (1.0)
         versionName "1.0.1"
     }
