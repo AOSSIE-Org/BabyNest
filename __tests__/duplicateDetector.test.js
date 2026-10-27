@@ -5,6 +5,7 @@ const {
   tokenize,
 } = require('../.github/scripts/duplicate-detector/similarity');
 const detect = require('../.github/scripts/duplicate-detector/index');
+const config = require('../.github/duplicate-detection.json');
 
 const baseOptions = {
   threshold: 0.7,
@@ -513,6 +514,155 @@ describe('duplicate detector workflow behavior', () => {
     expect(
       github.rest.issues.createComment.mock.calls[0][0].body
     ).toContain('#1');
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+});
+
+describe('duplicate detector auto-close behavior', () => {
+  const originalAutoClose = config.autoClose;
+  const originalAutoCloseThreshold = config.autoCloseThreshold;
+
+  beforeEach(() => {
+    config.autoClose = true;
+    config.autoCloseThreshold = 0.95;
+  });
+
+  afterEach(() => {
+    config.autoClose = originalAutoClose;
+    config.autoCloseThreshold = originalAutoCloseThreshold;
+  });
+
+  function createGithub({
+    isPullRequest = false,
+    target = {
+      title: 'BUG: Add dark mode',
+      body: 'Support a dark theme in settings.',
+    },
+    candidate = {
+      title: 'FEATURE REQUEST: Add dark mode',
+      body: 'Add a dark theme.',
+    },
+  } = {}) {
+    const item = {
+      number: 2,
+      title: target.title,
+      body: target.body,
+      labels: [],
+      user: { type: 'User' },
+    };
+
+    if (isPullRequest) {
+      item.pull_request = {
+        url: 'https://api.github.com/repos/owner/repo/pulls/2',
+      };
+    }
+
+    return {
+      rest: {
+        issues: {
+          get: jest.fn().mockResolvedValue({ data: item }),
+          listForRepo: jest.fn().mockResolvedValue({
+            data: [
+              {
+                number: 1,
+                title: candidate.title,
+                body: candidate.body,
+                labels: [],
+                user: { type: 'User' },
+                created_at: new Date().toISOString(),
+                state: 'open',
+              },
+            ],
+          }),
+          getLabel: jest.fn().mockResolvedValue({
+            data: { name: 'possible-duplicate' },
+          }),
+          createComment: jest.fn().mockResolvedValue({ data: { id: 99 } }),
+          addLabels: jest.fn().mockResolvedValue({}),
+          update: jest.fn().mockResolvedValue({}),
+        },
+        pulls: {
+          update: jest.fn().mockResolvedValue({}),
+        },
+      },
+      paginate: jest.fn().mockResolvedValue([]),
+    };
+  }
+
+  test('auto-closes a qualifying issue match', async () => {
+    const github = createGithub();
+    const core = { info: jest.fn(), warning: jest.fn() };
+
+    await detect({
+      github,
+      context: {
+        repo: { owner: 'owner', repo: 'repo' },
+        payload: { issue: { number: 2 } },
+      },
+      core,
+    });
+
+    expect(github.rest.issues.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issue_number: 2,
+        state: 'closed',
+        state_reason: 'duplicate',
+      })
+    );
+    expect(github.rest.pulls.update).not.toHaveBeenCalled();
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  test('auto-closes a qualifying pull request match', async () => {
+    const github = createGithub({ isPullRequest: true });
+    const core = { info: jest.fn(), warning: jest.fn() };
+
+    await detect({
+      github,
+      context: {
+        repo: { owner: 'owner', repo: 'repo' },
+        payload: { pull_request: { number: 2 } },
+      },
+      core,
+    });
+
+    expect(github.rest.pulls.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pull_number: 2,
+        state: 'closed',
+      })
+    );
+    expect(github.rest.issues.update).not.toHaveBeenCalled();
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  test('does not auto-close a match below the auto-close threshold', async () => {
+    const github = createGithub({
+      target: {
+        title: 'BUG: App crashes when opening the AI chat',
+        body:
+          'The app closes unexpectedly whenever I open the AI chat screen.',
+      },
+      candidate: {
+        title: 'App crash when opening AI chat screen',
+        body: 'Opening the AI chat causes the app to crash unexpectedly.',
+      },
+    });
+    const core = { info: jest.fn(), warning: jest.fn() };
+
+    await detect({
+      github,
+      context: {
+        repo: { owner: 'owner', repo: 'repo' },
+        payload: { issue: { number: 2 } },
+      },
+      core,
+    });
+
+    expect(github.rest.issues.addLabels).toHaveBeenCalled();
+    expect(github.rest.issues.createComment).toHaveBeenCalled();
+    expect(github.rest.issues.update).not.toHaveBeenCalled();
+    expect(github.rest.pulls.update).not.toHaveBeenCalled();
     expect(core.warning).not.toHaveBeenCalled();
   });
 });
