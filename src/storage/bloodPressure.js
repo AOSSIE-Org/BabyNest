@@ -1,5 +1,6 @@
 import {openDB} from '../database';
 import {success, failure} from '../utils/serviceResponse';
+import {clearAgentContext} from './agent';
 
 /**
  * Add blood pressure log
@@ -90,6 +91,8 @@ export async function addBPLog(userId, data) {
         parsedUserId,
       ],
     );
+
+    clearAgentContext(parsedUserId);
 
     return success({
       status: 'success',
@@ -330,6 +333,8 @@ export async function updateBPLog(userId, id, data) {
       ],
     );
 
+    clearAgentContext(parsedUserId);
+
     return success({
       status: 'success',
       message: 'Entry updated',
@@ -377,6 +382,8 @@ export async function deleteBPLog(userId, id) {
     if (result.rowsAffected === 0) {
       return failure('Blood pressure entry not found', 'BP_NOT_FOUND');
     }
+
+    clearAgentContext(parsedUserId);
 
     return success({
       status: 'success',

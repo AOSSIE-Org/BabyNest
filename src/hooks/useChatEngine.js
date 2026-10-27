@@ -9,6 +9,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
   const [conversation, setConversation] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const cancellationRef = useRef(0);
+  const sendingRef = useRef(false);
 
   // Load chats on mount
   useEffect(() => {
@@ -52,16 +53,23 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     await saveChats([]);
   }, [saveChats]);
 
-  const sendMessage = useCallback(async (text, useRAGMode, initializeContext) => {
-    if (!text || !text.trim()) return;
+  const sendMessageNow = useCallback(async (text, useRAGMode, initializeContext) => {
+    const cancellationId = cancellationRef.current;
 
-    // Ensure context is initialized
-    if (!isInitialized) {
-      try {
-        await initializeContext();
-      } catch (error) {
-        console.warn('Failed to initialize context:', error);
-      }
+    // Load the context for every message, since the data may have changed on
+    // another screen while the chat stayed open. It comes from an in-memory
+    // cache that is cleared on every change, so this is cheap. If it can't be
+    // loaded, send an empty context rather than the older one.
+    let latestContext = {};
+    try {
+      latestContext = (await initializeContext()) ?? {};
+    } catch (error) {
+      console.warn('Failed to load context:', error);
+    }
+
+    // Don't send the message if the conversation was cleared meanwhile.
+    if (cancellationId !== cancellationRef.current) {
+      return;
     }
 
     const formatTime = () => {
@@ -75,11 +83,9 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       content: text,
       timestamp: formatTime()
     };
-    const cancellationId = cancellationRef.current;
-    
+
     // Add message to conversation context immediately
     conversationContext.addMessage('user', text);
-    setIsGenerating(true);
 
     // We use functional update to ensure we always have the latest state, 
     // even if clearConversation was called just before this.
@@ -97,7 +103,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
       // Important: We use the most recent history available in this render cycle plus the new message.
       const updatedConversationForModel = [...conversation, userMessage];
 
-      conversationContext.setUserContext(context);
+      conversationContext.setUserContext(latestContext);
 
       if (useRAGMode) {
         if (conversationContext.hasPendingFollowUp()) {
@@ -105,7 +111,7 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
           result = await conversationContext.processFollowUpResponse(text, ragService);
         } else {
           if (__DEV__) console.log('🤖 Processing new query with RAG...');
-          result = await ragService.processQuery(text, context);
+          result = await ragService.processQuery(text, latestContext);
         }
       } else {
         if (__DEV__) console.log('📞 Processing with local model...');
@@ -188,10 +194,23 @@ export const useChatEngine = (isInitialized, context, refreshContext) => {
     } catch (error) {
       Alert.alert("Error", "Failed to generate response: " + error.message);
       console.error(error);
+    }
+  }, [saveChats, conversation]); // conversation added as dependency to avoid stale closure
+
+  // Send one message at a time. The busy flag is set before the context
+  // loads, so a second tap while it loads doesn't start a second send.
+  const sendMessage = useCallback(async (text, useRAGMode, initializeContext) => {
+    if (!text || !text.trim() || sendingRef.current) return;
+
+    sendingRef.current = true;
+    setIsGenerating(true);
+    try {
+      return await sendMessageNow(text, useRAGMode, initializeContext);
     } finally {
+      sendingRef.current = false;
       setIsGenerating(false);
     }
-  }, [isInitialized, context, saveChats, conversation]); // conversation added as dependency to avoid stale closure
+  }, [sendMessageNow]);
 
   return {
     conversation,

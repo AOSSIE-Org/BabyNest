@@ -52,11 +52,13 @@ export const AgentProvider = ({ children }) => {
       setContext(data);
       setLastUpdated(new Date());
       setIsInitialized(true);
+      return data;
     } catch (err) {
       setError(err.message);
       console.error('Error fetching agent context:', err);
       // Don't mark as initialized if there was an error
       setIsInitialized(false);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -104,7 +106,7 @@ export const AgentProvider = ({ children }) => {
 
   // Initialize context when user is ready (e.g., after login/profile setup)
   const initializeContext = async () => {
-    await fetchContext(true);
+    return fetchContext(true);
   };
 
   // Check if context is ready for use
