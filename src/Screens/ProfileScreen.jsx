@@ -120,18 +120,26 @@ export default function ProfileScreen() {
         const savedImage = await AsyncStorage.getItem('profile_image');
 
         if (savedImage) {
-          try {
-            const response = await fetch(savedImage, {method: 'HEAD'});
-
-            if (response.ok) {
-              setProfileImage(savedImage);
-            } else {
+          // Local file:// and content:// URIs cannot be verified via HTTP HEAD.
+          // Trust them directly; only attempt a network check for remote URLs.
+          if (
+            savedImage.startsWith('file://') ||
+            savedImage.startsWith('content://')
+          ) {
+            setProfileImage(savedImage);
+          } else {
+            try {
+              const response = await fetch(savedImage, {method: 'HEAD'});
+              if (response.ok) {
+                setProfileImage(savedImage);
+              } else {
+                setProfileImage(null);
+                await AsyncStorage.removeItem('profile_image');
+              }
+            } catch (error) {
+              console.log('Failed to verify profile image:', error);
               setProfileImage(null);
-              await AsyncStorage.removeItem('profile_image');
             }
-          } catch (error) {
-            console.log('Failed to verify profile image:', error);
-            setProfileImage(null);
           }
         } else {
           setProfileImage(null);
