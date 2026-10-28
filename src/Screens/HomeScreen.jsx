@@ -1,4 +1,5 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
+import {useFocusEffect} from '@react-navigation/native';
 import {
   SafeAreaView,
   ScrollView,
@@ -47,43 +48,46 @@ export default function HomeScreen({navigation}) {
     fetchData();
   }, []);
 
-  // This will fetch the selectes image, which is stored locally.
-  useEffect(() => {
-    const loadProfileImage = async () => {
-      try {
-        const savedImage = await AsyncStorage.getItem('profile_image');
+  // Reload the profile image whenever the screen comes into focus so that
+  // a newly selected image from ProfileScreen is reflected immediately.
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfileImage = async () => {
+        try {
+          const savedImage = await AsyncStorage.getItem('profile_image');
 
-        if (savedImage) {
-          // Local file:// and content:// URIs cannot be verified via HTTP HEAD.
-          // Trust them directly; only attempt a network check for remote URLs.
-          if (
-            savedImage.startsWith('file://') ||
-            savedImage.startsWith('content://')
-          ) {
-            setProfileImage(savedImage);
-          } else {
-            try {
-              const response = await fetch(savedImage, {method: 'HEAD'});
-              if (response.ok) {
-                setProfileImage(savedImage);
-              } else {
+          if (savedImage) {
+            // Local file:// and content:// URIs cannot be verified via HTTP HEAD.
+            // Trust them directly; only attempt a network check for remote URLs.
+            if (
+              savedImage.startsWith('file://') ||
+              savedImage.startsWith('content://')
+            ) {
+              setProfileImage(savedImage);
+            } else {
+              try {
+                const response = await fetch(savedImage, {method: 'HEAD'});
+                if (response.ok) {
+                  setProfileImage(savedImage);
+                } else {
+                  setProfileImage(null);
+                  await AsyncStorage.removeItem('profile_image');
+                }
+              } catch (error) {
+                console.log('Failed to verify profile image:', error);
                 setProfileImage(null);
-                await AsyncStorage.removeItem('profile_image');
               }
-            } catch (error) {
-              console.log('Failed to verify profile image:', error);
-              setProfileImage(null);
             }
+          } else {
+            setProfileImage(null);
           }
-        } else {
-          setProfileImage(null);
+        } catch (error) {
+          console.log('Error loading profile image:', error);
         }
-      } catch (error) {
-        console.log('Error loading profile image:', error);
-      }
-    };
-    loadProfileImage();
-  }, []);
+      };
+      loadProfileImage();
+    }, []),
+  );
 
   const fetchData = async () => {
     try {
