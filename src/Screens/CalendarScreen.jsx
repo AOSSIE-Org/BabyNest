@@ -335,7 +335,9 @@ const ScheduleScreen = ({route}) => {
   };
 
   const to_min = str => {
-    if (!str || typeof str !== 'string' || !str.includes(':')) return 0;
+    if (!str || typeof str !== 'string' || !str.includes(':')) {
+      return 0;
+    }
     const [rawHours, rest] = str.trim().split(':');
     const [rawMinutes, modifier] = rest.trim().split(/\s+/);
     let hours = parseInt(rawHours, 10) || 0;
