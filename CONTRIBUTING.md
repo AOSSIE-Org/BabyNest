@@ -12,10 +12,10 @@ Thank you for your interest in contributing to **BabyNest**! We appreciate your 
   git clone https://github.com/<your-username>/BabyNest.git
   cd BabyNest
   ```
-Optionally, you can add: 
-```sh
-git remote add upstream https://github.com/AOSSIE-Org/BabyNest.git
-```
+  Optionally, you can add: 
+  ```sh
+  git remote add upstream https://github.com/AOSSIE-Org/BabyNest.git
+  ```
 
 ### 2. Create a Feature Branch
 - Always create a new branch for your contributions:
