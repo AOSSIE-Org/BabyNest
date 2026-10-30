@@ -9,8 +9,12 @@ Thank you for your interest in contributing to **BabyNest**! We appreciate your 
 - Click the **Fork** button in the top right corner.
 - Clone the forked repository to your local machine:
   ```sh
-  git clone https://github.com/AOSSIE-Org/BabyNest.git
+  git clone https://github.com/<your-username>/BabyNest.git
   cd BabyNest
+  ```
+  Optionally, you can add: 
+  ```sh
+  git remote add upstream https://github.com/AOSSIE-Org/BabyNest.git
   ```
 
 ### 2. Create a Feature Branch
