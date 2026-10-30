@@ -11,10 +11,12 @@ const USER_ID = 1;
 
 let mockProfile;
 let mockAppointmentDates;
+let mockInsertedProfileParams;
 
 const mockDb = {
   execute: jest.fn(async (sql, params = []) => {
     if (sql.includes('INSERT INTO profile')) {
+      mockInsertedProfileParams = params;
       return {insertId: USER_ID};
     }
     if (sql.includes('INSERT INTO appointments')) {
@@ -73,14 +75,25 @@ it('stores the due date 280 days after the LMP', async () => {
 
   expect(response.success).toBe(true);
   expect(response.data.dueDate).toBe('2026-12-06');
+  expect(mockInsertedProfileParams[6]).toBe('2026-12-06');
 });
 
 it('stores the default appointments on the right days', async () => {
   await createProfile({lmp: '2026-03-01', cycleLength: 28, location: 'Pune'});
 
-  expect(mockAppointmentDates.slice(0, 2)).toEqual([
+  expect(mockAppointmentDates).toEqual([
     '2026-03-01',
     '2026-03-08',
+    '2026-03-15',
+    '2026-03-22',
+    '2026-03-29',
+    '2026-04-05',
+    '2026-04-12',
+    '2026-04-19',
+    '2026-04-26',
+    '2026-05-03',
+    '2026-05-10',
+    '2026-05-17',
   ]);
 });
 
