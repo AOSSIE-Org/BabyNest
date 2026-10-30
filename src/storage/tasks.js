@@ -1,6 +1,7 @@
 import {openDB} from '../database';
 import {success, failure} from '../utils/serviceResponse';
 import {clearAgentContext} from './agent';
+import NotificationService from '../services/NotificationService';
 
 // Get all tasks for user
 export async function getTasks(userId) {
@@ -313,6 +314,15 @@ export async function moveTaskToAppointment(userId, taskId, data) {
       return failure('Task not found', 'TASK_NOT_FOUND');
     }
 
+    // Fast path: the task already has an appointment. The conditional UPDATE
+    // inside the transaction below is what actually prevents duplicates.
+    if (Number(task.isAppointmentMade) === 1) {
+      return failure(
+        'An appointment was already made for this task',
+        'APPOINTMENT_ALREADY_EXISTS',
+      );
+    }
+
     const appointmentTitle = data.appointment_title ?? task.title;
 
     const appointmentContent = data.appointment_content ?? task.content;
@@ -320,13 +330,24 @@ export async function moveTaskToAppointment(userId, taskId, data) {
     await db.execute('BEGIN TRANSACTION');
     let appointmentResult;
     try {
-      await db.execute(
+      // Claim the task only if no appointment was made for it yet. If another
+      // call got there first, no row is updated and nothing is inserted.
+      const claimResult = await db.execute(
         `UPDATE tasks
        SET isAppointmentMade = 1
        WHERE id = ?
-         AND user_id = ?`,
+         AND user_id = ?
+         AND COALESCE(isAppointmentMade, 0) = 0`,
         [parsedTaskId, parsedUserId],
       );
+
+      if (claimResult.rowsAffected === 0) {
+        await db.execute('ROLLBACK');
+        return failure(
+          'An appointment was already made for this task',
+          'APPOINTMENT_ALREADY_EXISTS',
+        );
+      }
 
       // Create appointment for the same user
       appointmentResult = await db.execute(
@@ -358,6 +379,20 @@ export async function moveTaskToAppointment(userId, taskId, data) {
     }
 
     clearAgentContext(parsedUserId);
+
+    // Same reminder that addAppointment schedules. The appointment is already
+    // saved, so a reminder failure must not make this call fail.
+    try {
+      await NotificationService.scheduleAppointmentReminder(
+        appointmentTitle,
+        appointmentContent,
+        data.appointment_date,
+        data.appointment_time,
+        appointmentResult.insertId,
+      );
+    } catch (error) {
+      console.warn('moveTaskToAppointment: reminder not scheduled:', error);
+    }
 
     return success({
       appointment_id: appointmentResult.insertId,
