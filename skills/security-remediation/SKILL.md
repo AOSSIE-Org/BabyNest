@@ -163,8 +163,10 @@ later.
    `sec_review_2026-09-22T14-03-00Z_5df9641.md`) and derive
    `sec_review_2026-09-22T14-03-00Z_5df9641_remediations.md` — same
    name, `_remediations` suffix before `.md`.
-2. Always write the remediations file to `unremediated-security-reviews/`
-   first, regardless of where `<source-report>` lives. Never write it
+2. Create `unremediated-security-reviews/` at the repo root if it does not
+   exist (for example, in a clean checkout). Then always write the
+   remediations file to `unremediated-security-reviews/` first, regardless
+   of where `<source-report>` lives. Never write it
    next to an arbitrary source report instead: that location may be
    tracked, and an incomplete draft can then enter a commit and expose
    unresolved-finding details — including why they weren't fixed —
