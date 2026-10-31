@@ -26,6 +26,7 @@ import {
   updateDischargeLog,
 } from '../storage/discharge';
 import {
+  addMedicine,
   deleteMedicine,
   getAllMedicine,
   updateMedicine,
@@ -2503,7 +2504,7 @@ Rules:
       const user_id = await AsyncStorage.getItem('user_id');
       const addWeight_res = await addWeight(user_id, {
         weight: data.weight,
-        week_number: data.week_number || userContext.current_week || 12,
+        week_number: data.week_number || userContext?.current_week || 12,
         note: data.note || '',
       });
 
@@ -2511,7 +2512,7 @@ Rules:
         return {
           success: true,
           message: `⚖️ Weight ${data.weight}kg logged for week ${
-            data.week_number || userContext.current_week || 12
+            data.week_number || userContext?.current_week || 12
           }${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
           screen: 'Weight',
@@ -2535,7 +2536,7 @@ Rules:
       const user_id = await AsyncStorage.getItem('user_id');
       const addSymptom_res = await addSymptom(user_id, {
         symptom: data.symptom,
-        week_number: data.week_number || userContext.current_week || 12,
+        week_number: data.week_number || userContext?.current_week || 12,
         note: data.note || '',
       });
 
@@ -2543,7 +2544,7 @@ Rules:
         return {
           success: true,
           message: `🩺 Symptom "${data.symptom}" logged for week ${
-            data.week_number || userContext.current_week || 12
+            data.week_number || userContext?.current_week || 12
           }${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
           screen: 'Symptoms',
@@ -2568,7 +2569,7 @@ Rules:
       const addBPLog_response = await addBPLog(user_id, {
         systolic: data.systolic,
         diastolic: data.diastolic,
-        week_number: data.week_number || userContext.current_week || 12,
+        week_number: data.week_number || userContext?.current_week || 12,
         time: data.time || new Date().toLocaleTimeString(),
         note: data.note || '',
       });
@@ -2579,7 +2580,7 @@ Rules:
           message: `🩸 Blood pressure ${data.systolic}/${
             data.diastolic
           } logged for week ${
-            data.week_number || userContext.current_week || 12
+            data.week_number || userContext?.current_week || 12
           }${data.note ? ` (Note: ${data.note})` : ''}`,
           action: 'navigate',
           screen: 'BloodPressure',
@@ -2607,7 +2608,7 @@ Rules:
         name: data.name,
         dose: data.dose || '',
         time: data.time || '',
-        week_number: data.week_number || userContext.current_week || 12,
+        week_number: data.week_number || userContext?.current_week || 12,
         note: data.note || '',
       });
       if (!addMedicine_res.success) {
@@ -2618,7 +2619,7 @@ Rules:
           message: `💊 Medicine "${data.name}"${
             data.dose ? ` (${data.dose})` : ''
           } logged for week ${
-            data.week_number || userContext.current_week || 12
+            data.week_number || userContext?.current_week || 12
           }${data.time ? ` at ${data.time}` : ''}${
             data.note ? ` (Note: ${data.note})` : ''
           }`,
@@ -2646,7 +2647,7 @@ Rules:
         type: data.type,
         color: data.color,
         bleeding: data.bleeding || 'no',
-        week_number: data.week_number || userContext.current_week || 12,
+        week_number: data.week_number || userContext?.current_week || 12,
         note: data.note || '',
       });
 
@@ -2654,7 +2655,7 @@ Rules:
         return {
           success: true,
           message: `🩸 Discharge log recorded for week ${
-            data.week_number || userContext.current_week || 12
+            data.week_number || userContext?.current_week || 12
           }: ${data.type}, ${data.color}${
             data.note ? ` (Note: ${data.note})` : ''
           }`,
@@ -2680,8 +2681,8 @@ Rules:
       const user_id = await AsyncStorage.getItem('user_id');
       const addTask_res = await addTask(user_id, {
         title: data.title,
-        starting_week: data.week || userContext.current_week || 12,
-        ending_week: data.week || userContext.current_week || 12,
+        starting_week: data.week || userContext?.current_week || 12,
+        ending_week: data.week || userContext?.current_week || 12,
         task_priority: data.priority || 'medium',
         task_status: 'pending',
         is_optional: false,
@@ -2692,7 +2693,7 @@ Rules:
         return {
           success: true,
           message: `✅ Task "${data.title}" created for week ${
-            data.week || userContext.current_week || 12
+            data.week || userContext?.current_week || 12
           } with ${data.priority || 'medium'} priority`,
           action: 'navigate',
           screen: 'AllTasks',
