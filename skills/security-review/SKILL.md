@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: Perform a security-focused code review of smart contracts, frontends, backends, and mobile apps. Use this skill for a security review, audit, vulnerability scan, or check of code for security issues, including reviewing a pull request, diff, or changed files, or asking "is this safe to merge or ship." Covers Solidity and ErgoScript smart contracts (reentrancy, access control, oracle manipulation, box and register validation); Next.js, Tailwind, and Svelte frontends (XSS, SSRF, exposed secrets, CSRF, insecure API routes); Python and Go backends (injection, unsafe deserialization, unsafe concurrency, weak randomness); and Flutter mobile apps (insecure storage, hardcoded secrets, missing certificate pinning, insecure WebViews). Also covers general classes such as injection, auth flaws, cryptography issues, unsafe deserialization, and data exposure. Use whenever code touches funds, user data, or authentication, even without the word "security."
+description: Perform a security-focused code review of smart contracts, frontends, backends, and mobile apps. Use this skill for a security review, audit, vulnerability scan, or check of code for security issues, including reviewing a pull request, diff, or changed files, or asking "is this safe to merge or ship." Covers Solidity and ErgoScript smart contracts (reentrancy, access control, oracle manipulation, box and register validation); Next.js, Tailwind, and Svelte frontends (XSS, SSRF, exposed secrets, CSRF, insecure API routes); Python and Go backends (injection, unsafe deserialization, unsafe concurrency, weak randomness); and Flutter and React Native mobile apps (insecure storage, hardcoded secrets, missing certificate pinning, insecure WebViews). Also covers general classes such as injection, auth flaws, cryptography issues, unsafe deserialization, and data exposure. Use whenever code touches funds, user data, or authentication, even without the word "security."
 compatibility: Works in any coding agent with file read/write and search access. Git commands are used to scope diffs/PRs and to stamp the report with a commit hash. Saves its report to unremediated-security-reviews/ in the project.
 metadata:
   version: "1.0"
@@ -54,11 +54,12 @@ projects.
 |---|---|
 | `*.sol` files, `foundry.toml`, `hardhat.config.js`, `truffle-config.js`, `remappings.txt` | Smart contract (Solidity) |
 | `*.es` files, ErgoScript embedded as strings alongside `ergo-appkit`, `sigmastate`, `ergo-lib`, or `fleet-sdk` dependencies | Smart contract (ErgoScript) |
-| `next.config.js`, `next` listed in `package.json`, `tailwind.config.js`, widespread `.tsx`/`.jsx` files | Frontend (Next.js / Tailwind) |
+| `next.config.js`, or `next` listed in `package.json` (`tailwind.config.js` or widespread `.tsx`/`.jsx` files alone are not enough) | Frontend (Next.js / Tailwind) |
 | `*.svelte` files, `svelte.config.js`, `svelte` or `@sveltejs/kit` listed in `package.json` | Frontend (Svelte / SvelteKit) |
 | `*.py` files, `requirements.txt`, `pyproject.toml`, `Pipfile`, `manage.py`, `wsgi.py` | Backend (Python) |
 | `*.go` files, `go.mod`, `go.sum` | Backend (Go) |
-| `pubspec.yaml`, `lib/*.dart` files, `android/` and `ios/` directories | Mobile app (Flutter) |
+| `pubspec.yaml`, `lib/*.dart` files | Mobile app (Flutter) |
+| `react-native` listed in `package.json`, `react-native.config.js`, `metro.config.js`, or `android/` and `ios/` directories alongside a `package.json` | Mobile app (React Native) |
 
 If none of these signals appear, apply only the general checklist.
 
@@ -346,6 +347,49 @@ this model.
   data, and has no server-side control as a backup.
 - Missing code obfuscation is a hardening gap, not a vulnerability by
   itself. Report it only alongside a concrete secondary issue.
+
+### Mobile App Checklist (React Native)
+
+**Data storage**
+- Sensitive data stored in `AsyncStorage` or an unencrypted local database
+  or file. `AsyncStorage` is plain text on the device; secrets and tokens
+  belong in the Keychain or Keystore (for example through a secure-storage
+  library).
+- An API key, token, or secret hardcoded in JavaScript source or bundled
+  config. Anything in the JS bundle can be extracted from the app package.
+- Sensitive data written to logs (`console.log`) in a release build.
+
+**Network communication**
+- Use of `http` instead of `https` for a sensitive request, or Android
+  `usesCleartextTraffic` / iOS App Transport Security exceptions that allow
+  cleartext traffic in a release build.
+- Disabled or bypassed certificate validation.
+- Missing certificate pinning on a connection that carries sensitive data.
+
+**Platform integration**
+- Unvalidated input passed across a native module or bridge call.
+- A `WebView` that enables JavaScript and loads an untrusted or
+  user-controlled URL, or that exposes a message bridge
+  (`onMessage` / `injectedJavaScript`) to untrusted web content.
+- A deep link or universal link handler that triggers a sensitive action
+  without validating the link's source or parameters.
+- Exported Android components (activities, receivers, services) or iOS URL
+  schemes that accept untrusted input without validation.
+
+**Build configuration**
+- Debug flags, the dev menu, or verbose logging enabled in a release
+  build.
+- Android `android:allowBackup="true"` on an app that stores sensitive
+  data locally.
+
+*Notes for this checklist:*
+- React Native renders text safely by default. Report XSS-style issues
+  only inside a `WebView` or where raw HTML is injected.
+- Client-side checks are not a trust boundary. Check whether any backend
+  or local service enforces the same check before reporting a client-only
+  finding.
+- A rooted or jailbroken device defeats most client-side protections. Do
+  not report missing root or jailbreak detection as a standalone finding.
 
 ### Backend Checklist (Python)
 
