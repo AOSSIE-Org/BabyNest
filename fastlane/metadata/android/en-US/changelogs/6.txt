@@ -1,0 +1,12 @@
+BabyNest 1.0.1
+
+- Updated Android NDK configuration and native llama.rn build settings.
+- Fixed a security vulnerability in shell-quote (CVE-2026-102422).
+- Fixed assistant context refresh after blood pressure and profile updates.
+- Fixed appointment rescheduling by including the user ID in AI appointment updates.
+- Updated README documentation and Play Store download badges.
+- Added F-Droid publishing configuration.
+- Improved CI workflows for Android builds and APK artifact generation.
+- Updated iOS build assets and bundle identifier configuration.
+- Added an initial project audit report.
+- Included general maintenance and documentation updates.
