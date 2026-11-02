@@ -53,6 +53,26 @@ const changeDateFormat = date => {
   return `${day} ${months[month - 1]}, ${year}`;
 };
 
+export const to_min = str => {
+  if (!str || typeof str !== 'string' || !str.includes(':')) {
+    return 0;
+  }
+  const [rawHours, rest] = str.trim().split(':');
+  const match = rest ? rest.trim().match(/^(\d+)\s*(AM|PM)?$/i) : null;
+  if (!match) {
+    return 0;
+  }
+  let hours = parseInt(rawHours, 10) || 0;
+  const minutes = parseInt(match[1], 10) || 0;
+  const modifier = match[2];
+  if (modifier && modifier.toUpperCase() === 'PM' && hours < 12) {
+    hours += 12;
+  } else if (modifier && modifier.toUpperCase() === 'AM' && hours === 12) {
+    hours = 0;
+  }
+  return hours * 60 + minutes;
+};
+
 const ScheduleScreen = ({route}) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [user_id, setUserId] = useState(null);
@@ -334,21 +354,6 @@ const ScheduleScreen = ({route}) => {
     }
   };
 
-  const to_min = str => {
-    if (!str || typeof str !== 'string' || !str.includes(':')) {
-      return 0;
-    }
-    const [rawHours, rest] = str.trim().split(':');
-    const [rawMinutes, modifier] = rest.trim().split(/\s+/);
-    let hours = parseInt(rawHours, 10) || 0;
-    const minutes = parseInt(rawMinutes, 10) || 0;
-    if (modifier && modifier.toUpperCase() === 'PM' && hours < 12) {
-      hours += 12;
-    } else if (modifier && modifier.toUpperCase() === 'AM' && hours === 12) {
-      hours = 0;
-    }
-    return hours * 60 + minutes;
-  };
 
   const showCalendar = () => {
     setCalendarVisible(true);
