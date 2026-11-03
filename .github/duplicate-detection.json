@@ -1,0 +1,16 @@
+{
+  "threshold": 0.7,
+  "maxMatches": 3,
+  "maxCandidates": 300,
+  "candidateDays": 730,
+  "minSharedTokens": 4,
+  "label": "possible-duplicate",
+  "labelColor": "fbca04",
+  "labelDescription": "Possible duplicate of an existing issue or pull request",
+  "skipLabels": ["duplicate", "spam", "ai-slop"],
+  "skipBots": true,
+  "includePullRequests": true,
+  "maxTitleLength": 120,
+  "autoClose": false,
+  "autoCloseThreshold": 0.95
+}
