@@ -53,6 +53,26 @@ const changeDateFormat = date => {
   return `${day} ${months[month - 1]}, ${year}`;
 };
 
+export const to_min = str => {
+  if (!str || typeof str !== 'string' || !str.includes(':')) {
+    return 0;
+  }
+  const [rawHours, rest] = str.trim().split(':');
+  const match = rest ? rest.trim().match(/^(\d+)\s*(AM|PM)?$/i) : null;
+  if (!match) {
+    return 0;
+  }
+  let hours = parseInt(rawHours, 10) || 0;
+  const minutes = parseInt(match[1], 10) || 0;
+  const modifier = match[2];
+  if (modifier && modifier.toUpperCase() === 'PM' && hours < 12) {
+    hours += 12;
+  } else if (modifier && modifier.toUpperCase() === 'AM' && hours === 12) {
+    hours = 0;
+  }
+  return hours * 60 + minutes;
+};
+
 const ScheduleScreen = ({route}) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [user_id, setUserId] = useState(null);
@@ -334,10 +354,6 @@ const ScheduleScreen = ({route}) => {
     }
   };
 
-  const to_min = str => {
-    const [hours, minutes] = str.split(':');
-    return parseInt(hours) * 60 + parseInt(minutes.split(' ')[0]);
-  };
 
   const showCalendar = () => {
     setCalendarVisible(true);
@@ -461,7 +477,7 @@ const ScheduleScreen = ({route}) => {
         {filteredAppointments.map((appt, index) => (
           <View
             key={appt.id}
-            id={`${appt.time}`}
+            id={`${appt.appointment_time}`}
             style={{
               ...styles.appointment,
               backgroundColor: colors[index % colors.length],
@@ -470,7 +486,7 @@ const ScheduleScreen = ({route}) => {
             }}>
             <TouchableOpacity onPress={() => handleAppointment(appt)}>
               <Text style={styles.apptTitle}>{appt.title}</Text>
-              <Text style={styles.apptTime}>{appt.time}</Text>
+              <Text style={styles.apptTime}>{appt.appointment_time}</Text>
             </TouchableOpacity>
           </View>
         ))}
