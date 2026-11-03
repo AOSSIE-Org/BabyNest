@@ -93,25 +93,70 @@ export const checkMemoryBeforeLoading = async modelPath => {
   }
 };
 
+// These checks establish file corruption independently of native initialization
+// failures (which can also be caused by memory pressure or unsupported models).
+const hasGGUFHeader = async path => {
+  const {size} = await RNFS.stat(path);
+  return (
+    Number.isSafeInteger(Number(size)) &&
+    Number(size) >= 24 &&
+    (await RNFS.read(path, 4, 0, 'ascii')) === 'GGUF'
+  );
+};
+
+const fetchModelMetadata = async fileName => {
+  const {data} = await axios.get(
+    `https://huggingface.co/api/models/${HF_TO_GGUF}`,
+    {params: {blobs: true}, timeout: 10000},
+  );
+  const file = data?.siblings?.find(item => item.rfilename === fileName);
+  const size = Number(file?.size);
+  const sha256 = file?.lfs?.sha256;
+  if (
+    !Number.isSafeInteger(size) ||
+    size < 24 ||
+    !/^[a-f0-9]{40}$/i.test(data?.sha || '') ||
+    (sha256 !== undefined && !/^[a-f0-9]{64}$/i.test(sha256))
+  ) {
+    throw new Error('Could not verify the model download. Please try again.');
+  }
+  return {size, sha256, revision: data.sha};
+};
+
+const matchesModelMetadata = async (path, metadata) => {
+  const {size} = await RNFS.stat(path);
+  if (Number(size) !== metadata.size) {
+    return false;
+  }
+  return (
+    !metadata.sha256 ||
+    (await RNFS.hash(path, 'sha256')).toLowerCase() ===
+      metadata.sha256.toLowerCase()
+  );
+};
+
 export const downloadModel = async (fileName, onProgress) => {
   if (!HF_TO_GGUF || !fileName) {
     Alert.alert('Model configuration error', 'The model repository or filename is missing.');
     return null;
   }
 
-  const downloadUrl = `https://huggingface.co/${HF_TO_GGUF}/resolve/main/${encodeURIComponent(fileName)}`;
   const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
   const tempPath = `${destPath}.download`;
 
   try {
-    // Reuse only a non-empty file. loadModel performs the actual initialization.
-    if (await RNFS.exists(destPath)) {
-      const existing = await RNFS.stat(destPath);
-      if (Number(existing.size) > 0) {
-        const loaded = await loadModel(fileName);
-        return loaded ? destPath : null;
+    let metadata;
+    const existing = await RNFS.exists(destPath);
+    if (existing && (await hasGGUFHeader(destPath))) {
+      // Successful cached loads remain offline. On failure, replace only a
+      // confirmed mismatch; metadata or filesystem errors must preserve it.
+      if (await loadModel(fileName)) {
+        return destPath;
       }
-      await RNFS.unlink(destPath);
+      metadata = await fetchModelMetadata(fileName);
+      if (await matchesModelMetadata(destPath, metadata)) {
+        return null;
+      }
     }
 
     // Remove a previous interrupted download.
@@ -119,9 +164,16 @@ export const downloadModel = async (fileName, onProgress) => {
       await RNFS.unlink(tempPath);
     }
 
+    metadata = metadata || (await fetchModelMetadata(fileName));
+    // Pin the transfer to the same revision as its size/checksum metadata.
+    const downloadUrl = `https://huggingface.co/${HF_TO_GGUF}/resolve/${metadata.revision}/${encodeURIComponent(fileName)}`;
+    let contentLength = 0;
     const download = await RNFS.downloadFile({
       fromUrl: downloadUrl,
       toFile: tempPath,
+      begin: res => {
+        contentLength = res.contentLength;
+      },
       progress: res => {
         if (
           typeof onProgress === 'function' &&
@@ -134,7 +186,7 @@ export const downloadModel = async (fileName, onProgress) => {
       discretionary: false,
     }).promise;
 
-    if (download.statusCode < 200 || download.statusCode >= 300) {
+    if (download.statusCode !== 200) {
       throw new Error(`Model download failed (HTTP ${download.statusCode}). Check your internet connection and model URL.`);
     }
 
@@ -143,11 +195,22 @@ export const downloadModel = async (fileName, onProgress) => {
     }
 
     const downloadedStats = await RNFS.stat(tempPath);
-    if (!Number(downloadedStats.size)) {
-      throw new Error('The downloaded model is empty. Please try again.');
+    const downloadedSize = Number(downloadedStats.size);
+    if (
+      downloadedSize !== download.bytesWritten ||
+      (contentLength > 0 && downloadedSize !== contentLength) ||
+      !(await hasGGUFHeader(tempPath)) ||
+      !(await matchesModelMetadata(tempPath, metadata))
+    ) {
+      throw new Error(
+        'The downloaded model is incomplete or corrupted. Please try again.',
+      );
     }
 
-    // Only move into the final location after the download completes.
+    // Preserve the old file until its replacement has passed validation.
+    if (existing) {
+      await RNFS.unlink(destPath);
+    }
     await RNFS.moveFile(tempPath, destPath);
 
     const loaded = await loadModel(fileName);
