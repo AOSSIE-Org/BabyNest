@@ -80,3 +80,7 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Unremediated security review reports (produced by the security-review skill).
+# Must never be committed to the public repository.
+unremediated-security-reviews/

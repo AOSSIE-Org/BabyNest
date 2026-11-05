@@ -71,6 +71,21 @@ the native project configuration before changing toolchain versions.
   affected platform where the required toolchain is available. State clearly
   when platform-specific validation could not be run.
 
+## Security Reviews
+
+AI-assisted security reviews use the skills in `skills/`:
+
+- `skills/security-review/SKILL.md` — run a security review of a diff, PR, or
+  path. It saves its report to `unremediated-security-reviews/`, which is
+  git-ignored and must never be committed.
+- `skills/security-remediation/SKILL.md` — after findings are fixed (or
+  explicitly accepted), close out the review and publish the review and
+  remediation reports to `security-reviews/`.
+
+These two files are copied from the AOSSIE
+[Template-Repo](https://github.com/AOSSIE-Org/Template-Repo/tree/main/skills).
+Keep them in sync with the template rather than editing them here.
+
 ## Conventions
 
 - Add or update tests under `__tests__/` for behavior changes, following the
