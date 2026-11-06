@@ -1,9 +1,8 @@
 /**
  * Due dates and default appointment dates are stored as YYYY-MM-DD. They must
- * not move by a day in timezones east of UTC, such as India.
+ * not move by a day in timezones east of UTC, such as India. jest.config.js sets
+ * the timezone for these tests.
  */
-
-process.env.TZ = 'Asia/Kolkata';
 
 import {createProfile, updateProfile} from '../src/storage/profile';
 
@@ -64,6 +63,12 @@ beforeEach(() => {
     user_name: 'Asha',
     dueDate: '2026-12-06',
   };
+});
+
+// In UTC the tests below pass with or without the fix, so make sure the timezone
+// really is set.
+it('runs in India time', () => {
+  expect(new Date('2026-03-01T00:00:00').getTimezoneOffset()).toBe(-330);
 });
 
 it('stores the due date 280 days after the LMP', async () => {
