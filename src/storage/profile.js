@@ -96,6 +96,16 @@ const DEFAULT_APPOINTMENTS = [
   },
 ];
 
+// Formats a date as YYYY-MM-DD in local time. toISOString() would convert it
+// to UTC first, which moves local midnight to the previous day east of UTC.
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 function calculateDueDate(lmp, cycleLength) {
   const lmpDate = new Date(`${lmp}T00:00:00`);
 
@@ -107,7 +117,7 @@ function calculateDueDate(lmp, cycleLength) {
 
   lmpDate.setDate(lmpDate.getDate() + 280 + adjustment);
 
-  return lmpDate.toISOString().split('T')[0];
+  return formatLocalDate(lmpDate);
 }
 
 function calculateAppointmentDate(lmp, daysAfter) {
@@ -115,7 +125,7 @@ function calculateAppointmentDate(lmp, daysAfter) {
 
   date.setDate(date.getDate() + daysAfter);
 
-  return date.toISOString().split('T')[0];
+  return formatLocalDate(date);
 }
 
 /**
