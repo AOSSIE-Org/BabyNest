@@ -102,6 +102,24 @@ it('stores the default appointments on the right days', async () => {
   ]);
 });
 
+it.each(['not-a-date', '2026-13-45'])(
+  'rejects the LMP %s before writing anything',
+  async lmp => {
+    mockDb.execute.mockClear();
+
+    const response = await createProfile({
+      lmp,
+      cycleLength: 28,
+      location: 'Pune',
+    });
+
+    expect(response.success).toBe(false);
+    expect(response.error.code).toBe('INVALID_LMP_DATE');
+    expect(mockDb.execute).not.toHaveBeenCalled();
+    expect(mockAppointmentDates).toEqual([]);
+  },
+);
+
 it('recalculates the due date on the right day when the LMP changes', async () => {
   const response = await updateProfile(USER_ID, {LMP: '2026-03-15'});
 
