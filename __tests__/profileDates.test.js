@@ -23,6 +23,7 @@ const mockDb = {
       return {rowsAffected: 1};
     }
     if (sql.includes('UPDATE profile')) {
+      expect(sql).toMatch(/SET\s+dueDate\s*=\s*\?/);
       mockProfile.dueDate = params[0];
       return {rowsAffected: 1};
     }
