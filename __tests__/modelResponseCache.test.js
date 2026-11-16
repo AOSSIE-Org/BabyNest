@@ -131,4 +131,56 @@ describe('generateResponse cache', () => {
     expect(second).toBe('reply-2');
     expect(calls).toHaveLength(2);
   });
+
+  test('does not cache a completion that finishes after the model is unloaded', async () => {
+    const {loadModel, unloadModel, generateResponse, calls} =
+      createLoadedModel();
+    const llama = require('llama.rn');
+    let resolveFirstCompletion;
+    const firstCompletion = new Promise(resolve => {
+      resolveFirstCompletion = resolve;
+    });
+    let completionCount = 0;
+
+    llama.initLlama.mockImplementation(async () => ({
+      completion: async ({messages}) => {
+        calls.push(messages);
+        completionCount += 1;
+        if (completionCount === 1) {
+          return firstCompletion;
+        }
+        return {text: `reply-${completionCount}`};
+      },
+    }));
+
+    const conversation = [{role: 'user', content: 'What should I focus on?'}];
+    await loadModel('model.gguf');
+    const pendingFirst = generateResponse(conversation);
+    await Promise.resolve();
+
+    await unloadModel();
+    await loadModel('model.gguf');
+    const second = await generateResponse(conversation);
+    resolveFirstCompletion({text: 'reply-1'});
+    const first = await pendingFirst;
+    const cachedAfterOldCompletion = await generateResponse(conversation);
+
+    expect(first).toBe('reply-1');
+    expect(second).toBe('reply-2');
+    expect(cachedAfterOldCompletion).toBe('reply-2');
+    expect(calls).toHaveLength(2);
+  });
+
+  test('does not retain oversized conversation keys in the response cache', async () => {
+    const {loadModel, generateResponse, calls} = createLoadedModel();
+    await loadModel('model.gguf');
+    const conversation = [{role: 'user', content: 'x'.repeat(17_000)}];
+
+    const first = await generateResponse(conversation);
+    const second = await generateResponse(conversation);
+
+    expect(first).toBe('reply-1');
+    expect(second).toBe('reply-2');
+    expect(calls).toHaveLength(2);
+  });
 });
