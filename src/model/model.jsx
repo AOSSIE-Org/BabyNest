@@ -6,10 +6,26 @@ import DeviceInfo from "react-native-device-info";
 import { MODEL_NAME, HF_TO_GGUF } from "../data/modelConfig";
 
 let context = null;
+let loadedModelName = null;
+let modelLifecycleGeneration = 0;
 
 const MAX_CACHE_SIZE = 100;
+const MAX_CACHE_KEY_LENGTH = 16_384;
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const responseCache = new Map();
+
+const createCacheKey = (modelName, messages) => {
+  if (!modelName) {
+    return null;
+  }
+
+  try {
+    const key = JSON.stringify([modelName, messages]);
+    return key.length <= MAX_CACHE_KEY_LENGTH ? key : null;
+  } catch {
+    return null;
+  }
+};
 
 const setCache = (key, value) => {
   // Enforce size limit
@@ -183,6 +199,9 @@ export const loadModel = async modelName => {
     if (context) {
       await releaseAllLlama();
       context = null;
+      loadedModelName = null;
+      modelLifecycleGeneration += 1;
+      responseCache.clear();
     }
 
     if (!(await checkMemoryBeforeLoading(destPath))) return false;
@@ -193,6 +212,8 @@ export const loadModel = async modelName => {
       n_gpu_layers: 0, // Disabled GPU layers to fix emulator lag/hang
       n_threads: 2, // Reduced threads for emulator stability
     });
+    loadedModelName = modelName;
+    modelLifecycleGeneration += 1;
     if (__DEV__) console.log('Model context initialized.');
     return true;
   } catch (error) {
@@ -210,8 +231,11 @@ export const unloadModel = async () => {
       if (__DEV__) console.log('Releasing model context...');
       await releaseAllLlama();
       context = null;
+      modelLifecycleGeneration += 1;
       if (__DEV__) console.log('Model context released.');
     }
+    loadedModelName = null;
+    responseCache.clear();
   } catch (error) {
     console.error('Failed to release model context:', error);
   }
@@ -224,17 +248,6 @@ export const generateResponse = async conversation => {
       conversation,
     );
     return null;
-  }
-
-  const lastMessage = conversation.filter(msg => msg?.role === 'user').pop();
-  const cacheKey = lastMessage?.content?.trim();
-
-  if (cacheKey) {
-    const cachedResponse = getCache(cacheKey);
-    if (cachedResponse) {
-      console.log('Returning cached response for:', cacheKey);
-      return cachedResponse;
-    }
   }
 
   const stopWords = [
@@ -269,9 +282,24 @@ export const generateResponse = async conversation => {
       messagesToSend = [defaultSystemMessage, ...conversation];
     }
 
+    const activeContext = context;
+    const activeModelName = loadedModelName;
+    const activeGeneration = modelLifecycleGeneration;
+    const cacheKey = activeContext
+      ? createCacheKey(activeModelName, messagesToSend)
+      : null;
+
+    if (cacheKey) {
+      const cachedResponse = getCache(cacheKey);
+      if (cachedResponse) {
+        console.log('Returning cached response.');
+        return cachedResponse;
+      }
+    }
+
     if (__DEV__) console.log('Starting inference...');
     const startTime = Date.now();
-    const result = await context.completion({
+    const result = await activeContext.completion({
       messages: messagesToSend,
       n_predict: 256, // Reduced from 500 for faster felt response
       stop: stopWords,
@@ -284,7 +312,13 @@ export const generateResponse = async conversation => {
     const response = result?.text?.trim();
 
     // Cache the successful response
-    if (response && cacheKey) {
+    if (
+      response &&
+      cacheKey &&
+      context === activeContext &&
+      loadedModelName === activeModelName &&
+      modelLifecycleGeneration === activeGeneration
+    ) {
       setCache(cacheKey, response);
     }
 
