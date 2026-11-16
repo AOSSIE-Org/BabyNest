@@ -96,6 +96,30 @@ describe('generateResponse cache', () => {
     expect(calls).toHaveLength(1);
   });
 
+  test('does not reuse a cached reply after the cache TTL expires', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    try {
+      const {loadModel, generateResponse, calls} = createLoadedModel();
+      await loadModel('model.gguf');
+      const conversation = [
+        {role: 'system', content: 'Be concise.'},
+        {role: 'user', content: 'What should I focus on?'},
+      ];
+
+      const first = await generateResponse(conversation);
+      jest.advanceTimersByTime(30 * 60 * 1000 + 1);
+      const second = await generateResponse(conversation);
+
+      expect(first).toBe('reply-1');
+      expect(second).toBe('reply-2');
+      expect(calls).toHaveLength(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test('does not reuse a reply after switching the loaded model', async () => {
     const {loadModel, generateResponse, calls} = createLoadedModel();
     const conversation = [
