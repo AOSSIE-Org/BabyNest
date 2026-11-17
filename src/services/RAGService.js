@@ -26,6 +26,7 @@ import {
   updateDischargeLog,
 } from '../storage/discharge';
 import {
+  addMedicine,
   deleteMedicine,
   getAllMedicine,
   updateMedicine,
@@ -1832,7 +1833,6 @@ Rules:
         '• **What type of action** to undo? (e.g., "weight", "appointment", "last")',
 
       // Medicine fields (for both logging and CRUD)
-      name: '• **What medicine** did you take? (e.g., "paracetamol", "iron tablets")',
       frequency:
         '• **How often** do you take this medicine? (e.g., "twice daily", "as needed")',
       start_date:
@@ -2878,7 +2878,11 @@ Rules:
           data: result,
         };
       } else {
-        throw new Error(appointments_response.error.message);
+        throw new Error(
+          response?.error?.message ||
+            response?.message ||
+            `Failed to fetch ${data.type} data`,
+        );
       }
     } catch (error) {
       return {

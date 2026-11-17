@@ -37,12 +37,11 @@ const themes = {
     cardBackgroundprimary: '#e09f3e', 
     cardBackgroundsecondary: '#e09f3e', 
     iconBackground: '#9e2a2b', 
-    iconText: 'fff3b0',
+    iconText: '#FFFFFF',
     button: '#9e2a2b', 
     factcardprimary: '#e09f3e', 
     factcardsecondary: '#e09f3e', 
     appointment: '#fff3b0',
-    iconText:'#FFFFFF' 
   },
   pastel: {
     primary: '#AC87C5',
